@@ -1724,6 +1724,113 @@
   .adm-heatmap { display: none !important; }
 }
 
+/* ===== KPI目標プログレスバー ===== */
+
+.adm-kpi-goals {
+  margin-bottom: 24px;
+}
+
+.adm-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.adm-goal-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.adm-goal-bar {
+  flex: 1;
+  height: 12px;
+  background: var(--color-border);
+  border-radius: 6px;
+  position: relative;
+  overflow: visible;
+}
+
+.adm-goal-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s;
+}
+
+.adm-goal-fill-good {
+  background: #22c55e;
+}
+
+.adm-goal-fill-warn {
+  background: #f59e0b;
+}
+
+.adm-goal-fill-bad {
+  background: #ef4444;
+}
+
+.adm-goal-marker {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 18px;
+  background: var(--color-text);
+  opacity: 0.5;
+  transform: translateX(-1px);
+}
+
+.adm-goal-value {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 160px;
+  text-align: right;
+}
+
+@media (max-width: 767px) {
+  .adm-goal-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .adm-goal-label {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .adm-goal-value {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+    font-size: 0.75rem;
+  }
+}
+
+@media print {
+  .adm-kpi-goals {
+    break-inside: avoid;
+  }
+
+  .adm-goal-bar {
+    background: #e5e7eb;
+  }
+
+  .adm-goal-fill-good { background: #16a34a; }
+  .adm-goal-fill-warn { background: #d97706; }
+  .adm-goal-fill-bad { background: #dc2626; }
+
+  .adm-goal-marker {
+    background: #333;
+  }
+
+  .adm-goal-label,
+  .adm-goal-value {
+    color: #666;
+  }
+}
+
 /* ===== CSV Import ===== */
 
 .adm-csv-import-section {
@@ -1865,4 +1972,37 @@
   .adm-timeline-close {
     display: none !important;
   }
+}
+
+/* 計測リマインダー */
+.adm-reminder-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius, 8px);
+  margin-bottom: 16px;
+}
+.adm-reminder-icon { font-size: 1.3rem; }
+.adm-reminder-text { flex: 1; }
+.adm-reminder-main { font-weight: 600; color: #92400e; font-size: 0.95rem; }
+.adm-reminder-sub { color: #a16207; font-size: 0.85rem; margin-top: 2px; }
+@media print { .adm-reminder-banner { display: none; } }
+
+/* ヒートマップフィルター */
+.adm-heatmap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.adm-heatmap-filter select {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #1f2937);
 }

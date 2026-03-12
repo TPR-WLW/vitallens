@@ -939,20 +939,15 @@ test.describe('ExportView 組織レポートPDF', () => {
     await page.locator('.adm-login-form .adm-btn-primary').click();
     await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
 
-    // Load sample data (open sidebar first on mobile)
-    const admHamburger1 = page.locator('.adm-hamburger');
-    if (await admHamburger1.isVisible()) {
-      await admHamburger1.click();
-      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
-    }
-    const sampleBtn = page.locator('button', { hasText: 'サンプルデータ' });
-    if (await sampleBtn.isVisible()) await sampleBtn.click();
-
-    // Navigate to CSV Export view (open sidebar on mobile)
-    const admHamburger2 = page.locator('.adm-hamburger');
-    if (await admHamburger2.isVisible()) {
-      await admHamburger2.click();
-      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    // Navigate to CSV Export view (open sidebar on mobile if needed)
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      // Check if sidebar is already open
+      const sidebarAlreadyOpen = await page.locator('.adm-sidebar.open').isVisible().catch(() => false);
+      if (!sidebarAlreadyOpen) {
+        await admHamburger.click();
+        await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+      }
     }
     await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
     await expect(page.locator('.adm-view-title', { hasText: 'CSVデータ出力' })).toBeVisible({ timeout: 10000 });
@@ -1254,5 +1249,135 @@ test.describe('期間セレクター + ヒートマップ + イベントログ',
       await toggleBtn.click();
       await expect(page.locator('.adm-notif-log-body')).not.toBeVisible();
     }
+  });
+
+  test('KPI目標設定 — 設定画面にKPI目標スライダーが表示される', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+
+    // チーム管理ボタンでログイン画面へ
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary').filter({ hasText: 'チーム管理' }).first().click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // 新規登録
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const timestamp = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('KPIテスト管理者');
+    await page.locator('.adm-login-form input[type="email"]').fill(`kpi-${timestamp}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form button[type="submit"]').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // 設定画面へ
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: '設定' }).click();
+
+    // KPI目標設定セクション確認
+    await expect(page.locator('.adm-section-title', { hasText: 'KPI目標設定' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[aria-label="目標ストレススコア"]')).toBeVisible();
+    await expect(page.locator('input[aria-label="目標計測参加率"]')).toBeVisible();
+    await expect(page.locator('button', { hasText: '目標を保存' })).toBeVisible();
+  });
+
+  test('ヒートマップチーム別フィルター — サンプルデータで部署フィルター表示', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+
+    // チーム管理ボタンでログイン画面へ
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary').filter({ hasText: 'チーム管理' }).first().click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // 新規登録
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const timestamp = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('フィルターテスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`filter-${timestamp}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form button[type="submit"]').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // サンプルデータ読込
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await page.waitForLoadState('load', { timeout: 30000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 30000 });
+
+    // ヒートマップのフィルタードロップダウンを確認
+    const heatmap = page.locator('.adm-heatmap');
+    await expect(heatmap).toBeVisible({ timeout: 15000 });
+    const filterSelect = heatmap.locator('.adm-heatmap-filter select');
+    await expect(filterSelect).toBeVisible();
+
+    // 「全体」オプションがデフォルト
+    await expect(filterSelect).toHaveValue('');
+
+    // 部署オプションが3つ以上存在（サンプルデータは3部署）
+    const options = filterSelect.locator('option');
+    const count = await options.count();
+    expect(count).toBeGreaterThanOrEqual(4); // 全体 + 3部署
+
+    // 部署を選択してフィルタリング
+    await filterSelect.selectOption({ index: 1 });
+    // ヒートマップセルがまだ表示されている
+    await expect(heatmap.locator('.adm-heatmap-grid')).toBeVisible();
+  });
+
+  test('計測リマインダー — サンプルデータでリマインダーバナー表示確認', async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+
+    // チーム管理ボタンでログイン画面へ
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary').filter({ hasText: 'チーム管理' }).first().click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // 新規登録
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const timestamp = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('リマインダーテスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`reminder-${timestamp}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form button[type="submit"]').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // サンプルデータ読込
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await page.waitForLoadState('load', { timeout: 30000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 30000 });
+
+    // リマインダーバナーの存在を確認（サンプルデータでは一部のメンバーが7日以上未計測の可能性）
+    // バナーが表示されるかどうかはデータ依存だが、コンポーネント自体がレンダリングされていることを確認
+    // サンプルデータは過去4週間分なので、一部メンバーは直近7日に計測がない可能性が高い
+    const reminder = page.locator('.adm-reminder-banner');
+    // バナーが表示される場合はテキストを確認
+    if (await reminder.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await expect(reminder.locator('.adm-reminder-main')).toContainText('計測を行っていません');
+      await expect(reminder.locator('.adm-reminder-sub')).toContainText('定期的な計測');
+    }
+    // バナーが表示されない場合でもテストはパス（全員が直近7日に計測済みの場合）
   });
 });

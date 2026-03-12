@@ -53,12 +53,16 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   const [orgName, setOrgName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(55);
+  const [goalStress, setGoalStress] = useState(null);
+  const [goalParticipation, setGoalParticipation] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
       const org = await dataService.getOrg(session.orgId);
       setOrgName(org?.name || '');
       if (org?.config?.alertThreshold != null) setAlertThreshold(org.config.alertThreshold);
+      if (org?.config?.goalStress != null) setGoalStress(org.config.goalStress);
+      if (org?.config?.goalParticipation != null) setGoalParticipation(org.config.goalParticipation);
 
       const orgS = await dataService.getOrgStats(session.orgId);
       setOrgStats(orgS);
@@ -239,7 +243,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
 
         {view === 'overview' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} />
+            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} goalStress={goalStress} goalParticipation={goalParticipation} teams={teams} />
           </Suspense>
         )}
         {view === 'team' && (
@@ -259,7 +263,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={({ alertThreshold: t }) => { if (t != null) setAlertThreshold(t); }} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); }} />
           </Suspense>
         )}
       </main>

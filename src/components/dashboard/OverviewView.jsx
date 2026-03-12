@@ -243,6 +243,70 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
   );
 }
 
+function MeasurementReminder({ orgId }) {
+  const [inactiveCount, setInactiveCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orgId) { setLoading(false); return; }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const [measurements, users] = await Promise.all([
+          dataService.getMeasurements({
+            orgId,
+            from: thirtyDaysAgo.toISOString(),
+            to: now.toISOString(),
+          }),
+          dataService.getUsersByOrg(orgId),
+        ]);
+
+        if (cancelled) return;
+
+        // Build set of userIds who measured within last 7 days
+        const recentUserIds = new Set();
+        for (const m of (measurements || [])) {
+          const ts = m.measuredAt || m.createdAt || m.timestamp;
+          if (ts && new Date(ts).getTime() >= sevenDaysAgo.getTime()) {
+            recentUserIds.add(m.userId);
+          }
+        }
+
+        const allUsers = users || [];
+        const inactive = allUsers.filter(u => !recentUserIds.has(u.id));
+        setInactiveCount(inactive.length);
+      } catch {
+        setInactiveCount(0);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [orgId]);
+
+  if (loading || inactiveCount === 0) return null;
+
+  return (
+    <div className="adm-reminder-banner">
+      <span className="adm-reminder-icon">{'\u23f0'}</span>
+      <div className="adm-reminder-text">
+        <div className="adm-reminder-main">
+          {inactiveCount}名のメンバーが7日以上計測を行っていません
+        </div>
+        <div className="adm-reminder-sub">
+          定期的な計測の実施を推奨します
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AlertBanner({ teamStats, alertThreshold = 55 }) {
   const alerts = teamStats.filter(
     (ts) => !ts.privacyFiltered && ts.stats?.avgStress > alertThreshold
@@ -275,8 +339,9 @@ const PERIOD_OPTIONS = [
 
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 
-function ActivityHeatmap({ orgId }) {
+function ActivityHeatmap({ orgId, teams }) {
   const [cells, setCells] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('');
 
   useEffect(() => {
     if (!orgId) return;
@@ -296,6 +361,11 @@ function ActivityHeatmap({ orgId }) {
       } catch { /* */ }
 
       if (cancelled) return;
+
+      // チーム絞り込み（クライアントサイド）
+      if (selectedTeam) {
+        measurements = measurements.filter(m => m.teamId === selectedTeam);
+      }
 
       // Group by date string
       const byDate = {};
@@ -350,13 +420,29 @@ function ActivityHeatmap({ orgId }) {
     })();
 
     return () => { cancelled = true; };
-  }, [orgId]);
+  }, [orgId, selectedTeam]);
 
   if (cells.length === 0) return null;
 
   return (
     <div className="adm-heatmap">
-      <h3 className="adm-section-title">計測アクティビティ</h3>
+      <div className="adm-heatmap-header">
+        <h3 className="adm-section-title" style={{ margin: 0 }}>計測アクティビティ</h3>
+        {teams && teams.length > 0 && (
+          <div className="adm-heatmap-filter">
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              aria-label="部署フィルター"
+            >
+              <option value="">全体</option>
+              {teams.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       <div className="adm-heatmap-grid">
         {DAY_LABELS.map((d) => (
           <div key={d} className="adm-heatmap-day-label">{d}</div>
@@ -391,7 +477,7 @@ function ActivityHeatmap({ orgId }) {
   );
 }
 
-export default function OverviewView({ orgStats, teamStats, onTeamClick, alertThreshold }) {
+export default function OverviewView({ orgStats, teamStats, onTeamClick, alertThreshold, goalStress, goalParticipation, teams }) {
   const totalMembers = orgStats?.totalMembers || 0;
   const activeMeasured = orgStats?.activeMeasured || 0;
   const participationRate = totalMembers > 0 ? Math.round((activeMeasured / totalMembers) * 100) : 0;
@@ -464,6 +550,7 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
   return (
     <div className="adm-view">
       <AlertBanner teamStats={teamStats} alertThreshold={alertThreshold} />
+      <MeasurementReminder orgId={orgStats?.orgId} />
 
       {/* 期間セレクター + ウィジェットカード */}
       <div className="adm-weekly-widgets">
@@ -525,8 +612,50 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
         />
       </div>
 
+      {/* KPI目標達成状況 */}
+      {(goalStress != null || goalParticipation != null) && (
+        <div className="adm-kpi-goals">
+          <h3 className="adm-section-title">KPI目標達成状況</h3>
+          {goalStress != null && avgStress != null && (() => {
+            const stressDiff = avgStress - goalStress;
+            const fillClass = stressDiff <= 0 ? 'adm-goal-fill-good' : stressDiff <= 10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
+            const pct = Math.min(100, Math.round((avgStress / (goalStress + 30)) * 100));
+            const goalPct = Math.round((goalStress / (goalStress + 30)) * 100);
+            return (
+              <div className="adm-goal-row">
+                <div className="adm-goal-label">ストレス目標</div>
+                <div className="adm-goal-bar">
+                  <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                  <div className="adm-goal-marker" style={{ left: `${goalPct}%` }} />
+                </div>
+                <div className="adm-goal-value">
+                  目標: {goalStress} / 実績: {avgStress}
+                </div>
+              </div>
+            );
+          })()}
+          {goalParticipation != null && (() => {
+            const partDiff = participationRate - goalParticipation;
+            const fillClass = partDiff >= 0 ? 'adm-goal-fill-good' : partDiff >= -10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
+            const pct = Math.min(100, participationRate);
+            return (
+              <div className="adm-goal-row">
+                <div className="adm-goal-label">参加率目標</div>
+                <div className="adm-goal-bar">
+                  <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                  <div className="adm-goal-marker" style={{ left: `${goalParticipation}%` }} />
+                </div>
+                <div className="adm-goal-value">
+                  目標: {goalParticipation}% / 実績: {participationRate}%
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* 計測アクティビティヒートマップ */}
-      <ActivityHeatmap orgId={orgStats?.orgId} />
+      <ActivityHeatmap orgId={orgStats?.orgId} teams={teams || []} />
 
       <h3 className="adm-section-title">部署別サマリー</h3>
       <div className="adm-table-wrap">
