@@ -921,3 +921,240 @@ body {
     padding-top: 60px;
   }
 }
+
+/* ===== Emotion Indicator (Measure Screen) ===== */
+
+.emotion-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.emotion-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: background 0.3s;
+}
+
+.emotion-dot-active {
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.emotion-indicator-text {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== Condition Cards (Result Screen) ===== */
+
+.condition-overall-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  border: 2px solid;
+  padding: 24px 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.condition-overall-header {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.03em;
+}
+
+.condition-overall-score {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.condition-overall-message {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.condition-disclaimer-inline {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+/* Three dimension mini cards */
+
+.condition-dimensions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.condition-dim-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.condition-dim-label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.condition-dim-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.condition-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--color-surface-light);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.condition-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease-out;
+}
+
+/* Detail toggle */
+
+.detail-toggle {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: center;
+  margin-bottom: 20px;
+  transition: background 0.2s;
+}
+
+.detail-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+/* Facial Analysis Card */
+
+.facial-analysis-card {
+  background: #1e2130;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.facial-analysis-card h3 {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reference-badge {
+  display: inline-block;
+  background: rgba(79, 140, 255, 0.15);
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.facial-analysis-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.facial-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.facial-bar-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.facial-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-surface-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.facial-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: width 0.5s ease-out;
+}
+
+.facial-disclaimer {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  opacity: 0.6;
+  line-height: 1.5;
+}
+
+/* ===== Responsive additions ===== */
+
+@media (max-width: 480px) {
+  .condition-dimensions {
+    gap: 6px;
+  }
+
+  .condition-dim-card {
+    padding: 10px 6px;
+  }
+
+  .condition-dim-label {
+    font-size: 0.65rem;
+  }
+
+  .condition-dim-value {
+    font-size: 0.8rem;
+  }
+
+  .facial-bar-label {
+    min-width: 72px;
+    font-size: 0.7rem;
+  }
+}

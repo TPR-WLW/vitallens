@@ -856,3 +856,113 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ===== Contact Form ===== */
+
+.contact-form {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.cf-row {
+  display: flex;
+  gap: 16px;
+}
+
+.cf-field {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.cf-field-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.cf-required {
+  color: #f87171;
+  margin-left: 4px;
+}
+
+.cf-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.92rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cf-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.cf-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.15);
+}
+
+.cf-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.cf-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.cf-submit {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.cf-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cf-fallback {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.cf-fallback a {
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.cf-fallback a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .cf-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}

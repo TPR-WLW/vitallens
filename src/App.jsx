@@ -28,6 +28,18 @@ const SAMPLE_RESULT = {
     quality: { grade: 'A', score: 0.82, message: '信号品質: 優秀' },
     debug: { totalBeats: 228, validIBIs: 220, artifactCount: 8, artifactRate: 0.035 },
   },
+  emotion: {
+    summary: {
+      dominant: 'neutral',
+      distribution: { neutral: 72, happiness: 18, sadness: 4, surprise: 3, anger: 1, fear: 1, disgust: 1 },
+    },
+    history: new Array(120).fill(null).map((_, i) => ({
+      emotion: i % 5 === 0 ? 'happiness' : 'neutral',
+      confidence: 0.7,
+      timestamp: i * 1500,
+    })),
+    isCalibrated: true,
+  },
 };
 
 export default function App() {

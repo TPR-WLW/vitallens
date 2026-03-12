@@ -1,10 +1,21 @@
+import { useState } from 'react';
 import { CONTACT_FORM_URL } from '../config/api.js';
+import { computeConditionScores } from '../lib/emotion-fusion.js';
 
 export default function ResultScreen({ result, onRestart, onBack }) {
-  const { hr, confidence, hrv } = result;
+  const { hr, confidence, hrv, emotion } = result;
   const metrics = hrv?.metrics;
   const stress = hrv?.stress;
   const quality = hrv?.quality;
+
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  // Compute condition scores (fuses HRV + emotion)
+  const emotionSummary = emotion?.summary || null;
+  const condition = computeConditionScores(
+    hrv ? { metrics, stress } : null,
+    emotionSummary
+  );
 
   const getHRInfo = (heartRate, conf) => {
     if (conf < 0.15 || heartRate === 0) {
@@ -50,6 +61,30 @@ export default function ResultScreen({ result, onRestart, onBack }) {
   const hrInfo = getHRInfo(hr, confidence);
   const confidenceLabel = confidence > 0.4 ? '高' : confidence > 0.2 ? '中' : '低';
 
+  // Condition dimension display label for tension
+  const getTensionDisplay = (score) => {
+    if (score < 0) return '計測不能';
+    if (score >= 70) return '低い';
+    if (score >= 45) return 'やや高め';
+    return '高い';
+  };
+
+  const getVitalityDisplay = (score) => {
+    if (score < 0) return '計測不能';
+    if (score >= 70) return '十分';
+    if (score >= 45) return '普通';
+    return 'やや不足';
+  };
+
+  const getBalanceDisplay = (score) => {
+    if (score < 0) return '計測不能';
+    if (score >= 70) return '良好';
+    if (score >= 45) return '普通';
+    return 'やや乱れ';
+  };
+
+  const showCondition = condition.overall.score >= 0;
+
   return (
     <div className="result-screen">
       <div className="result-content">
@@ -62,7 +97,74 @@ export default function ResultScreen({ result, onRestart, onBack }) {
           </div>
         )}
 
-        {/* Stress level card (primary result) */}
+        {/* Overall Condition Card (NEW) */}
+        {showCondition && (
+          <div className="condition-overall-card" style={{ borderColor: condition.overall.color }}>
+            <div className="condition-overall-header">総合コンディション</div>
+            <div className="condition-overall-score" style={{ color: condition.overall.color }}>
+              {condition.overall.label}
+            </div>
+            {condition.overall.message && (
+              <p className="condition-overall-message">{condition.overall.message}</p>
+            )}
+            <p className="condition-disclaimer-inline">
+              ※ 本結果はウェルネス参考値です
+            </p>
+          </div>
+        )}
+
+        {/* Three Dimension Mini Cards (NEW) */}
+        {showCondition && (
+          <div className="condition-dimensions">
+            <div className="condition-dim-card">
+              <span className="condition-dim-label">こころの緊張度</span>
+              <span className="condition-dim-value" style={{ color: condition.tension.color }}>
+                {getTensionDisplay(condition.tension.score)}
+              </span>
+              <div className="condition-bar-track">
+                <div
+                  className="condition-bar-fill"
+                  style={{
+                    width: `${Math.max(0, condition.tension.score)}%`,
+                    backgroundColor: condition.tension.color,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="condition-dim-card">
+              <span className="condition-dim-label">回復・活力</span>
+              <span className="condition-dim-value" style={{ color: condition.vitality.color }}>
+                {getVitalityDisplay(condition.vitality.score)}
+              </span>
+              <div className="condition-bar-track">
+                <div
+                  className="condition-bar-fill"
+                  style={{
+                    width: `${Math.max(0, condition.vitality.score)}%`,
+                    backgroundColor: condition.vitality.color,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="condition-dim-card">
+              <span className="condition-dim-label">バランス度</span>
+              <span className="condition-dim-value" style={{ color: condition.balance.color }}>
+                {getBalanceDisplay(condition.balance.score)}
+              </span>
+              <div className="condition-bar-track">
+                <div
+                  className="condition-bar-fill"
+                  style={{
+                    width: `${Math.max(0, condition.balance.score)}%`,
+                    backgroundColor: condition.balance.color,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stress level card (existing, primary result) */}
         {stress && stress.level !== 'unknown' && (
           <div className="stress-card" style={{ borderColor: stress.color }}>
             <div className="stress-header">
@@ -108,41 +210,121 @@ export default function ResultScreen({ result, onRestart, onBack }) {
           )}
         </div>
 
-        {/* HRV Metrics */}
-        {metrics && (
-          <div className="hrv-metrics-card">
-            <h3>HRV指標（心拍変動）</h3>
-            <div className="hrv-grid">
-              <div className="hrv-metric">
-                <span className="hrv-value">{metrics.rmssd}</span>
-                <span className="hrv-unit">ms</span>
-                <span className="hrv-name">RMSSD</span>
-                <span className="hrv-desc">自律神経活性</span>
-                <span className="hrv-ref">基準値: 20〜60ms</span>
-              </div>
-              <div className="hrv-metric">
-                <span className="hrv-value">{metrics.sdnn}</span>
-                <span className="hrv-unit">ms</span>
-                <span className="hrv-name">SDNN</span>
-                <span className="hrv-desc">全体変動</span>
-                <span className="hrv-ref">基準値: 20〜55ms</span>
-              </div>
-              <div className="hrv-metric">
-                <span className="hrv-value">{metrics.pnn50}</span>
-                <span className="hrv-unit">%</span>
-                <span className="hrv-name">pNN50</span>
-                <span className="hrv-desc">回復力指標</span>
-                <span className="hrv-ref">基準値: 3〜40%</span>
-              </div>
-            </div>
-            {quality && (
-              <div className="hrv-quality">
-                <span className={`quality-badge quality-grade-${quality.grade.toLowerCase()}`}>
-                  {quality.grade}
-                </span>
-                <span>{quality.message}</span>
+        {/* Progressive Disclosure Toggle */}
+        <button
+          className="detail-toggle"
+          onClick={() => setDetailOpen(!detailOpen)}
+        >
+          {detailOpen ? '▲ 詳細データを閉じる' : '▼ 詳細データを見る'}
+        </button>
+
+        {/* Detail Section (expandable) */}
+        {detailOpen && (
+          <div className="detail-section">
+            {/* HRV Metrics */}
+            {metrics && (
+              <div className="hrv-metrics-card">
+                <h3>HRV指標（心拍変動）</h3>
+                <div className="hrv-grid">
+                  <div className="hrv-metric">
+                    <span className="hrv-value">{metrics.rmssd}</span>
+                    <span className="hrv-unit">ms</span>
+                    <span className="hrv-name">RMSSD</span>
+                    <span className="hrv-desc">自律神経活性</span>
+                    <span className="hrv-ref">基準値: 20〜60ms</span>
+                  </div>
+                  <div className="hrv-metric">
+                    <span className="hrv-value">{metrics.sdnn}</span>
+                    <span className="hrv-unit">ms</span>
+                    <span className="hrv-name">SDNN</span>
+                    <span className="hrv-desc">全体変動</span>
+                    <span className="hrv-ref">基準値: 20〜55ms</span>
+                  </div>
+                  <div className="hrv-metric">
+                    <span className="hrv-value">{metrics.pnn50}</span>
+                    <span className="hrv-unit">%</span>
+                    <span className="hrv-name">pNN50</span>
+                    <span className="hrv-desc">回復力指標</span>
+                    <span className="hrv-ref">基準値: 3〜40%</span>
+                  </div>
+                </div>
+                {quality && (
+                  <div className="hrv-quality">
+                    <span className={`quality-badge quality-grade-${quality.grade.toLowerCase()}`}>
+                      {quality.grade}
+                    </span>
+                    <span>{quality.message}</span>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Facial Analysis Detail (NEW) */}
+            {condition.hasEmotion && (
+              <div className="facial-analysis-card">
+                <h3>
+                  表情分析
+                  <span className="reference-badge">参考値</span>
+                </h3>
+                <p className="facial-analysis-desc">
+                  表情から推定された状態の傾向です。環境や体調により変動します。
+                </p>
+                <div className="facial-bar-row">
+                  <span className="facial-bar-label">リラックス傾向</span>
+                  <div className="facial-bar-track">
+                    <div
+                      className="facial-bar-fill"
+                      style={{ width: `${condition.tension.score}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="facial-bar-row">
+                  <span className="facial-bar-label">活動的な表情</span>
+                  <div className="facial-bar-track">
+                    <div
+                      className="facial-bar-fill"
+                      style={{ width: `${condition.vitality.score}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="facial-bar-row">
+                  <span className="facial-bar-label">表情の安定度</span>
+                  <div className="facial-bar-track">
+                    <div
+                      className="facial-bar-fill"
+                      style={{ width: `${condition.balance.score}%` }}
+                    />
+                  </div>
+                </div>
+                <p className="facial-disclaimer">
+                  ※ 表情分析はAIによる推定値であり、あなたの感情を断定するものではありません。
+                </p>
+              </div>
+            )}
+
+            {/* Measurement quality */}
+            <div className="quality-info">
+              <div className="quality-row">
+                <span>計測信頼度</span>
+                <span className={`quality-badge quality-${confidenceLabel === '高' ? 'high' : confidenceLabel === '中' ? 'moderate' : 'low'}`}>
+                  {confidenceLabel}
+                </span>
+              </div>
+              <div className="quality-row">
+                <span>計測時間</span>
+                <span>{Math.round(result.duration / 60)}分</span>
+              </div>
+              <div className="quality-row">
+                <span>サンプル数</span>
+                <span>{result.samples}</span>
+              </div>
+              {condition.hasEmotion && emotion?.history && (
+                <div className="quality-row">
+                  <span>表情フレーム数</span>
+                  <span>{emotion.history.length}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -150,24 +332,6 @@ export default function ResultScreen({ result, onRestart, onBack }) {
         <div className="wellness-card" style={{ borderLeftColor: hrInfo.color }}>
           <h3 style={{ color: hrInfo.color }}>{hrInfo.label}</h3>
           <p>{hrInfo.message}</p>
-        </div>
-
-        {/* Measurement quality */}
-        <div className="quality-info">
-          <div className="quality-row">
-            <span>計測信頼度</span>
-            <span className={`quality-badge quality-${confidenceLabel === '高' ? 'high' : confidenceLabel === '中' ? 'moderate' : 'low'}`}>
-              {confidenceLabel}
-            </span>
-          </div>
-          <div className="quality-row">
-            <span>計測時間</span>
-            <span>{Math.round(result.duration / 60)}分</span>
-          </div>
-          <div className="quality-row">
-            <span>サンプル数</span>
-            <span>{result.samples}</span>
-          </div>
         </div>
 
         {/* Tips for better reading */}

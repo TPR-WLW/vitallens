@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CONTACT_FORM_URL } from '../config/api.js';
+import ContactForm from './ContactForm.jsx';
 import '../styles/landing.css';
 
 export default function LandingPage({ onTryDemo, onShowDashboard }) {
@@ -48,9 +48,9 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
           <h1>2028年、すべての事業場に<br />ストレスチェックが義務化されます。</h1>
           <p className="hero-sub-accent">貴社の準備は、整っていますか。</p>
           <p className="hero-sub">
-            ミルケアは、カメラ映像からHRV（心拍変動）を解析し、
-            従業員のストレス状態を非接触で可視化するソリューションです。
-            ウェアラブル不要。プライバシー最優先設計。
+            ミルケアは、カメラ映像からHRV（心拍変動）と表情分析を同時に解析し、
+            多モーダル融合によるコンディションスコアで従業員のストレス状態を非接触で可視化します。
+            ウェアラブル不要。顔画像・映像の保存や送信は一切行いません。
           </p>
           <div className="hero-actions">
             <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
@@ -112,8 +112,8 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
         <div className="section-inner">
           <h2>カメラひとつで、ストレスを<em>「見える化」</em>する</h2>
           <p className="section-sub">
-            ミルケアは、リモート光電容積脈波法（rPPG）技術を活用し、
-            PCやスマートフォンのカメラから心拍変動（HRV）を非接触で測定します。
+            ミルケアは、rPPG技術によるHRV解析と表情分析（MediaPipe FaceLandmarker）を融合した
+            多モーダル分析で、身体と心理の両面からコンディションを可視化します。
             ウェアラブルデバイスや専用機器は一切不要です。
           </p>
           <div className="metrics-grid">
@@ -132,6 +132,18 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
             <div className="metric-card">
               <div className="metric-name">ストレススコア</div>
               <div className="metric-desc">総合的なストレス状態の数値化</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-name">こころの緊張度</div>
+              <div className="metric-desc">心理的ストレス指標（多モーダル融合）</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-name">回復・活力</div>
+              <div className="metric-desc">リカバリー指標（多モーダル融合）</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-name">バランス度</div>
+              <div className="metric-desc">総合バランス指標（多モーダル融合）</div>
             </div>
           </div>
         </div>
@@ -155,8 +167,8 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
               <div className="step-number">2</div>
               <h3>3分間の測定</h3>
               <p>
-                カメラが顔表面の微細な色変化を検出し、心拍変動を解析します。
-                すべての処理はブラウザ上で完結し、映像は一切保存されません。
+                カメラが顔表面の微細な色変化からHRVを、表情の動きからコンディションスコアを同時に解析します。
+                すべての処理はブラウザ上で完結し、映像や顔データは一切保存・送信されません。
               </p>
             </div>
             <div className="step-card">
@@ -177,7 +189,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
       {/* Benefits */}
       <section className="section" id="benefits">
         <div className="section-inner">
-          <h2>ミルケアが選ばれる<em>5つの理由</em></h2>
+          <h2>ミルケアが選ばれる<em>6つの理由</em></h2>
           <div className="benefits-grid">
             <div className="benefit-card">
               <div className="benefit-number">01</div>
@@ -217,6 +229,14 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
               <p>
                 ブラウザベースのため、ソフトウェアのインストール不要。
                 URLを共有するだけで、全拠点・全従業員への展開が完了します。
+              </p>
+            </div>
+            <div className="benefit-card">
+              <div className="benefit-number">06</div>
+              <h3>多モーダル分析の精度</h3>
+              <p>
+                HRVと表情分析を融合した3軸コンディションスコアにより、
+                質問票や単一信号では捉えられない心身の状態変化を客観的に検出します。
               </p>
             </div>
           </div>
@@ -293,19 +313,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
             導入のご相談・資料請求・無料パイロットのお申し込みなど、<br />
             お気軽にお問い合わせください。通常1営業日以内にご返信いたします。
           </p>
-          <div className="contact-actions">
-            <a
-              className="btn-hero"
-              href={CONTACT_FORM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              お問い合わせフォーム
-            </a>
-            <a className="contact-email" href="mailto:info@mirucare.jp">
-              info@mirucare.jp
-            </a>
-          </div>
+          <ContactForm />
         </div>
       </section>
 

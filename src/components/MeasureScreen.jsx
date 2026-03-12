@@ -3,17 +3,28 @@ import CameraView from './CameraView.jsx';
 import { startCamera, stopCamera, extractROI } from '../lib/camera.js';
 import { RPPGProcessor } from '../lib/rppg.js';
 import { analyzeHRV } from '../lib/hrv.js';
+import {
+  initFaceLandmarker,
+  detectLandmarks,
+  disposeFaceLandmarker,
+  getLandmarkerState,
+  EmotionProcessor,
+} from '../lib/emotion.js';
 
 const MEASUREMENT_DURATION = 180; // 3 minutes for reliable HRV
 const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
 const HRV_MIN_DURATION = 45;      // Minimum seconds before attempting HRV
+const EMOTION_FRAME_INTERVAL = 4; // Run emotion every 4th frame (~7.5fps at 30fps)
 
 export default function MeasureScreen({ onComplete, onCancel, quickMode = false, initialStream = null }) {
   const cameraRef = useRef(null);
   const processorRef = useRef(new RPPGProcessor());
+  const emotionRef = useRef(new EmotionProcessor());
   const streamRef = useRef(null);
   const animFrameRef = useRef(null);
   const startTimeRef = useRef(null);
+  const frameCountRef = useRef(0);
+  const landmarkerReadyRef = useRef(false);
 
   const duration = quickMode ? QUICK_CHECK_DURATION : MEASUREMENT_DURATION;
 
@@ -24,6 +35,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const [status, setStatus] = useState('カメラを起動中...');
   const [signalQuality, setSignalQuality] = useState(0);
   const [phase, setPhase] = useState('init'); // init | calibrating | measuring | hrv
+  const [emotionStatus, setEmotionStatus] = useState('loading'); // loading | calibrating | active | error
 
   useEffect(() => {
     let cancelled = false;
@@ -44,12 +56,29 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       }
     }
 
+    // Init camera immediately
     init();
+
+    // Init FaceLandmarker in parallel (non-blocking)
+    initFaceLandmarker()
+      .then(() => {
+        if (!cancelled) {
+          landmarkerReadyRef.current = true;
+          setEmotionStatus('calibrating');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEmotionStatus('error');
+        }
+      });
 
     return () => {
       cancelled = true;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (streamRef.current) stopCamera(streamRef.current);
+      // Note: we do NOT dispose FaceLandmarker here — it's a shared singleton
+      // that can be reused across measurements
     };
   }, []);
 
@@ -77,6 +106,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     const elapsedSec = (now - startTimeRef.current) / 1000;
     setElapsed(Math.min(elapsedSec, duration));
 
+    // ----- rPPG Pipeline (EVERY frame, unchanged) -----
     const roi = extractROI(canvas, ctx, video);
     setFaceDetected(roi.valid);
 
@@ -109,6 +139,24 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       setStatus('顔をガイドの中に合わせてください');
     }
 
+    // ----- Emotion Pipeline (every Nth frame, additive only) -----
+    frameCountRef.current++;
+    if (
+      landmarkerReadyRef.current &&
+      frameCountRef.current % EMOTION_FRAME_INTERVAL === 0
+    ) {
+      const landmarks = detectLandmarks(video, Math.round(now));
+      if (landmarks) {
+        const emotionResult = emotionRef.current.processLandmarks(landmarks, now);
+        if (emotionResult.calibrating) {
+          setEmotionStatus('calibrating');
+        } else {
+          setEmotionStatus('active');
+        }
+      }
+    }
+
+    // ----- Completion -----
     if (elapsedSec >= duration) {
       const finalResult = processorRef.current.computeHeartRate();
       const hr = finalResult?.hr || currentHR || 0;
@@ -120,12 +168,23 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         hrvResult = analyzeHRV(finalResult.signal, finalResult.timestamps, finalResult.fps);
       }
 
+      // Gather emotion data
+      const emotionProcessor = emotionRef.current;
+      const emotionData = emotionProcessor.isCalibrated
+        ? {
+            summary: emotionProcessor.summary,
+            history: emotionProcessor.history,
+            isCalibrated: true,
+          }
+        : null;
+
       onComplete({
         hr,
         confidence,
         duration,
         samples: processorRef.current.sampleCount,
         hrv: hrvResult,
+        emotion: emotionData,
       });
       return;
     }
@@ -179,6 +238,18 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
             {phase === 'hrv' && 'HRV分析'}
           </span>
         </div>
+
+        {/* Emotion analysis indicator (subtle, top-right style placed in overlay) */}
+        {emotionStatus !== 'error' && (
+          <div className="emotion-indicator">
+            <span className={`emotion-dot ${emotionStatus === 'active' ? 'emotion-dot-active' : ''}`} />
+            <span className="emotion-indicator-text">
+              {emotionStatus === 'loading' && '表情分析を準備中...'}
+              {emotionStatus === 'calibrating' && '表情キャリブレーション中...'}
+              {emotionStatus === 'active' && '表情分析中'}
+            </span>
+          </div>
+        )}
 
         <div className="progress-container">
           <div className="progress-bar">
