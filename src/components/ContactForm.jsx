@@ -1,11 +1,10 @@
 import { useState } from 'react';
 
 // ------------------------------------------------------------------
-// Contact email address — change this one constant when domain is ready.
-// Current: placeholder until mirucare.jp email routing is configured.
-// Target:  info@mirucare.jp (via Cloudflare Email Routing or Google Workspace)
+// Contact email address — swap back to info@mirucare.jp once domain is acquired.
+// Gmail fallback activated Cycle #21 so outreach can start immediately.
 // ------------------------------------------------------------------
-const CONTACT_EMAIL = 'info@mirucare.jp';
+const CONTACT_EMAIL = 'mirucare.contact@gmail.com';
 
 const INQUIRY_TYPES = [
   { value: '', label: '選択してください' },
