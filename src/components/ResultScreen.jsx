@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
-import { saveEntry } from '../lib/history.js';
+import { saveEntry, getEntries } from '../lib/history.js';
 import { printReport } from '../lib/report-pdf.js';
 import { dataService } from '../services/index.js';
 import { getSession } from '../services/auth-local.js';
@@ -14,6 +14,7 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // 自動保存：実計測結果は自動的に履歴に保存（デモ・サンプルは手動）
   useEffect(() => {
@@ -48,6 +49,58 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
   const handleManualSave = () => {
     saveEntry(result);
     setSaved(true);
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      hr: result.hr,
+      confidence: result.confidence,
+      duration: result.duration,
+      samples: result.samples,
+      algorithm: result.algorithm || null,
+      hrv: result.hrv ? {
+        metrics: result.hrv.metrics || null,
+        stress: result.hrv.stress || null,
+        quality: result.hrv.quality || null,
+        freqMetrics: result.hrv.freqMetrics || null,
+      } : null,
+      ts: new Date().toISOString(),
+    };
+    try {
+      const json = JSON.stringify(shareData);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      const base = window.location.href.split('#')[0].split('?')[0];
+      const shareUrl = `${base}#shared=${encoded}`;
+
+      // Build descriptive share text
+      const condLabel = showCondition ? condition.overall.label : null;
+      const stressLabel = stress?.label || null;
+      const shareText = [
+        'ミルケアでコンディションチェックしました',
+        condLabel ? `総合コンディション: ${condLabel}` : null,
+        stressLabel ? `ストレスレベル: ${stressLabel}` : null,
+        `心拍数: ${hr > 0 ? `${hr} BPM` : '--'}`,
+        'カメラだけで非接触計測 — あなたも試してみませんか？',
+      ].filter(Boolean).join('\n');
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'ミルケア コンディションチェック結果',
+            text: shareText,
+            url: shareUrl,
+          });
+          return;
+        } catch (_e) {
+          // Share cancelled or not supported, fall through to clipboard
+        }
+      }
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    } catch (_e) {
+      // clipboard fallback
+    }
   };
 
   // Compute condition scores (fuses HRV + emotion)
@@ -124,6 +177,20 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
   };
 
   const showCondition = condition.overall.score >= 0;
+
+  // Load past entries for mini trend
+  const pastScores = (() => {
+    try {
+      const entries = getEntries().filter(e => !e.data.isDemo && !e.data.isSample);
+      return entries.slice(0, 5).map(e => {
+        const c = computeConditionScores(
+          e.data.hrv ? { metrics: e.data.hrv.metrics, stress: e.data.hrv.stress } : null,
+          e.data.emotionSummary
+        );
+        return { score: c.overall.score, date: e.timestamp };
+      }).filter(s => s.score >= 0).reverse();
+    } catch { return []; }
+  })();
 
   return (
     <div className="result-screen" role="main" aria-label="計測結果画面">
@@ -430,6 +497,19 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           <p>{hrInfo.message}</p>
         </div>
 
+        {/* Personal trend mini-chart (last 5 real measurements) */}
+        {!result.isShared && <MiniTrendChart currentCondition={condition} />}
+
+        {/* Shared result CTA */}
+        {result.isShared && (
+          <div className="shared-result-cta">
+            <p className="shared-result-note">この結果は共有リンクから表示されています</p>
+            <button className="btn-primary btn-try-measure" onClick={onRestart}>
+              自分も計測してみる
+            </button>
+          </div>
+        )}
+
         {/* Tips for better reading */}
         {confidence < 0.3 && (
           <div className="tips-card">
@@ -500,6 +580,20 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           結果レポートをPDFで保存
         </button>
 
+        {/* Share */}
+        <button
+          className="btn-share-result"
+          onClick={handleShare}
+          aria-label="計測結果を共有する"
+        >
+          {shareCopied ? 'URLをコピーしました' : '結果を共有する'}
+        </button>
+        {shareCopied && (
+          <div className="share-toast" role="status">
+            共有リンクをクリップボードにコピーしました
+          </div>
+        )}
+
         {/* Save + History actions */}
         {(result.isDemo || result.isSample) && !saved && (
           <button className="btn-save-history" onClick={handleManualSave}>
@@ -534,6 +628,62 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           診断・治療の目的で使用しないでください。体調に不安がある場合は医療専門家にご相談ください。
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * ミニトレンドチャート — 直近5回のコンディションスコア推移
+ */
+function MiniTrendChart({ currentCondition }) {
+  const entries = (() => {
+    try {
+      const all = getEntries().filter(e => !e.data.isDemo && !e.data.isSample);
+      return all.slice(0, 5).map(e => {
+        const c = computeConditionScores(
+          e.data.hrv ? { metrics: e.data.hrv.metrics, stress: e.data.hrv.stress } : null,
+          e.data.emotionSummary
+        );
+        return { score: c.overall.score, date: e.timestamp };
+      }).filter(s => s.score >= 0).reverse();
+    } catch { return []; }
+  })();
+
+  if (entries.length < 2) return null;
+
+  const W = 200, H = 60, PAD = 12;
+  const chartW = W - PAD * 2;
+  const chartH = H - PAD * 2;
+
+  const points = entries.map((e, i) => ({
+    x: PAD + (i / (entries.length - 1)) * chartW,
+    y: PAD + (1 - e.score / 100) * chartH,
+    score: e.score,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const latest = points[points.length - 1];
+
+  return (
+    <div className="mini-trend-container" aria-label="直近のコンディション推移">
+      <span className="mini-trend-label">直近{entries.length}回の推移</span>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mini-trend-svg">
+        <path d={linePath} fill="none" stroke="#4f8cff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={i === points.length - 1 ? 4 : 2.5}
+            fill={i === points.length - 1 ? '#4f8cff' : '#1a1d27'}
+            stroke="#4f8cff"
+            strokeWidth={i === points.length - 1 ? 2 : 1.5}
+          />
+        ))}
+        <text x={latest.x} y={latest.y - 6} textAnchor="middle" fontSize="8" fontWeight="600" fill="#4f8cff">
+          {latest.score}
+        </text>
+      </svg>
     </div>
   );
 }

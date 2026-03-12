@@ -388,7 +388,7 @@ describe('LocalDataService — CSV Export', () => {
 
   it('should export CSV with header row', async () => {
     const csv = await service.exportCSV(org.id);
-    expect(csv).toContain('日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD');
+    expect(csv).toContain('日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD,平均SDNN,平均pNN50,平均LF/HF,平均LFnorm(%),平均HFnorm(%),平均呼吸数(/min)');
   });
 
   it('should skip teams with < 5 members in team CSV', async () => {

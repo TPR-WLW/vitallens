@@ -31,6 +31,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const faceLostTimeRef = useRef(null);
   const pausedTimeRef = useRef(0); // Total paused duration in ms
   const lastDisplayUpdateRef = useRef(0); // Throttle display state updates
+  const hrChartDataRef = useRef([]); // Accumulated HR data for mini chart
+  const lastHrSampleTimeRef = useRef(0); // Throttle HR chart sampling
 
   // Refs for values used inside processFrame (avoid dependency array)
   const onCompleteRef = useRef(onComplete);
@@ -38,7 +40,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const displayRef = useRef({
     elapsed: 0, faceDetected: false, currentHR: null, status: 'カメラを起動中...',
     signalQuality: 0, sqi: null, phase: 'init', emotionStatus: 'loading',
-    paused: false, calibrationDone: false,
+    paused: false, calibrationDone: false, hrChartData: [],
   });
 
   const duration = durationRef.current;
@@ -200,6 +202,17 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
             d.phase = 'hrv';
             d.status = 'HRV分析中 — そのままお待ちください...';
           }
+
+          // Sample HR for mini chart (every 3 seconds during measuring/hrv)
+          if ((d.phase === 'measuring' || d.phase === 'hrv') && result.hr > 0) {
+            if (elapsedSec - lastHrSampleTimeRef.current >= 3) {
+              lastHrSampleTimeRef.current = elapsedSec;
+              const chartData = hrChartDataRef.current;
+              chartData.push({ time: elapsedSec, hr: result.hr });
+              if (chartData.length > 60) chartData.shift();
+              d.hrChartData = [...chartData];
+            }
+          }
         }
       } else {
         d.status = 'データ収集中 — じっとしていてください...';
@@ -277,7 +290,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     };
   }, [stream, processFrame]);
 
-  const { elapsed, faceDetected, currentHR, status, signalQuality, sqi, phase, emotionStatus, paused, calibrationDone } = display;
+  const { elapsed, faceDetected, currentHR, status, signalQuality, sqi, phase, emotionStatus, paused, calibrationDone, hrChartData } = display;
 
   const progress = Math.min((elapsed / duration) * 100, 100);
   const remainingSec = Math.max(0, Math.ceil(duration - elapsed));
@@ -322,6 +335,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
           <span className="status-text">{status}</span>
           {currentHR > 0 && (
             <span className="current-hr" aria-label={`現在の心拍数 ${currentHR} BPM`}>
+              <span className="hr-pulse-icon" aria-hidden="true">♥</span>
               <span className="hr-value">{currentHR}</span>
               <span className="hr-unit">BPM</span>
             </span>
@@ -408,6 +422,53 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
             )}
           </div>
         )}
+
+        {/* HR Mini Chart */}
+        {(phase === 'measuring' || phase === 'hrv') && hrChartData && hrChartData.length >= 2 && (() => {
+          const chartW = 400;
+          const chartH = 60;
+          const hrs = hrChartData.map(p => p.hr);
+          const times = hrChartData.map(p => p.time);
+          const rawMin = Math.min(...hrs);
+          const rawMax = Math.max(...hrs);
+          const minHR = Math.max(40, rawMin - 5);
+          const maxHR = Math.min(200, rawMax + 5);
+          const hrRange = maxHR - minHR || 1;
+          const minTime = times[0];
+          const maxTime = times[times.length - 1];
+          const timeRange = maxTime - minTime || 1;
+          const points = hrChartData.map(p => {
+            const x = ((p.time - minTime) / timeRange) * chartW;
+            const y = (1 - (p.hr - minHR) / hrRange) * chartH;
+            return `${x},${y}`;
+          }).join(' ');
+          const lastPt = hrChartData[hrChartData.length - 1];
+          const lastX = ((lastPt.time - minTime) / timeRange) * chartW;
+          const lastY = (1 - (lastPt.hr - minHR) / hrRange) * chartH;
+          return (
+            <div className="hr-mini-chart" aria-label={`心拍推移チャート — 直近${hrChartData.length}点`}>
+              <div className="hr-mini-chart-label">心拍推移</div>
+              <svg viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke="var(--color-primary)"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <circle
+                  cx={lastX}
+                  cy={lastY}
+                  r="3"
+                  fill="var(--color-primary)"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
+          );
+        })()}
 
         <button
           className="btn-cancel"

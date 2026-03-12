@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { dataService } from '../../services/index.js';
 import { loadSampleData, isSampleDataLoaded, clearSampleData } from './sample-data.js';
 import '../../styles/admin-dashboard.css';
@@ -52,11 +52,13 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   const [sampleLoading, setSampleLoading] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState(55);
 
   const loadData = useCallback(async () => {
     try {
       const org = await dataService.getOrg(session.orgId);
       setOrgName(org?.name || '');
+      if (org?.config?.alertThreshold != null) setAlertThreshold(org.config.alertThreshold);
 
       const orgS = await dataService.getOrgStats(session.orgId);
       setOrgStats(orgS);
@@ -78,6 +80,50 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // === リアルタイム更新: BroadcastChannel + visibilitychange ===
+  const [toastVisible, setToastVisible] = useState(false);
+  const lastLoadTimeRef = useRef(Date.now());
+  const toastTimerRef = useRef(null);
+
+  const refreshAndNotify = useCallback(() => {
+    lastLoadTimeRef.current = Date.now();
+    loadData();
+    setToastVisible(true);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000);
+  }, [loadData]);
+
+  useEffect(() => {
+    let channel = null;
+    try {
+      channel = new BroadcastChannel('mirucare-measurements');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'measurement-saved' && event.data.timestamp > lastLoadTimeRef.current) {
+          refreshAndNotify();
+        }
+      };
+    } catch (_e) {
+      // BroadcastChannel未対応ブラウザは無視
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // タブが再度表示されたらデータを更新
+        loadData();
+        lastLoadTimeRef.current = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (channel) {
+        try { channel.close(); } catch (_e) { /* ignore */ }
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, [loadData, refreshAndNotify]);
 
   const handleLoadSample = async () => {
     setSampleLoading(true);
@@ -193,7 +239,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
 
         {view === 'overview' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} />
+            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} />
           </Suspense>
         )}
         {view === 'team' && (
@@ -213,13 +259,20 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={({ alertThreshold: t }) => { if (t != null) setAlertThreshold(t); }} />
           </Suspense>
         )}
       </main>
 
       {/* オーバーレイ（モバイルサイドバー用） */}
       {sidebarOpen && <div className="adm-overlay" onClick={() => setSidebarOpen(false)} />}
+
+      {/* データ更新トースト */}
+      {toastVisible && (
+        <div className="adm-toast" role="status" aria-live="polite">
+          データ更新しました
+        </div>
+      )}
     </div>
   );
 }

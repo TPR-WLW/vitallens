@@ -80,6 +80,30 @@ export default function App() {
   const ctaVariant = getVariant('cta_text', ['A', 'B']);
   const ctaText = CTA_VARIANTS[ctaVariant] || CTA_VARIANTS.A;
 
+  // Handle shared result URL: #shared=<base64>
+  useEffect(() => {
+    function parseSharedResult() {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#shared=')) return;
+      try {
+        const encoded = hash.slice('#shared='.length);
+        const json = decodeURIComponent(escape(atob(encoded)));
+        const data = JSON.parse(json);
+        if (data && typeof data.hr === 'number') {
+          setResult({ ...data, isShared: true, isSample: false, isDemo: false });
+          setScreen(SCREENS.RESULT);
+          // Clear hash to prevent re-parse on re-render
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } catch (_e) {
+        // Invalid shared link, ignore
+      }
+    }
+    parseSharedResult();
+    window.addEventListener('hashchange', parseSharedResult);
+    return () => window.removeEventListener('hashchange', parseSharedResult);
+  }, []);
+
   const handleTryDemo = () => {
     recordEvent('cta_click', { from: 'landing', variant: ctaVariant });
     recordConversion('cta_text', ctaVariant);

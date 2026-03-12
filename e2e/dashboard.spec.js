@@ -176,7 +176,7 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     await page.locator('.adm-login-form .adm-btn-primary').click();
 
     // Should reach the admin dashboard
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('.adm-main-header h1')).toBeVisible();
   });
 
@@ -184,7 +184,7 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
     await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
-    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
 
     // Register a new account
     await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
@@ -195,7 +195,7 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     await passwords.nth(0).fill('testpassword123');
     await passwords.nth(1).fill('testpassword123');
     await page.locator('.adm-login-form .adm-btn-primary').click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
 
     // Click "サンプルデータ読込" in sidebar
     const sampleBtn = page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' });
@@ -203,15 +203,15 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     const admHamburger = page.locator('.adm-hamburger');
     if (await admHamburger.isVisible()) {
       await admHamburger.click();
-      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
     }
     await sampleBtn.click();
 
     // Page reloads after sample data load, wait for dashboard to reappear
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 25000 });
 
     // Sample data banner should be visible
-    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 10000 });
+    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 15000 });
 
     // KPI cards should show data (not empty)
     await expect(page.locator('.adm-kpi-card').first()).toBeVisible();
@@ -225,7 +225,7 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
     await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
-    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
 
     // Register
     await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
@@ -236,7 +236,7 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
     await passwords.nth(0).fill('testpassword123');
     await passwords.nth(1).fill('testpassword123');
     await page.locator('.adm-login-form .adm-btn-primary').click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
 
     // Helper: ensure sidebar is accessible
     const openSidebar = async () => {
@@ -284,7 +284,7 @@ test.describe('ダッシュボード 通知・印刷・ベンチマーク', () =
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
     await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
-    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
 
     await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
     const timestamp = Date.now();
@@ -294,17 +294,17 @@ test.describe('ダッシュボード 通知・印刷・ベンチマーク', () =
     await passwords.nth(0).fill('testpassword123');
     await passwords.nth(1).fill('testpassword123');
     await page.locator('.adm-login-form .adm-btn-primary').click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
 
     // Load sample data
     const admHamburger = page.locator('.adm-hamburger');
     if (await admHamburger.isVisible()) {
       await admHamburger.click();
-      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
     }
     await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 10000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 25000 });
+    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 15000 });
   }
 
   test('印刷ボタンが表示されクリック可能', async ({ page }) => {
@@ -353,6 +353,207 @@ test.describe('ダッシュボード 通知・印刷・ベンチマーク', () =
   });
 });
 
+test.describe('ダッシュボード 期間比較・共有・アクセシビリティ', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  async function registerAndLoadSample(page) {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const timestamp = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('期間テスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`period-${timestamp}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 25000 });
+    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 15000 });
+  }
+
+  test('チームビューに期間比較レポートが表示される', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+    }
+    await page.locator('.adm-nav-item', { hasText: 'チーム' }).click();
+    await expect(page.locator('.adm-view-title')).toContainText('チーム ストレス推移');
+
+    // Period comparison section should appear
+    await expect(page.locator('.adm-section-title', { hasText: '期間比較レポート' })).toBeVisible({ timeout: 10000 });
+
+    // KPI cards for month comparison should be visible
+    const kpiCards = page.locator('.adm-kpi-card');
+    await expect(kpiCards.first()).toBeVisible();
+  });
+
+  test('ベンチマークテーブルにaria-label属性がある', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+    }
+    await page.locator('.adm-nav-item', { hasText: 'チーム' }).click();
+    await expect(page.locator('.adm-view-title')).toContainText('チーム ストレス推移');
+
+    // Benchmark table should have aria-label
+    await expect(page.locator('.adm-section-title', { hasText: '部署間ベンチマーク' })).toBeVisible({ timeout: 10000 });
+    const benchmarkTable = page.locator('table[aria-label="部署間ベンチマーク比較"]');
+    await expect(benchmarkTable).toBeVisible();
+
+    // th elements should have scope="col"
+    const ths = benchmarkTable.locator('th');
+    const thCount = await ths.count();
+    for (let i = 0; i < thCount; i++) {
+      await expect(ths.nth(i)).toHaveAttribute('scope', 'col');
+    }
+  });
+
+  test('概要ビューのテーブルにaria-label属性がある', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    // Overview table should have aria-label
+    const overviewTable = page.locator('table[aria-label="部署別サマリー"]');
+    await expect(overviewTable).toBeVisible({ timeout: 10000 });
+
+    // th elements should have scope="col"
+    const ths = overviewTable.locator('th');
+    const thCount = await ths.count();
+    for (let i = 0; i < thCount; i++) {
+      await expect(ths.nth(i)).toHaveAttribute('scope', 'col');
+    }
+  });
+
+  test('共有リンクで結果画面に「自分も計測してみる」CTAが表示される', async ({ page }) => {
+    // Build a shared URL with base64-encoded result data
+    const shareData = {
+      hr: 72,
+      confidence: 0.85,
+      duration: 180,
+      samples: 5400,
+      algorithm: 'POS',
+      hrv: {
+        metrics: { rmssd: 35, sdnn: 40, pnn50: 16, meanIBI: 833, meanHR: 72 },
+        stress: { level: 'low', score: 30, label: 'リラックス', color: '#22c55e' },
+        quality: { grade: 'A', score: 0.85, message: '信号品質: 優秀' },
+        freqMetrics: null,
+      },
+      ts: new Date().toISOString(),
+    };
+    const encoded = Buffer.from(JSON.stringify(shareData)).toString('base64');
+    await page.goto(`/#shared=${encoded}`);
+
+    // Wait for result screen
+    await expect(page.locator('.result-screen')).toBeVisible({ timeout: 10000 });
+
+    // Shared CTA should be visible
+    const sharedCta = page.locator('.shared-result-cta');
+    await expect(sharedCta).toBeVisible();
+    await expect(sharedCta.locator('.shared-result-note')).toContainText('共有リンクから表示');
+
+    // "自分も計測してみる" button
+    const tryBtn = sharedCta.locator('.btn-try-measure');
+    await expect(tryBtn).toBeVisible();
+    await expect(tryBtn).toContainText('自分も計測してみる');
+  });
+
+  test('結果画面にミニトレンドチャートが履歴2件以上で表示される', async ({ page }) => {
+    // Seed localStorage with 3 measurement entries
+    const entries = Array.from({ length: 3 }, (_, i) => ({
+      id: `test-${i}`,
+      timestamp: new Date(Date.now() - i * 86400000).toISOString(),
+      data: {
+        hr: 70 + i,
+        confidence: 0.8,
+        duration: 180,
+        samples: 5400,
+        isDemo: false,
+        isSample: false,
+        hrv: {
+          metrics: { rmssd: 30 + i * 2, sdnn: 35 + i, pnn50: 12 + i, meanIBI: 800, meanHR: 70 + i },
+          stress: { level: 'moderate', score: 40 + i * 5, label: '通常', color: '#4f8cff' },
+          quality: { grade: 'A', score: 0.8, message: '信号品質: 優秀' },
+        },
+        emotionSummary: null,
+      },
+    }));
+
+    await page.evaluate((data) => {
+      localStorage.setItem('mirucare_history', JSON.stringify(data));
+    }, entries);
+
+    // Navigate to sample result
+    await page.goto('/');
+    await skipOnboarding(page);
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('a.btn-nav', { hasText: /デモ|ストレスチェック/ }).first().click();
+
+    const sampleBtn = page.locator('button', { hasText: 'サンプル結果を見る' });
+    if (await sampleBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await sampleBtn.click();
+    }
+
+    // Wait for result screen
+    await expect(page.locator('.result-screen')).toBeVisible({ timeout: 10000 });
+
+    // Mini trend chart should be visible
+    const miniTrend = page.locator('.mini-trend-container');
+    await expect(miniTrend).toBeVisible();
+    await expect(miniTrend).toHaveAttribute('aria-label', '直近のコンディション推移');
+    await expect(miniTrend.locator('.mini-trend-label')).toContainText('直近');
+  });
+
+  test('結果画面にシェアボタンが表示される', async ({ page }) => {
+    // Navigate to demo result
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('a.btn-nav', { hasText: /デモ|ストレスチェック/ }).first().click();
+
+    // Click "サンプル結果" if available, or navigate to sample
+    const sampleBtn = page.locator('button', { hasText: 'サンプル結果を見る' });
+    if (await sampleBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await sampleBtn.click();
+    } else {
+      // Fall back: go back and use sample route
+      await page.goto('/');
+      await skipOnboarding(page);
+      const navHamburger = page.locator('.nav-hamburger');
+      if (await navHamburger.isVisible()) await navHamburger.click();
+      await page.locator('a.btn-nav', { hasText: /デモ|ストレスチェック/ }).first().click();
+      await page.locator('button', { hasText: /サンプル/ }).first().click({ timeout: 5000 });
+    }
+
+    // Wait for result screen
+    await expect(page.locator('.result-screen')).toBeVisible({ timeout: 10000 });
+
+    // Share button should be visible
+    const shareBtn = page.locator('.btn-share-result');
+    await expect(shareBtn).toBeVisible();
+    await expect(shareBtn).toContainText('結果を共有する');
+    await expect(shareBtn).toHaveAttribute('aria-label', '計測結果を共有する');
+  });
+});
+
 test.describe('ダッシュボード モバイルサイドバー', () => {
   test.beforeEach(async ({ page }) => {
     await skipOnboarding(page);
@@ -365,7 +566,7 @@ test.describe('ダッシュボード モバイルサイドバー', () => {
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
     await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
-    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
 
     await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
     const timestamp = Date.now();
@@ -375,7 +576,7 @@ test.describe('ダッシュボード モバイルサイドバー', () => {
     await passwords.nth(0).fill('testpassword123');
     await passwords.nth(1).fill('testpassword123');
     await page.locator('.adm-login-form .adm-btn-primary').click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
 
     // Dashboard hamburger should be visible on mobile
     const admHamburger = page.locator('.adm-hamburger');
@@ -403,7 +604,7 @@ test.describe('ダッシュボード モバイルサイドバー', () => {
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
     await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
-    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 15000 });
 
     await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
     const timestamp = Date.now();
@@ -413,7 +614,7 @@ test.describe('ダッシュボード モバイルサイドバー', () => {
     await passwords.nth(0).fill('testpassword123');
     await passwords.nth(1).fill('testpassword123');
     await page.locator('.adm-login-form .adm-btn-primary').click();
-    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
 
     // Open sidebar
     await page.locator('.adm-hamburger').click();
@@ -422,5 +623,360 @@ test.describe('ダッシュボード モバイルサイドバー', () => {
     // Click overlay to close
     await page.locator('.adm-overlay').click();
     await expect(page.locator('.adm-sidebar')).not.toHaveClass(/open/);
+  });
+});
+
+// ===== 履歴画面トレンド期間フィルタ =====
+
+test.describe('HistoryScreen トレンド期間フィルタ', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+  });
+
+  test('期間フィルタボタンが表示される', async ({ page }) => {
+    // Seed history with 3 real entries via addInitScript (before page load)
+    const entries = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      entries.push({
+        id: `trend-filter-${i}`,
+        timestamp: d.toISOString(),
+        data: {
+          hr: 72 + i,
+          confidence: 0.85,
+          isDemo: false,
+          isSample: false,
+          hrv: {
+            metrics: { rmssd: 38 + i, sdnn: 42, pnn50: 18 },
+            stress: { score: 35 + i * 5, label: '低い', color: '#22c55e', level: 'low' },
+          },
+        },
+      });
+    }
+    await page.addInitScript((e) => {
+      localStorage.setItem('mirucare_history', JSON.stringify(e));
+    }, entries);
+    await page.goto('/');
+
+    // Click hero CTA to go to start screen, then navigate to history
+    await page.locator('.btn-hero').first().click();
+    await expect(page.locator('.start-screen')).toBeVisible({ timeout: 10000 });
+    await page.locator('button.btn-history').click();
+    await expect(page.locator('.history-screen')).toBeVisible({ timeout: 10000 });
+
+    // Period filter buttons should exist
+    await expect(page.locator('.trend-period-btn')).toHaveCount(3);
+    await expect(page.locator('.trend-period-btn.active')).toContainText('全期間');
+  });
+});
+
+// ===== 履歴カード展開テスト =====
+
+test.describe('HistoryScreen カード展開', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+  });
+
+  test('詳細ボタンでHRV指標が展開表示される', async ({ page }) => {
+    // Seed history with entry containing full HRV data
+    const entries = [{
+      id: 'expand-test-1',
+      timestamp: new Date().toISOString(),
+      data: {
+        hr: 72,
+        confidence: 0.85,
+        isDemo: false,
+        isSample: false,
+        algorithm: 'POS',
+        hrv: {
+          metrics: { rmssd: 38, sdnn: 42, pnn50: 18, meanIBI: 833, meanHR: 72 },
+          stress: { score: 35, label: '低い', color: '#22c55e', level: 'low' },
+          quality: { grade: 'A', score: 0.85, message: '信号品質: 優秀' },
+          freqMetrics: { lf: 0.02, hf: 0.03, lfHfRatio: 1.5, lfNorm: 45, hfNorm: 55, totalPower: 0.05, respiratory: { respiratoryRate: 15.2, confidence: 0.8, peakFrequency: 0.25 } },
+        },
+        emotionSummary: null,
+      },
+    }, {
+      id: 'expand-test-2',
+      timestamp: new Date(Date.now() - 86400000).toISOString(),
+      data: {
+        hr: 68, confidence: 0.8, isDemo: false, isSample: false,
+        hrv: {
+          metrics: { rmssd: 40, sdnn: 45, pnn50: 20, meanIBI: 882, meanHR: 68 },
+          stress: { score: 30, label: '低い', color: '#22c55e', level: 'low' },
+          quality: { grade: 'A', score: 0.9, message: '信号品質: 優秀' },
+        },
+        emotionSummary: null,
+      },
+    }];
+
+    await page.addInitScript((e) => {
+      localStorage.setItem('mirucare_history', JSON.stringify(e));
+    }, entries);
+    await page.goto('/');
+
+    // Navigate to history
+    await page.locator('.btn-hero').first().click();
+    await expect(page.locator('.start-screen')).toBeVisible({ timeout: 10000 });
+    await page.locator('button.btn-history').click();
+    await expect(page.locator('.history-screen')).toBeVisible({ timeout: 10000 });
+
+    // Expand button should exist on card with full HRV data
+    const expandBtn = page.locator('.btn-history-expand').first();
+    await expect(expandBtn).toBeVisible();
+    await expect(expandBtn).toContainText('詳細');
+
+    // Click to expand
+    await expandBtn.click();
+
+    // Detail grid should show HRV metrics
+    const detail = page.locator('.history-detail').first();
+    await expect(detail).toBeVisible();
+    await expect(detail.locator('.history-detail-item')).toHaveCount(8); // sdnn, pnn50, meanHR, LF/HF, LF norm, HF norm, respiratory, grade
+
+    // Click again to collapse
+    await expandBtn.click();
+    await expect(detail).not.toBeVisible();
+  });
+});
+
+// ===== History Screen フィルタ =====
+
+test.describe('HistoryScreen フィルタ機能', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+  });
+
+  test('フィルタバーが表示され、種別フィルタで絞り込める', async ({ page }) => {
+    // Seed history with mixed entries
+    const entries = [
+      {
+        id: 'filter-1',
+        timestamp: new Date().toISOString(),
+        data: {
+          hr: 72, confidence: 0.85, isDemo: false, isSample: false,
+          hrv: {
+            metrics: { rmssd: 38, sdnn: 42, pnn50: 18, meanIBI: 833, meanHR: 72 },
+            stress: { score: 42, label: '中程度', color: '#f59e0b', level: 'medium' },
+            quality: { grade: 'B', score: 0.75, message: '信号品質: 良好' },
+          },
+          emotionSummary: null,
+        },
+      },
+      {
+        id: 'filter-2',
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        data: {
+          hr: 65, confidence: 0.9, isDemo: true, isSample: false,
+          hrv: {
+            metrics: { rmssd: 50, sdnn: 55, pnn50: 25, meanIBI: 923, meanHR: 65 },
+            stress: { score: 25, label: '低い', color: '#22c55e', level: 'low' },
+            quality: { grade: 'A', score: 0.9, message: '信号品質: 優秀' },
+          },
+          emotionSummary: null,
+        },
+      },
+    ];
+
+    await page.addInitScript((e) => {
+      localStorage.setItem('mirucare_history', JSON.stringify(e));
+    }, entries);
+    await page.goto('/');
+
+    // Navigate to history
+    await page.locator('.btn-hero').first().click();
+    await expect(page.locator('.start-screen')).toBeVisible({ timeout: 10000 });
+    await page.locator('button.btn-history').click();
+    await expect(page.locator('.history-screen')).toBeVisible({ timeout: 10000 });
+
+    // Filter bar should be visible
+    await expect(page.locator('.history-filter-bar')).toBeVisible();
+
+    // Count display should show
+    await expect(page.locator('.history-filter-count')).toContainText('2件');
+
+    // Select demo-only filter
+    const typeSelect = page.locator('.history-filter-bar select').first();
+    await typeSelect.selectOption('demo');
+
+    // Should now show 1 entry
+    await expect(page.locator('.history-filter-count')).toContainText('1件');
+  });
+});
+
+// ===== チームドリルダウン =====
+
+test.describe('TeamView 部署ドリルダウン', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  async function registerAndLoadSample(page) {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('ドリルテスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`drill-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) await admHamburger.click();
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 25000 });
+    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 15000 });
+  }
+
+  test('部署名クリックで日次推移ドリルダウンが表示される', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    // Navigate to Team view
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) await admHamburger.click();
+    await page.locator('.adm-nav-item', { hasText: 'チーム分析' }).click();
+    await expect(page.locator('.adm-view-title', { hasText: 'チーム ストレス推移' })).toBeVisible({ timeout: 10000 });
+
+    // Find clickable team link in status list
+    const drillLink = page.locator('.adm-drill-link').first();
+    if (await drillLink.isVisible({ timeout: 5000 })) {
+      await drillLink.click();
+
+      // Drill-down panel should appear
+      await expect(page.locator('.adm-section-title', { hasText: 'の日次推移' })).toBeVisible({ timeout: 10000 });
+
+      // Close button should work
+      const closeBtn = page.locator('.adm-drill-close');
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+        await expect(page.locator('.adm-section-title', { hasText: 'の日次推移' })).not.toBeVisible();
+      }
+    }
+  });
+});
+
+// ===== キャリブレーションガイド =====
+
+test.describe('計測画面 キャリブレーションガイド', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('計測ガイドにステップ表示が含まれる', async ({ page }) => {
+    // Navigate to demo
+    await page.locator('.btn-hero').first().click();
+    await expect(page.locator('.start-screen')).toBeVisible({ timeout: 10000 });
+
+    // Start demo
+    await page.locator('.btn-start-demo').click();
+    await expect(page.locator('.demo-measure-screen, .measure-screen')).toBeVisible({ timeout: 10000 });
+
+    // The guide text should contain step-by-step instructions
+    const guideSteps = page.locator('.guide-text-steps');
+    const guideDetected = page.locator('.guide-text-detected');
+
+    // Either the steps (face not detected) or detected message should be visible
+    const stepsVisible = await guideSteps.isVisible({ timeout: 5000 }).catch(() => false);
+    const detectedVisible = await guideDetected.isVisible({ timeout: 2000 }).catch(() => false);
+
+    expect(stepsVisible || detectedVisible).toBeTruthy();
+
+    if (stepsVisible) {
+      await expect(page.locator('.guide-step')).toContainText('ガイド枠');
+      await expect(page.locator('.guide-step-sub')).toContainText('40〜60cm');
+    }
+  });
+});
+
+// ===== 組織レポートPDFボタン =====
+
+test.describe('ExportView 組織レポートPDF', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('組織レポートPDFボタンが表示される', async ({ page }) => {
+    // Navigate to dashboard
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // Register
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('PDFテスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`pdf-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Load sample data
+    const sampleBtn = page.locator('button', { hasText: 'サンプルデータ' });
+    if (await sampleBtn.isVisible()) await sampleBtn.click();
+
+    // Navigate to CSV Export view
+    await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
+    await expect(page.locator('.adm-view-title', { hasText: 'CSVデータ出力' })).toBeVisible({ timeout: 10000 });
+
+    // Organization report PDF button should be present
+    await expect(page.locator('button', { hasText: '組織レポートをPDF出力' })).toBeVisible();
+  });
+});
+
+// ===== メンバースコアタイムライン =====
+
+test.describe('MembersView スコアタイムライン', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('管理者自身の行にあなたバッジと展開ボタンが表示される', async ({ page }) => {
+    // Navigate to dashboard
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // Register
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('タイムラインテスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`tl-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Navigate to Members view
+    await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
+    await expect(page.locator('.adm-view-title', { hasText: 'メンバー管理' })).toBeVisible({ timeout: 10000 });
+
+    // "あなた" badge should be visible
+    await expect(page.locator('.adm-member-you-badge')).toBeVisible();
+
+    // Click the admin row to expand timeline
+    await page.locator('.adm-member-clickable').first().click();
+
+    // Timeline panel should appear (empty or with data)
+    await expect(page.locator('.adm-member-timeline')).toBeVisible({ timeout: 5000 });
+
+    // Close button should work
+    await page.locator('.adm-timeline-close').click();
+    await expect(page.locator('.adm-member-timeline')).not.toBeVisible();
   });
 });

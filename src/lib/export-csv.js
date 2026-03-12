@@ -15,11 +15,18 @@ export function entriesToCSV(entries) {
     '計測日時',
     '種別',
     '心拍数(BPM)',
+    '平均HR',
     'ストレスレベル',
     'ストレススコア',
     'RMSSD(ms)',
     'SDNN(ms)',
     'pNN50(%)',
+    'LF/HF比',
+    'LF norm(%)',
+    'HF norm(%)',
+    '呼吸数(/分)',
+    '品質グレード',
+    'アルゴリズム',
     'コンディション',
     'コンディションスコア',
     '緊張度スコア',
@@ -40,15 +47,24 @@ export function entriesToCSV(entries) {
     const type = d.isDemo ? 'デモ' : d.isSample ? 'サンプル' : '実計測';
     const confidenceLabel = d.confidence > 0.4 ? '高' : d.confidence > 0.2 ? '中' : '低';
 
+    const freqMetrics = d.hrv?.freqMetrics;
+
     return [
       entry.timestamp,
       type,
       d.hr || '',
+      d.hrv?.metrics?.meanHR ?? '',
       d.hrv?.stress?.label || '',
       d.hrv?.stress?.score ?? '',
       d.hrv?.metrics?.rmssd ?? '',
       d.hrv?.metrics?.sdnn ?? '',
       d.hrv?.metrics?.pnn50 ?? '',
+      freqMetrics?.lfHfRatio != null ? freqMetrics.lfHfRatio.toFixed(2) : '',
+      freqMetrics?.lfNorm != null ? Math.round(freqMetrics.lfNorm) : '',
+      freqMetrics?.hfNorm != null ? Math.round(freqMetrics.hfNorm) : '',
+      freqMetrics?.respiratory?.respiratoryRate != null ? freqMetrics.respiratory.respiratoryRate.toFixed(1) : '',
+      d.hrv?.quality?.grade ?? '',
+      d.algorithm || '',
       condition.overall.score >= 0 ? condition.overall.label : '',
       condition.overall.score >= 0 ? condition.overall.score : '',
       condition.tension.score >= 0 ? condition.tension.score : '',

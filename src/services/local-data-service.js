@@ -100,6 +100,16 @@ export class LocalDataService {
       emotionSummary,
     };
     await put('measurements', measurement);
+
+    // BroadcastChannelで他タブに通知
+    try {
+      const channel = new BroadcastChannel('mirucare-measurements');
+      channel.postMessage({ type: 'measurement-saved', timestamp: Date.now() });
+      channel.close();
+    } catch (_e) {
+      // BroadcastChannel未対応ブラウザは無視
+    }
+
     return measurement;
   }
 
@@ -294,7 +304,7 @@ export class LocalDataService {
       const memberIds = new Set(memberships.map(m => m.userId));
 
       if (memberIds.size < MIN_TEAM_SIZE) {
-        return '日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD\n※ プライバシー保護のため、5名以上のデータが必要です\n';
+        return '日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD,平均SDNN,平均pNN50,平均LF/HF,平均LFnorm(%),平均HFnorm(%),平均呼吸数(/min)\n※ プライバシー保護のため、5名以上のデータが必要です\n';
       }
 
       measurements = [];
@@ -333,7 +343,7 @@ export class LocalDataService {
     }
 
     // CSV生成
-    const rows = ['日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD'];
+    const rows = ['日付,部署名,計測人数,平均ストレススコア,平均心拍数,平均RMSSD,平均SDNN,平均pNN50,平均LF/HF,平均LFnorm(%),平均HFnorm(%),平均呼吸数(/min)'];
     const sortedKeys = Object.keys(groups).sort();
 
     for (const key of sortedKeys) {
@@ -341,12 +351,19 @@ export class LocalDataService {
       if (g.userIds.size < MIN_TEAM_SIZE) continue; // 5名未満はスキップ
 
       const ms = g.measurements;
-      const avgStress = Math.round(ms.reduce((s, m) => s + (m.stressScore || 0), 0) / ms.length);
-      const avgHr = Math.round(ms.reduce((s, m) => s + (m.hr || 0), 0) / ms.length);
-      const avgRmssd = Math.round(ms.reduce((s, m) => s + (m.hrv?.rmssd || 0), 0) / ms.length * 10) / 10;
+      const n = ms.length;
+      const avgStress = Math.round(ms.reduce((s, m) => s + (m.stressScore || 0), 0) / n);
+      const avgHr = Math.round(ms.reduce((s, m) => s + (m.hr || 0), 0) / n);
+      const avgRmssd = Math.round(ms.reduce((s, m) => s + (m.hrv?.rmssd || 0), 0) / n * 10) / 10;
+      const avgSdnn = Math.round(ms.reduce((s, m) => s + (m.hrv?.sdnn || 0), 0) / n * 10) / 10;
+      const avgPnn50 = Math.round(ms.reduce((s, m) => s + (m.hrv?.pnn50 || 0), 0) / n * 10) / 10;
+      const avgLfHf = Math.round(ms.reduce((s, m) => s + (m.freqMetrics?.lfHfRatio || 0), 0) / n * 100) / 100;
+      const avgLfNorm = Math.round(ms.reduce((s, m) => s + (m.freqMetrics?.lfNorm || 0), 0) / n * 10) / 10;
+      const avgHfNorm = Math.round(ms.reduce((s, m) => s + (m.freqMetrics?.hfNorm || 0), 0) / n * 10) / 10;
+      const avgRespRate = Math.round(ms.reduce((s, m) => s + (m.respiratory?.rate || 0), 0) / n * 10) / 10;
       const teamName = teamMap[g.teamId] || '未配属';
 
-      rows.push(`${g.date},${teamName},${g.userIds.size},${avgStress},${avgHr},${avgRmssd}`);
+      rows.push(`${g.date},${teamName},${g.userIds.size},${avgStress},${avgHr},${avgRmssd},${avgSdnn},${avgPnn50},${avgLfHf},${avgLfNorm},${avgHfNorm},${avgRespRate}`);
     }
 
     return rows.join('\n') + '\n';
@@ -405,6 +422,22 @@ export class LocalDataService {
       await del('measurements', m.id);
     }
     return { deleted: measurements.length };
+  }
+
+  // === 組織設定（アラート閾値等） ===
+
+  async getOrgSettings(orgId) {
+    const org = await get('organizations', orgId);
+    return org?.config || {};
+  }
+
+  async updateOrgSettings(orgId, settings) {
+    const org = await get('organizations', orgId);
+    if (!org) throw new Error('組織が見つかりません');
+    org.config = { ...org.config, ...settings };
+    org.updatedAt = new Date().toISOString();
+    await put('organizations', org);
+    return org.config;
   }
 
   async deleteAllData() {

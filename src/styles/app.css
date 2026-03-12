@@ -400,6 +400,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.hr-pulse-icon {
+  font-size: 1.2rem;
+  color: #ef4444;
+  animation: hrPulse 1s ease-in-out infinite;
+  margin-right: 2px;
+}
+
+@keyframes hrPulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+
 .hr-unit {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.6);
@@ -1586,6 +1598,35 @@ body {
   height: auto;
 }
 
+.trend-period-btns {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.trend-period-btn {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trend-period-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.trend-period-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
 .trend-note {
   font-size: 0.72rem;
   color: var(--color-text-muted);
@@ -1665,6 +1706,181 @@ body {
   background: rgba(79, 140, 255, 0.15);
 }
 
+/* Share Button (Result Screen) */
+
+.btn-share-result {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  color: #22c55e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.btn-share-result:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.share-toast {
+  text-align: center;
+  color: #22c55e;
+  font-size: 0.8rem;
+  margin-top: 6px;
+  padding: 6px;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mini Trend Chart (Result Screen — personal history sparkline) */
+
+.mini-trend-container {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.mini-trend-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.mini-trend-svg {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+}
+
+/* Shared Result CTA */
+
+.shared-result-cta {
+  background: rgba(79, 140, 255, 0.06);
+  border: 1px solid rgba(79, 140, 255, 0.2);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.shared-result-note {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.btn-try-measure {
+  display: inline-block;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+}
+
+/* History Filter Bar */
+
+.history-filter-bar {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.history-filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.history-filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.history-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.history-filter-label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.history-filter-input,
+.history-filter-select {
+  padding: 6px 10px;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.history-filter-input:focus,
+.history-filter-select:focus {
+  border-color: var(--color-primary, #4f8cff);
+}
+
+/* date input color-scheme for dark mode */
+.history-filter-input[type="date"] {
+  color-scheme: dark;
+}
+
+.history-filter-select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.btn-filter-reset {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.btn-filter-reset:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.history-filter-count {
+  font-size: 0.78rem;
+  color: var(--color-primary, #4f8cff);
+  text-align: center;
+  padding-top: 4px;
+}
+
 /* CSV Export Button (History Screen) */
 
 .history-export {
@@ -1693,9 +1909,9 @@ body {
 
 .btn-history-pdf {
   display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 6px;
+  width: auto;
+  margin-top: 0;
+  padding: 6px 16px;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1708,6 +1924,79 @@ body {
 .btn-history-pdf:hover {
   background: rgba(79, 140, 255, 0.06);
   color: var(--color-primary);
+}
+
+/* History card actions row */
+.history-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-history-expand {
+  flex: 1;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-history-expand:hover {
+  background: rgba(79, 140, 255, 0.06);
+  color: var(--color-primary);
+}
+
+.history-card-actions .btn-history-pdf {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: 6px 16px;
+}
+
+/* History detail expanded view */
+.history-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.history-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.history-detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: var(--color-surface-light);
+  border-radius: 6px;
+}
+
+.history-detail-value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.history-detail-label {
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  text-align: center;
+}
+
+.history-detail-algo {
+  margin-top: 6px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  text-align: right;
 }
 
 @media (max-width: 480px) {
@@ -1725,6 +2014,10 @@ body {
 
   .history-metric-value {
     font-size: 0.88rem;
+  }
+
+  .history-detail-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1994,6 +2287,26 @@ body {
   background: rgba(245, 158, 11, 0.08);
 }
 
+/* ===== HR Mini Chart ===== */
+
+.hr-mini-chart {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 8px;
+}
+
+.hr-mini-chart-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2px;
+}
+
+.hr-mini-chart svg {
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+}
+
 /* ===== Onboarding & SQI Responsive ===== */
 
 @media (max-width: 480px) {
@@ -2034,7 +2347,8 @@ body {
   .measure-status,
   .phase-indicator,
   .sqi-display,
-  .progress-container {
+  .progress-container,
+  .hr-mini-chart {
     max-width: 480px;
   }
 
@@ -2140,10 +2454,12 @@ body {
 .btn-demo:focus-visible,
 .btn-history:focus-visible,
 .btn-export-pdf:focus-visible,
+.btn-share-result:focus-visible,
 .btn-export-csv:focus-visible,
 .btn-save-history:focus-visible,
 .btn-history-link:focus-visible,
 .btn-history-pdf:focus-visible,
+.btn-history-expand:focus-visible,
 .btn-clear:focus-visible,
 .onboarding-next:focus-visible,
 .onboarding-skip:focus-visible,
@@ -2221,4 +2537,331 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ===== 比較機能 ===== */
+
+.history-compare-check {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.history-compare-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.history-card-selected {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.history-compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--color-primary);
+}
+
+.btn-compare {
+  padding: 5px 14px;
+  background: var(--color-primary-btn);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-compare:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-compare-clear {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+/* 比較モーダル */
+
+.compare-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+
+.compare-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.compare-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compare-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.compare-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.compare-close:hover {
+  color: var(--color-text);
+}
+
+.compare-table-wrap {
+  padding: 16px 20px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compare-table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.compare-label {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.compare-improved {
+  color: var(--color-success);
+}
+
+.compare-declined {
+  color: var(--color-danger);
+}
+
+/* ===== 仮想スクロール ===== */
+
+.history-list-virtual {
+  position: relative;
+  overflow-y: auto;
+}
+
+.history-list-spacer {
+  position: relative;
+}
+
+.history-list-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== 比較モーダル 印刷ボタン ===== */
+
+.compare-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-compare-print {
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  background: var(--color-primary, #4f8cff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-compare-print:hover {
+  opacity: 0.85;
+}
+
+/* ===== 印刷用スタイル（比較モーダル） ===== */
+
+@media print {
+  /* 比較モーダル以外を全て非表示 */
+  body > *:not(#root),
+  #root > *,
+  .history-screen,
+  .history-content,
+  .history-content > *:not(.compare-overlay) {
+    display: none !important;
+  }
+
+  /* 比較モーダルを表示 */
+  .compare-overlay {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+  }
+
+  .compare-modal {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  /* 印刷ヘッダー: タイトルを差し替え */
+  .compare-header {
+    border-bottom: 2px solid #333 !important;
+    padding: 0 0 8px 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  .compare-header h3 {
+    color: #000 !important;
+    font-size: 1.2rem !important;
+  }
+
+  .compare-header h3::before {
+    content: "ミルケア ";
+  }
+
+  /* ボタン類を非表示 */
+  .compare-header-actions,
+  .compare-close,
+  .btn-compare-print {
+    display: none !important;
+  }
+
+  /* テーブル印刷最適化 */
+  .compare-table-wrap {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .compare-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid !important;
+  }
+
+  .compare-table th,
+  .compare-table td {
+    padding: 6px 10px !important;
+    font-size: 11pt !important;
+    color: #000 !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .compare-table th {
+    background: #f0f0f0 !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #999 !important;
+  }
+
+  .compare-label {
+    color: #333 !important;
+    font-weight: 600 !important;
+  }
+
+  .compare-improved {
+    color: #16a34a !important;
+  }
+
+  .compare-declined {
+    color: #dc2626 !important;
+  }
+
+  /* A4用紙設定 */
+  @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+}
+
+/* ===== Calibration Guide Enhancement ===== */
+
+.guide-corners {
+  animation: guide-corners-pulse 2s ease-in-out infinite;
+}
+
+@keyframes guide-corners-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.guide-hints {
+  animation: guide-hints-fade 3s ease-in-out infinite;
+}
+
+@keyframes guide-hints-fade {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.guide-text-detected {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.guide-text-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.guide-step {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.guide-step-sub {
+  font-size: 0.8rem;
+  opacity: 0.8;
 }

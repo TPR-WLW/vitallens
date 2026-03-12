@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
 
-export default function SettingsView({ session, orgName, orgStats, onLogout }) {
+export default function SettingsView({ session, orgName, orgStats, onLogout, onSettingsChange }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -10,6 +10,19 @@ export default function SettingsView({ session, orgName, orgStats, onLogout }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteMsg, setDeleteMsg] = useState(null);
+
+  // アラート閾値設定
+  const [alertThreshold, setAlertThreshold] = useState(55);
+  const [alertMsg, setAlertMsg] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const config = await dataService.getOrgSettings(session.orgId);
+        if (config.alertThreshold != null) setAlertThreshold(config.alertThreshold);
+      } catch { /* デフォルト値を使用 */ }
+    })();
+  }, [session.orgId]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -39,6 +52,17 @@ export default function SettingsView({ session, orgName, orgStats, onLogout }) {
       setPwMsg({ type: 'error', text: err.message });
     }
     setPwLoading(false);
+  };
+
+  const handleSaveAlertThreshold = async () => {
+    setAlertMsg(null);
+    try {
+      await dataService.updateOrgSettings(session.orgId, { alertThreshold });
+      setAlertMsg({ type: 'success', text: `アラート閾値を${alertThreshold}に変更しました` });
+      if (onSettingsChange) onSettingsChange({ alertThreshold });
+    } catch (err) {
+      setAlertMsg({ type: 'error', text: err.message });
+    }
   };
 
   const handleDeleteAllMeasurements = async () => {
@@ -74,6 +98,42 @@ export default function SettingsView({ session, orgName, orgStats, onLogout }) {
             <span className="adm-settings-label">メンバー数</span>
             <span>{orgStats?.totalMembers || 0}名</span>
           </div>
+        </div>
+      </div>
+
+      {/* 通知設定 */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">通知設定</h3>
+        <div className="adm-settings-card">
+          {alertMsg && (
+            <div className={alertMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+              {alertMsg.text}
+            </div>
+          )}
+          <div className="adm-settings-row">
+            <span className="adm-settings-label">ストレスアラート閾値</span>
+            <span className="adm-settings-threshold-value">{alertThreshold}</span>
+          </div>
+          <div className="adm-settings-slider-row">
+            <span className="adm-settings-range-label">低 (30)</span>
+            <input
+              type="range"
+              min={30}
+              max={80}
+              step={5}
+              value={alertThreshold}
+              onChange={(e) => setAlertThreshold(Number(e.target.value))}
+              className="adm-settings-slider"
+              aria-label="ストレスアラート閾値"
+            />
+            <span className="adm-settings-range-label">高 (80)</span>
+          </div>
+          <p className="adm-privacy-note">
+            部署平均ストレススコアがこの値を超えると、ダッシュボードにアラートが表示されます。
+          </p>
+          <button className="adm-btn-primary" onClick={handleSaveAlertThreshold}>
+            閾値を保存
+          </button>
         </div>
       </div>
 

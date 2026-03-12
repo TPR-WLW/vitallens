@@ -30,12 +30,6 @@ const CameraView = forwardRef(function CameraView({ stream, faceDetected, paused
     };
   }, [stream]);
 
-  const guideText = videoError
-    ? videoError
-    : faceDetected
-      ? '顔を検出しました — そのまま動かないでください'
-      : '顔をガイドの中に合わせてください';
-
   return (
     <div className="camera-view" role="img" aria-label="カメラ映像 — 顔をガイド枠に合わせてください">
       <video
@@ -85,10 +79,44 @@ const CameraView = forwardRef(function CameraView({ stream, faceDetected, paused
             strokeDasharray={faceDetected ? 'none' : '8 4'}
             className={faceDetected ? 'guide-detected' : 'guide-searching'}
           />
+
+          {/* Corner brackets for positioning */}
+          {!faceDetected && (
+            <g className="guide-corners" stroke="#ffffff" strokeWidth="2.5" fill="none" strokeLinecap="round">
+              {/* Top */}
+              <path d="M130 62 L150 58 L170 62" />
+              {/* Bottom */}
+              <path d="M130 298 L150 302 L170 298" />
+              {/* Left */}
+              <path d="M62 160 L58 180 L62 200" />
+              {/* Right */}
+              <path d="M238 160 L242 180 L238 200" />
+            </g>
+          )}
+
+          {/* Positioning guide hints when face not detected */}
+          {!faceDetected && !paused && (
+            <g className="guide-hints">
+              {/* Small face silhouette */}
+              <ellipse cx="150" cy="165" rx="35" ry="42" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="4 3" />
+              <ellipse cx="150" cy="155" rx="45" ry="30" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+              {/* Arrow hints */}
+              <path d="M150 330 L150 315 M143 322 L150 315 L157 322" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            </g>
+          )}
         </svg>
 
         <div className="face-guide-text" role="status" aria-live="polite">
-          {guideText}
+          {videoError ? (
+            <span>{videoError}</span>
+          ) : faceDetected ? (
+            <span className="guide-text-detected">顔を検出しました — そのまま動かないでください</span>
+          ) : (
+            <div className="guide-text-steps">
+              <span className="guide-step">顔をガイド枠の中央に合わせてください</span>
+              <span className="guide-step-sub">カメラから40〜60cmの距離を保ってください</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
