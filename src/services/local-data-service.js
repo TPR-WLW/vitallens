@@ -4,7 +4,7 @@
  */
 
 import { put, get, getAll, getByIndex, del, clearAll } from './idb-helpers.js';
-import { register, login, logout, getSession, getUsersByOrg } from './auth-local.js';
+import { register, login, logout, getSession, getUsersByOrg, changePassword } from './auth-local.js';
 
 /** ID生成 */
 function generateId() {
@@ -68,6 +68,10 @@ export class LocalDataService {
 
   getSession() {
     return getSession();
+  }
+
+  async changePassword({ userId, currentPassword, newPassword }) {
+    return changePassword({ userId, currentPassword, newPassword });
   }
 
   // === 計測データ ===
@@ -393,6 +397,14 @@ export class LocalDataService {
     for (const ms of memberships) {
       await del('teamMemberships', ms.id);
     }
+  }
+
+  async clearAllMeasurements(orgId) {
+    const measurements = await getByIndex('measurements', 'orgId', orgId);
+    for (const m of measurements) {
+      await del('measurements', m.id);
+    }
+    return { deleted: measurements.length };
   }
 
   async deleteAllData() {

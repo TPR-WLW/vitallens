@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
 import { saveEntry } from '../lib/history.js';
 import { printReport } from '../lib/report-pdf.js';
+import { dataService } from '../services/index.js';
+import { getSession } from '../services/auth-local.js';
 
 export default function ResultScreen({ result, onRestart, onBack, onShowHistory, onContact }) {
   const { hr, confidence, hrv, emotion } = result;
@@ -18,6 +20,27 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
     if (!result.isSample && !result.isDemo) {
       saveEntry(result);
       setSaved(true);
+
+      // DataService保存（ログイン中のみ、fire-and-forget）
+      try {
+        const session = getSession();
+        if (session && session.userId && session.orgId) {
+          dataService.saveMeasurement({
+            userId: session.userId,
+            orgId: session.orgId,
+            hr: result.hr,
+            confidence: result.confidence,
+            hrv: result.hrv?.metrics || null,
+            freqMetrics: result.hrv?.freqMetrics || null,
+            respiratory: result.hrv?.freqMetrics?.respiratory || null,
+            stressScore: result.hrv?.stress?.score || 0,
+            qualityGrade: result.hrv?.quality?.grade || 'C',
+            emotionSummary: result.emotion?.summary || null,
+          }).catch(() => {});
+        }
+      } catch (_e) {
+        // DataService保存エラーは無視
+      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

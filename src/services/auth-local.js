@@ -4,7 +4,7 @@
  * クラウド移行時は同じインターフェースで fetch() ベースに差し替え。
  */
 
-import { put, getOneByIndex, getByIndex } from './idb-helpers.js';
+import { put, get, getOneByIndex, getByIndex } from './idb-helpers.js';
 
 const SESSION_KEY = 'mirucare_session';
 
@@ -149,6 +149,37 @@ function createSession(user) {
   };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
+}
+
+/**
+ * パスワード変更
+ */
+export async function changePassword({ userId, currentPassword, newPassword }) {
+  if (!userId || !currentPassword || !newPassword) {
+    throw new Error('必須項目が入力されていません');
+  }
+  if (newPassword.length < 8) {
+    throw new Error('新しいパスワードは8文字以上で入力してください');
+  }
+
+  const user = await get('users', userId);
+  if (!user) {
+    throw new Error('ユーザーが見つかりません');
+  }
+
+  const currentHash = await hashPassword(currentPassword, user.salt);
+  if (currentHash !== user.passwordHash) {
+    throw new Error('現在のパスワードが正しくありません');
+  }
+
+  const newSalt = generateSalt();
+  const newHash = await hashPassword(newPassword, newSalt);
+
+  user.salt = newSalt;
+  user.passwordHash = newHash;
+  user.updatedAt = new Date().toISOString();
+
+  await put('users', user);
 }
 
 /**

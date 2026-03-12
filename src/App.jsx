@@ -15,6 +15,9 @@ const ResultScreen = lazy(() => import('./components/ResultScreen.jsx'));
 const HistoryScreen = lazy(() => import('./components/HistoryScreen.jsx'));
 const DashboardMock = lazy(() => import('./components/DashboardMock.jsx'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard.jsx'));
+const LoginScreen = lazy(() => import('./components/dashboard/LoginScreen.jsx'));
+const OrgSetupScreen = lazy(() => import('./components/dashboard/OrgSetupScreen.jsx'));
+const AdminDashboard = lazy(() => import('./components/dashboard/AdminDashboard.jsx'));
 
 const SCREENS = {
   LANDING: 'landing',
@@ -26,6 +29,9 @@ const SCREENS = {
   DASHBOARD: 'dashboard',
   HISTORY: 'history',
   ANALYTICS: 'analytics',
+  LOGIN: 'login',
+  ORG_SETUP: 'org_setup',
+  ADMIN: 'admin',
 };
 
 // Realistic sample result for a moderately stressed Japanese office worker
@@ -67,6 +73,9 @@ export default function App() {
   const [quickMode, setQuickMode] = useState(true);
   const [cameraStream, setCameraStream] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
+  const [authSession, setAuthSession] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [needsOrgSetup, setNeedsOrgSetup] = useState(false);
 
   const ctaVariant = getVariant('cta_text', ['A', 'B']);
   const ctaText = CTA_VARIANTS[ctaVariant] || CTA_VARIANTS.A;
@@ -145,6 +154,37 @@ export default function App() {
     setScreen(SCREENS.ANALYTICS);
   };
 
+  const handleShowLogin = () => {
+    recordEvent('login_view');
+    setScreen(SCREENS.LOGIN);
+  };
+
+  const handleLogin = (user, session) => {
+    setAuthUser(user);
+    setAuthSession(session);
+    if (user.role === 'admin' && !needsOrgSetup) {
+      setScreen(SCREENS.ADMIN);
+    } else {
+      setScreen(SCREENS.ADMIN);
+    }
+  };
+
+  const handleOrgSetupComplete = () => {
+    setNeedsOrgSetup(false);
+    setScreen(SCREENS.ADMIN);
+  };
+
+  const handleLogout = () => {
+    try { localStorage.removeItem('mirucare_session'); } catch {}
+    setAuthUser(null);
+    setAuthSession(null);
+    setScreen(SCREENS.LANDING);
+  };
+
+  const handleAdminStartMeasure = () => {
+    setScreen(SCREENS.START);
+  };
+
   // Hidden admin shortcut: Ctrl+Shift+A opens analytics
   useEffect(() => {
     const handler = (e) => {
@@ -166,8 +206,11 @@ export default function App() {
     <div className="app">
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingOverlay onComplete={handleOnboardingComplete} />}
-      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} ctaText={ctaText} />}
+      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} onShowLogin={handleShowLogin} ctaText={ctaText} />}
       <Suspense fallback={<div className="loading-fallback">読み込み中...</div>}>
+        {screen === SCREENS.LOGIN && <LoginScreen onLogin={handleLogin} onBack={handleBackToLanding} />}
+        {screen === SCREENS.ORG_SETUP && authSession && <OrgSetupScreen session={authSession} onComplete={handleOrgSetupComplete} />}
+        {screen === SCREENS.ADMIN && authSession && <AdminDashboard session={authSession} onLogout={handleLogout} onStartMeasure={handleAdminStartMeasure} />}
         {screen === SCREENS.ANALYTICS && <AnalyticsDashboard onBack={handleBackToLanding} />}
         {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
         {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}

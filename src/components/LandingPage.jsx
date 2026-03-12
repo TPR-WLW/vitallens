@@ -9,7 +9,7 @@ const LogoSvg = ({ size = 32 }) => (
   </svg>
 );
 
-export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory, ctaText = '無料デモを体験する' }) {
+export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory, onShowLogin, ctaText = '無料デモを体験する' }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showStickyCta, setShowStickyCta] = useState(false);
@@ -57,6 +57,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             <a href="#faq" onClick={handleNavClick}>FAQ</a>
             <a href="#contact" onClick={handleNavClick}>お問い合わせ</a>
             <button className="btn-nav-secondary" onClick={() => { setMenuOpen(false); onShowDashboard(); }}>管理者デモ</button>
+            {onShowLogin && <button className="btn-nav-secondary" onClick={() => { setMenuOpen(false); onShowLogin(); }}>チーム管理</button>}
             <button className="btn-nav" onClick={() => { setMenuOpen(false); onTryDemo(); }}>無料デモ</button>
           </div>
         </div>
