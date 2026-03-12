@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import LandingPage from './components/LandingPage.jsx';
 import StartScreen from './components/StartScreen.jsx';
 import MeasureScreen from './components/MeasureScreen.jsx';
@@ -6,12 +6,14 @@ import DemoMeasureScreen from './components/DemoMeasureScreen.jsx';
 import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
 import OnboardingOverlay from './components/OnboardingOverlay.jsx';
 import { isFirstVisit, completeOnboarding } from './lib/onboarding.js';
+import { recordEvent } from './lib/analytics-store.js';
 import './styles/app.css';
 
 // Lazy-loaded heavy components (split into separate chunks)
 const ResultScreen = lazy(() => import('./components/ResultScreen.jsx'));
 const HistoryScreen = lazy(() => import('./components/HistoryScreen.jsx'));
 const DashboardMock = lazy(() => import('./components/DashboardMock.jsx'));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard.jsx'));
 
 const SCREENS = {
   LANDING: 'landing',
@@ -22,6 +24,7 @@ const SCREENS = {
   SAMPLE: 'sample',
   DASHBOARD: 'dashboard',
   HISTORY: 'history',
+  ANALYTICS: 'analytics',
 };
 
 // Realistic sample result for a moderately stressed Japanese office worker
@@ -59,23 +62,28 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
   const handleTryDemo = () => {
+    recordEvent('cta_click', { from: 'landing' });
     setScreen(SCREENS.START);
   };
 
   const handleShowDashboard = () => {
+    recordEvent('dashboard_view');
     setScreen(SCREENS.DASHBOARD);
   };
 
   const handleShowHistory = () => {
+    recordEvent('history_view');
     setScreen(SCREENS.HISTORY);
   };
 
   const handleStartDemo = () => {
+    recordEvent('demo_start');
     setScreen(SCREENS.DEMO);
     setResult(null);
   };
 
   const handleDemoComplete = () => {
+    recordEvent('demo_complete');
     setResult({ ...SAMPLE_RESULT, isDemo: true, isSample: false });
     setScreen(SCREENS.RESULT);
   };
@@ -90,7 +98,7 @@ export default function App() {
   };
 
   const handleShowSample = () => {
-    // Stop camera if started during start screen
+    recordEvent('sample_view');
     if (cameraStream) {
       cameraStream.getTracks().forEach((t) => t.stop());
       setCameraStream(null);
@@ -100,6 +108,7 @@ export default function App() {
   };
 
   const handleStart = (isQuick, stream) => {
+    recordEvent('measure_start', { quick: isQuick });
     setQuickMode(isQuick);
     setCameraStream(stream || null);
     setScreen(SCREENS.MEASURE);
@@ -107,6 +116,7 @@ export default function App() {
   };
 
   const handleComplete = (measureResult) => {
+    recordEvent('measure_complete');
     setResult(measureResult);
     setScreen(SCREENS.RESULT);
   };
@@ -120,6 +130,22 @@ export default function App() {
     setResult(null);
   };
 
+  const handleShowAnalytics = () => {
+    setScreen(SCREENS.ANALYTICS);
+  };
+
+  // Hidden admin shortcut: Ctrl+Shift+A opens analytics
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        handleShowAnalytics();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const handleOnboardingComplete = () => {
     completeOnboarding();
     setShowOnboarding(false);
@@ -131,6 +157,7 @@ export default function App() {
       {showOnboarding && <OnboardingOverlay onComplete={handleOnboardingComplete} />}
       {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />}
       <Suspense fallback={<div className="loading-fallback">読み込み中...</div>}>
+        {screen === SCREENS.ANALYTICS && <AnalyticsDashboard onBack={handleBackToLanding} />}
         {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
         {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}
         {screen === SCREENS.SAMPLE && result && (

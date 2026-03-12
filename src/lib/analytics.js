@@ -1,8 +1,9 @@
 // VitalLens — Lightweight privacy-respecting analytics
 // Tracks page views and key events. No cookies, no PII.
-// Set VITE_API_URL env var to enable server-side tracking.
+// All data stored locally in localStorage. Server-side tracking via VITE_API_URL (optional).
 
 import { API } from '../config/api.js';
+import { recordPageView, recordEvent } from './analytics-store.js';
 
 function send(event, data = {}) {
   const payload = {
@@ -28,10 +29,12 @@ function send(event, data = {}) {
 
 export function trackPageView(page) {
   send('pageview', { page });
+  recordPageView(page);
 }
 
 export function trackEvent(name, props = {}) {
   send('event', { name, ...props });
+  recordEvent(name, props);
 }
 
 // Expose for use in landing page pilot form
