@@ -1,71 +1,33 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CONTACT_EMAIL } from './ContactForm.jsx';
+import {
+  generateAllData,
+  filterData,
+  computeKPIs,
+  computeMonthlyTrend,
+  computeDeptSummary,
+  computeStressDistribution,
+  generateAlerts,
+  downloadAdminCSV,
+  DEPARTMENTS,
+  MONTHS,
+} from '../lib/dashboard-data.js';
 import '../styles/dashboard.css';
-
-// --- 日本企業向けモックデータ ---
-const MOCK_DEPARTMENTS = [
-  { name: '営業部', members: 45, avgStress: 38, avgHR: 72, rmssd: 35, sdnn: 41, participation: 89, status: 'good' },
-  { name: '開発部', members: 62, avgStress: 52, avgHR: 75, rmssd: 28, sdnn: 33, participation: 78, status: 'watch' },
-  { name: '人事部', members: 18, avgStress: 31, avgHR: 68, rmssd: 42, sdnn: 48, participation: 94, status: 'good' },
-  { name: '経理部', members: 22, avgStress: 44, avgHR: 70, rmssd: 30, sdnn: 36, participation: 85, status: 'watch' },
-  { name: 'カスタマーサポート部', members: 35, avgStress: 61, avgHR: 78, rmssd: 22, sdnn: 27, participation: 72, status: 'alert' },
-  { name: '総務部', members: 15, avgStress: 28, avgHR: 66, rmssd: 45, sdnn: 50, participation: 92, status: 'good' },
-];
-
-const MOCK_MONTHLY = [
-  { month: '10月', avgStress: 42, participation: 75, avgHR: 72 },
-  { month: '11月', avgStress: 45, participation: 78, avgHR: 73 },
-  { month: '12月', avgStress: 51, participation: 80, avgHR: 75 },
-  { month: '1月', avgStress: 48, participation: 82, avgHR: 74 },
-  { month: '2月', avgStress: 44, participation: 85, avgHR: 72 },
-  { month: '3月', avgStress: 40, participation: 88, avgHR: 71 },
-];
-
-const MOCK_DISTRIBUTION = [
-  { label: 'リラックス', pct: 32, color: 'var(--color-success)' },
-  { label: '通常', pct: 38, color: 'var(--color-primary)' },
-  { label: 'やや高い', pct: 22, color: 'var(--color-warning)' },
-  { label: '高ストレス', pct: 8, color: 'var(--color-danger)' },
-];
-
-const MOCK_ALERTS = [
-  { date: '3月12日', dept: 'カスタマーサポート部', message: '部門平均ストレスが閾値（55）を超過。休憩ローテーションの検討を推奨します。' },
-  { date: '3月11日', dept: '開発部', message: 'リリース前の残業増加に伴い、ストレス上昇傾向を検出。勤務時間の確認を推奨します。' },
-  { date: '3月10日', dept: '全社', message: '今月の参加率が88%に到達。目標の90%まであと2ポイントです。' },
-];
-
-function totalMembers(depts) {
-  return depts.reduce((sum, d) => sum + d.members, 0);
-}
-
-function weightedAvg(depts, key) {
-  const total = depts.reduce((sum, d) => sum + d.members, 0);
-  return Math.round(depts.reduce((sum, d) => sum + d[key] * d.members, 0) / total);
-}
 
 // --- ROI計算 ---
 function calcROI(employeeCount) {
-  const mirucareCostMonthly = employeeCount * 500;
-  const mirucareCostAnnual = mirucareCostMonthly * 12;
+  const mirucareCostAnnual = employeeCount * 500 * 12;
+  const wearableAnnual = employeeCount * 3500 * 12 + employeeCount * 20000;
+  const questionnaireCost = employeeCount * 1200;
 
-  // ウェアラブル比較
-  const wearableDeviceCost = employeeCount * 20000; // 初期デバイス費用
-  const wearableMonthly = employeeCount * 3500;
-  const wearableAnnual = wearableMonthly * 12 + wearableDeviceCost;
-
-  // 質問票（外部委託）比較
-  const questionnaireCost = employeeCount * 1200; // 年1回
-
-  // 休職予防効果（厚労省データに基づく推計）
-  const mentalLeaveRate = 0.012; // 1.2%がメンタル不調で休職
-  const avgLeaveCost = 4500000; // 休職1件あたりコスト（代替人員、業務影響含む）
-  const preventionRate = 0.15; // 早期発見で15%予防
+  const mentalLeaveRate = 0.012;
+  const avgLeaveCost = 4500000;
+  const preventionRate = 0.15;
   const preventedLeaves = Math.round(employeeCount * mentalLeaveRate * preventionRate * 10) / 10;
   const savingsFromPrevention = Math.round(preventedLeaves * avgLeaveCost);
 
-  // 離職率改善
-  const avgTurnoverCost = 3000000; // 1人離職あたりの採用・教育コスト
-  const turnoverReduction = 0.005; // 0.5%改善
+  const avgTurnoverCost = 3000000;
+  const turnoverReduction = 0.005;
   const savedTurnover = Math.round(employeeCount * turnoverReduction * 10) / 10;
   const savingsFromTurnover = Math.round(savedTurnover * avgTurnoverCost);
 
@@ -87,15 +49,12 @@ function calcROI(employeeCount) {
 }
 
 function formatYen(num) {
-  if (num >= 10000) {
-    return `${Math.round(num / 10000)}万円`;
-  }
+  if (num >= 10000) return `${Math.round(num / 10000)}万円`;
   return `${num.toLocaleString()}円`;
 }
 
 // --- PDF Export ---
-function exportResultsPDF() {
-  // Generate a printable HTML window for result export
+function exportDashboardPDF(kpis, deptSummary, monthlyTrend) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('ポップアップがブロックされました。ブラウザの設定を確認してください。');
@@ -103,10 +62,6 @@ function exportResultsPDF() {
   }
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-  const depts = MOCK_DEPARTMENTS;
-  const total = totalMembers(depts);
-  const avgStress = weightedAvg(depts, 'avgStress');
-  const avgParticipation = weightedAvg(depts, 'participation');
 
   printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>ミルケア レポート — ${dateStr}</title>
 <style>
@@ -125,40 +80,97 @@ th{background:#f0f4ff;font-weight:600}
 @media print{body{margin:20px}button{display:none}}
 </style></head><body>
 <h1>ミルケア ストレスモニタリングレポート</h1>
-<p>レポート日: ${dateStr}　｜　対象従業員数: ${total}名　｜　データ: デモ用サンプル</p>
+<p>レポート日: ${dateStr}　｜　対象従業員数: ${kpis.totalMembers}名　｜　データ: デモ用サンプル</p>
 <div class="summary-grid">
-<div class="summary-item"><div class="summary-value">${avgStress}</div><div class="summary-label">全社平均ストレススコア</div></div>
-<div class="summary-item"><div class="summary-value">${avgParticipation}%</div><div class="summary-label">参加率</div></div>
-<div class="summary-item"><div class="summary-value">${weightedAvg(depts, 'avgHR')}</div><div class="summary-label">平均心拍数 (BPM)</div></div>
-<div class="summary-item"><div class="summary-value">${depts.filter(d => d.status === 'alert').length}</div><div class="summary-label">要注意部署数</div></div>
+<div class="summary-item"><div class="summary-value">${kpis.avgStress}</div><div class="summary-label">全社平均ストレススコア</div></div>
+<div class="summary-item"><div class="summary-value">${kpis.avgParticipation}%</div><div class="summary-label">参加率</div></div>
+<div class="summary-item"><div class="summary-value">${kpis.avgHR}</div><div class="summary-label">平均心拍数 (BPM)</div></div>
+<div class="summary-item"><div class="summary-value">${kpis.alertDepts}</div><div class="summary-label">要注意部署数</div></div>
 </div>
 <h2>部署別ストレス状況</h2>
-<table><tr><th>部署</th><th>人数</th><th>平均ストレス</th><th>平均HR</th><th>RMSSD</th><th>SDNN</th><th>参加率</th><th>状態</th></tr>
-${depts.map(d => `<tr><td>${d.name}</td><td>${d.members}</td><td>${d.avgStress}</td><td>${d.avgHR}</td><td>${d.rmssd}ms</td><td>${d.sdnn}ms</td><td>${d.participation}%</td><td class="status-${d.status}">${d.status === 'good' ? '良好' : d.status === 'watch' ? '注意' : '要対応'}</td></tr>`).join('')}
+<table><tr><th>部署</th><th>人数</th><th>平均ストレス</th><th>平均HR</th><th>RMSSD</th><th>SDNN</th><th>参加率</th><th>コンディション</th><th>状態</th></tr>
+${deptSummary.map((d) => `<tr><td>${d.deptName}</td><td>${d.members}</td><td>${d.avgStress}</td><td>${d.avgHR}</td><td>${d.rmssd}ms</td><td>${d.sdnn}ms</td><td>${d.participation}%</td><td>${d.conditionScore}</td><td class="status-${d.status}">${d.status === 'good' ? '良好' : d.status === 'watch' ? '注意' : '要対応'}</td></tr>`).join('')}
 </table>
 <h2>月次推移</h2>
-<table><tr><th>月</th>${MOCK_MONTHLY.map(m => `<th>${m.month}</th>`).join('')}</tr>
-<tr><td>平均ストレス</td>${MOCK_MONTHLY.map(m => `<td>${m.avgStress}</td>`).join('')}</tr>
-<tr><td>参加率</td>${MOCK_MONTHLY.map(m => `<td>${m.participation}%</td>`).join('')}</tr></table>
+<table><tr><th>月</th>${monthlyTrend.map((m) => `<th>${m.label}</th>`).join('')}</tr>
+<tr><td>平均ストレス</td>${monthlyTrend.map((m) => `<td>${m.avgStress}</td>`).join('')}</tr>
+<tr><td>参加率</td>${monthlyTrend.map((m) => `<td>${m.avgParticipation}%</td>`).join('')}</tr>
+<tr><td>コンディション</td>${monthlyTrend.map((m) => `<td>${m.avgCondition}</td>`).join('')}</tr></table>
 <p class="footer">※ 本レポートはデモ用サンプルデータに基づくものです。実際のデータとは異なります。<br>※ 本サービスは医療機器ではありません。計測値は参考値としてご活用ください。<br>ミルケア（MiruCare）— ${CONTACT_EMAIL}</p>
 <button onclick="window.print()" style="margin-top:16px;padding:10px 24px;background:#4f8cff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">印刷 / PDF保存</button>
 </body></html>`);
   printWindow.document.close();
 }
 
+// --- SVG Trend Chart Component ---
+function TrendChartSVG({ data, dataKey, color, label }) {
+  if (data.length === 0) return null;
+  const W = 400, H = 120, PAD = 30, PADT = 10, PADB = 20;
+  const vals = data.map((d) => d[dataKey]);
+  const minV = Math.min(...vals) - 5;
+  const maxV = Math.max(...vals) + 5;
+  const rangeV = maxV - minV || 1;
+  const stepX = (W - PAD * 2) / Math.max(data.length - 1, 1);
+
+  const points = data.map((d, i) => ({
+    x: PAD + i * stepX,
+    y: PADT + (1 - (d[dataKey] - minV) / rangeV) * (H - PADT - PADB),
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const areaPath = `${linePath} L${points[points.length - 1].x},${H - PADB} L${points[0].x},${H - PADB} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="dash-svg-chart" role="img" aria-label={label}>
+      <defs>
+        <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#grad-${dataKey})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2.5} fill={color} />
+          <text x={p.x} y={H - 4} textAnchor="middle" fontSize="9" fill="#9ca3af">
+            {data[i].label}
+          </text>
+          {i === points.length - 1 && (
+            <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
+              {vals[i]}
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 // --- Main Component ---
 export default function DashboardMock({ onBack }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [deptFilter, setDeptFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
+  const [trendMetric, setTrendMetric] = useState('avgStress');
   const [roiEmployees, setRoiEmployees] = useState(500);
-  const depts = MOCK_DEPARTMENTS;
-  const total = totalMembers(depts);
-  const avgStress = weightedAvg(depts, 'avgStress');
-  const avgParticipation = weightedAvg(depts, 'participation');
-  const avgHR = weightedAvg(depts, 'avgHR');
-  const alertCount = depts.filter((d) => d.status === 'alert').length;
-  const maxMonthlyStress = Math.max(...MOCK_MONTHLY.map((m) => m.avgStress), 1);
 
+  // データ生成（一度だけ）
+  const allData = useMemo(() => generateAllData(), []);
+
+  // フィルタ適用 & 集計
+  const filtered = useMemo(() => filterData(allData, { deptId: deptFilter, monthId: monthFilter }), [allData, deptFilter, monthFilter]);
+  const kpis = useMemo(() => computeKPIs(filtered), [filtered]);
+  const monthlyTrend = useMemo(() => computeMonthlyTrend(filterData(allData, { deptId: deptFilter })), [allData, deptFilter]);
+  const deptSummary = useMemo(() => computeDeptSummary(filterData(allData, { monthId: monthFilter })), [allData, monthFilter]);
+  const distribution = useMemo(() => computeStressDistribution(filtered), [filtered]);
+  const alerts = useMemo(() => generateAlerts(deptSummary), [deptSummary]);
+
+  const maxMonthlyVal = Math.max(...monthlyTrend.map((m) => m[trendMetric] || 0), 1);
   const roi = calcROI(roiEmployees);
+
+  const trendColor = trendMetric === 'avgStress' ? '#4f8cff' : trendMetric === 'avgCondition' ? '#22c55e' : '#f59e0b';
+  const trendLabel = trendMetric === 'avgStress' ? 'ストレス推移' : trendMetric === 'avgCondition' ? 'コンディション推移' : '参加率推移';
 
   return (
     <div className="dashboard">
@@ -169,21 +181,15 @@ export default function DashboardMock({ onBack }) {
           <h1>チームダッシュボード</h1>
           <span className="dash-top-badge">デモ</span>
         </div>
-        <p className="dash-top-sub">匿名化・集計データのみ表示。個人の特定はできません。</p>
+        <p className="dash-top-sub">匿名化・集計データのみ表示（5名以上の集計）。個人の特定はできません。</p>
       </header>
 
       {/* Tabs */}
       <div className="dash-tabs">
-        <button
-          className={`dash-tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
+        <button className={`dash-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
           概要
         </button>
-        <button
-          className={`dash-tab ${activeTab === 'roi' ? 'active' : ''}`}
-          onClick={() => setActiveTab('roi')}
-        >
+        <button className={`dash-tab ${activeTab === 'roi' ? 'active' : ''}`} onClick={() => setActiveTab('roi')}>
           ROI試算
         </button>
       </div>
@@ -191,70 +197,113 @@ export default function DashboardMock({ onBack }) {
       <div className="dash-content">
         {activeTab === 'overview' && (
           <>
+            {/* Filters */}
+            <div className="dash-filters">
+              <div className="dash-filter-group">
+                <label className="dash-filter-label">部署</label>
+                <select className="dash-filter-select" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+                  <option value="all">全部署</option>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="dash-filter-group">
+                <label className="dash-filter-label">期間</label>
+                <select className="dash-filter-select" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
+                  <option value="all">全期間（6ヶ月）</option>
+                  {MONTHS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+              {(deptFilter !== 'all' || monthFilter !== 'all') && (
+                <button className="dash-filter-reset" onClick={() => { setDeptFilter('all'); setMonthFilter('all'); }}>
+                  フィルタ解除
+                </button>
+              )}
+            </div>
+
             {/* KPI Row */}
             <div className="dash-kpi-row">
               <div className="dash-kpi">
-                <div className="dash-kpi-value">{avgStress}</div>
-                <div className="dash-kpi-label">全社平均ストレス</div>
-                <div className="dash-kpi-change">{avgStress <= 40 ? '良好' : avgStress <= 55 ? '注意' : '要対応'}</div>
+                <div className="dash-kpi-value">{kpis.avgStress}</div>
+                <div className="dash-kpi-label">平均ストレス</div>
+                <div className={`dash-kpi-change ${kpis.avgStress <= 40 ? 'up' : kpis.avgStress <= 55 ? '' : 'down'}`}>
+                  {kpis.avgStress <= 40 ? '良好' : kpis.avgStress <= 55 ? '注意' : '要対応'}
+                </div>
               </div>
               <div className="dash-kpi">
-                <div className="dash-kpi-value green">{avgParticipation}%</div>
+                <div className="dash-kpi-value green">{kpis.avgParticipation}%</div>
                 <div className="dash-kpi-label">参加率</div>
                 <div className="dash-kpi-change up">目標: 90%</div>
               </div>
               <div className="dash-kpi">
-                <div className="dash-kpi-value">{avgHR}</div>
-                <div className="dash-kpi-label">平均心拍数 (BPM)</div>
-                <div className="dash-kpi-change">正常範囲</div>
+                <div className="dash-kpi-value">{kpis.avgCondition}</div>
+                <div className="dash-kpi-label">コンディション</div>
+                <div className={`dash-kpi-change ${kpis.avgCondition >= 60 ? 'up' : ''}`}>
+                  {kpis.avgCondition >= 60 ? '良好' : kpis.avgCondition >= 40 ? '普通' : '要改善'}
+                </div>
               </div>
               <div className="dash-kpi">
-                <div className="dash-kpi-value amber">{alertCount}</div>
+                <div className="dash-kpi-value amber">{kpis.alertDepts}</div>
                 <div className="dash-kpi-label">要注意部署</div>
-                <div className="dash-kpi-change down">{alertCount > 0 ? '対応検討中' : '問題なし'}</div>
+                <div className="dash-kpi-change down">{kpis.alertDepts > 0 ? '対応検討中' : '問題なし'}</div>
               </div>
             </div>
 
             <div className="dash-two-col">
-              {/* Monthly Trend */}
+              {/* Monthly Trend (SVG) */}
               <div className="dash-panel">
-                <h3>月次ストレス推移</h3>
-                <div className="trend-chart">
-                  {MOCK_MONTHLY.map((m) => (
-                    <div key={m.month} className="trend-col">
-                      <div className="trend-bar-wrap">
-                        <div
-                          className={`trend-bar ${m.avgStress > 50 ? 'high' : m.avgStress > 40 ? 'medium' : ''}`}
-                          style={{ height: `${(m.avgStress / maxMonthlyStress) * 100}%` }}
-                        />
-                      </div>
-                      <span className="trend-label">{m.month}</span>
-                      <span className="trend-value">{m.avgStress}</span>
-                    </div>
-                  ))}
+                <div className="dash-panel-header">
+                  <h3>月次推移</h3>
+                  <select className="dash-metric-select" value={trendMetric} onChange={(e) => setTrendMetric(e.target.value)}>
+                    <option value="avgStress">ストレス</option>
+                    <option value="avgCondition">コンディション</option>
+                    <option value="avgParticipation">参加率</option>
+                  </select>
                 </div>
-                <p className="trend-note">12月のストレス上昇: 年末業務集中期間。1月以降は改善傾向。</p>
+                {monthlyTrend.length > 1 ? (
+                  <TrendChartSVG data={monthlyTrend} dataKey={trendMetric} color={trendColor} label={trendLabel} />
+                ) : (
+                  <div className="trend-chart">
+                    {monthlyTrend.map((m) => (
+                      <div key={m.monthId} className="trend-col">
+                        <div className="trend-bar-wrap">
+                          <div
+                            className={`trend-bar ${m[trendMetric] > 50 ? 'high' : m[trendMetric] > 40 ? 'medium' : ''}`}
+                            style={{ height: `${(m[trendMetric] / maxMonthlyVal) * 100}%` }}
+                          />
+                        </div>
+                        <span className="trend-label">{m.label}</span>
+                        <span className="trend-value">{m[trendMetric]}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="trend-note">
+                  {deptFilter !== 'all'
+                    ? `${DEPARTMENTS.find((d) => d.id === deptFilter)?.name || ''}の${trendLabel}`
+                    : `全社の${trendLabel}（6ヶ月間）`}
+                </p>
               </div>
 
               {/* Distribution */}
               <div className="dash-panel">
                 <h3>ストレス分布</h3>
                 <div className="dist-chart">
-                  {MOCK_DISTRIBUTION.map((d) => (
+                  {distribution.map((d) => (
                     <div key={d.label} className="dist-row">
                       <span className="dist-label">{d.label}</span>
                       <div className="dist-bar-wrap">
-                        <div
-                          className="dist-bar"
-                          style={{ width: `${d.pct}%`, background: d.color }}
-                        />
+                        <div className="dist-bar" style={{ width: `${d.pct}%`, background: d.color }} />
                       </div>
                       <span className="dist-pct">{d.pct}%</span>
                     </div>
                   ))}
                 </div>
                 <p className="trend-note">
-                  全従業員の70%がリラックス〜通常範囲内。
+                  {distribution.length > 0 && `${distribution[0].pct + distribution[1].pct}%がリラックス〜通常範囲内。`}
                 </p>
               </div>
             </div>
@@ -267,15 +316,26 @@ export default function DashboardMock({ onBack }) {
                   <span>部署</span>
                   <span>人数</span>
                   <span>ストレス</span>
+                  <span>コンディション</span>
                   <span>参加率</span>
                   <span>状態</span>
                 </div>
-                {depts.map((d) => (
-                  <div key={d.name} className="team-row">
-                    <span className="team-name">{d.name}</span>
+                {deptSummary.map((d) => (
+                  <div
+                    key={d.deptId}
+                    className={`team-row ${deptFilter === d.deptId ? 'team-row-active' : ''}`}
+                    onClick={() => setDeptFilter(deptFilter === d.deptId ? 'all' : d.deptId)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setDeptFilter(deptFilter === d.deptId ? 'all' : d.deptId)}
+                  >
+                    <span className="team-name">{d.deptName}</span>
                     <span>{d.members}名</span>
-                    <span className={d.avgStress <= 35 ? 'green' : d.avgStress <= 50 ? 'amber' : 'red'}>
+                    <span className={d.avgStress <= 35 ? 'green' : d.avgStress <= 55 ? 'amber' : 'red'}>
                       {d.avgStress}
+                    </span>
+                    <span className={d.conditionScore >= 60 ? 'green' : d.conditionScore >= 40 ? 'amber' : 'red'}>
+                      {d.conditionScore}
                     </span>
                     <span>{d.participation}%</span>
                     <span>
@@ -286,31 +346,39 @@ export default function DashboardMock({ onBack }) {
                   </div>
                 ))}
               </div>
+              <p className="trend-note" style={{ marginTop: 12 }}>部署をクリックするとフィルタできます。</p>
             </div>
 
             {/* Alerts */}
-            <div className="dash-panel">
-              <h3>アラート・通知</h3>
-              <div className="alerts-list">
-                {MOCK_ALERTS.map((a, i) => (
-                  <div key={i} className={`alert-item ${i === 0 ? 'alert-warn' : ''}`}>
-                    <div className="alert-meta">
-                      <span className="alert-time">{a.date}</span>
-                      <span className="alert-team">{a.dept}</span>
+            {alerts.length > 0 && (
+              <div className="dash-panel">
+                <h3>アラート・通知</h3>
+                <div className="alerts-list">
+                  {alerts.map((a, i) => (
+                    <div key={i} className={`alert-item ${a.type === 'warning' ? 'alert-warn' : ''}`}>
+                      <div className="alert-meta">
+                        <span className="alert-time">{a.date}</span>
+                        <span className="alert-team">{a.dept}</span>
+                      </div>
+                      <p>{a.message}</p>
                     </div>
-                    <p>{a.message}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Export */}
             <div className="dash-panel dash-export-panel">
               <h3>レポートエクスポート</h3>
-              <p className="export-desc">現在のダッシュボードデータをPDF形式でエクスポートできます。稟議書や報告書への添付にご利用ください。</p>
-              <button className="btn-export" onClick={exportResultsPDF}>
-                レポートをPDF出力
-              </button>
+              <p className="export-desc">ダッシュボードデータをエクスポートできます。稟議書や報告書への添付にご利用ください。</p>
+              <div className="dash-export-buttons">
+                <button className="btn-export" onClick={() => exportDashboardPDF(kpis, deptSummary, monthlyTrend)}>
+                  PDFレポート出力
+                </button>
+                <button className="btn-export btn-export-csv" onClick={() => downloadAdminCSV(deptSummary, monthlyTrend)}>
+                  CSVデータ出力
+                </button>
+              </div>
             </div>
 
             {/* Privacy Banner */}
@@ -320,7 +388,7 @@ export default function DashboardMock({ onBack }) {
               </svg>
               <span>
                 すべてのデータは匿名化・集計された状態で表示されます。
-                個人の特定につながる情報は一切表示されません。
+                個人の特定につながる情報は一切表示されません（5名以上の集計のみ）。
                 映像データはブラウザ上で処理され、サーバーへの送信はありません。
               </span>
             </div>
@@ -350,7 +418,6 @@ export default function DashboardMock({ onBack }) {
                 <span className="roi-unit">名</span>
               </div>
 
-              {/* Cost Comparison */}
               <h4 className="roi-section-title">年間コスト比較</h4>
               <div className="roi-comparison">
                 <div className="roi-option roi-option-highlight">
@@ -377,7 +444,6 @@ export default function DashboardMock({ onBack }) {
                 ウェアラブル比 {roi.costVsWearable}% コスト削減
               </div>
 
-              {/* Hidden Cost Savings */}
               <h4 className="roi-section-title">早期発見による間接コスト削減効果（推計）</h4>
               <div className="roi-grid">
                 <div className="roi-card">
@@ -398,7 +464,6 @@ export default function DashboardMock({ onBack }) {
                 </div>
               </div>
 
-              {/* ROI Summary */}
               <div className="roi-summary">
                 <div className="roi-summary-row">
                   <span>ミルケア年間費用</span>
