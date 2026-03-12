@@ -1396,6 +1396,123 @@
   vertical-align: middle;
 }
 
+/* ===== 直近7日ウィジェット ===== */
+
+.adm-weekly-widgets {
+  margin-bottom: 20px;
+}
+
+.adm-widget-row {
+  display: flex;
+  gap: 16px;
+}
+
+.adm-widget-card {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+
+.adm-widget-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.adm-widget-trend {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.adm-trend-up { color: #22c55e; }
+.adm-trend-down { color: #ef4444; }
+.adm-trend-flat { color: var(--color-text-muted); }
+.adm-trend-better { color: #22c55e; }
+.adm-trend-worse { color: #ef4444; }
+
+.adm-widget-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.adm-widget-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* ===== CSV Import ===== */
+
+.adm-csv-import-section {
+  margin-top: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+
+.adm-csv-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.adm-csv-dropzone:hover {
+  border-color: var(--color-primary);
+}
+
+.adm-csv-dropzone-label {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.adm-csv-dropzone-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.adm-csv-preview {
+  margin-top: 12px;
+}
+
+.adm-csv-preview-count {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.adm-csv-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.adm-csv-success {
+  color: var(--color-success);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.adm-csv-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .adm-member-timeline {
   background: var(--color-surface-light);
   border-top: 1px solid var(--color-border);

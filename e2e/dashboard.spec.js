@@ -938,6 +938,72 @@ test.describe('ExportView 組織レポートPDF', () => {
 
 // ===== メンバースコアタイムライン =====
 
+test.describe('OverviewView 直近7日ウィジェット', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('サンプルデータでウィジェットカードが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('ウィジェットテスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`wid-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Load sample data
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await page.waitForTimeout(3000);
+    await page.reload();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // OverviewView should show weekly widgets
+    await expect(page.locator('.adm-weekly-widgets')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-widget-card')).toHaveCount(2);
+  });
+});
+
+test.describe('MembersView CSVインポート', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('CSVインポートセクションが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('CSVテスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`csv-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Navigate to Members view
+    await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
+    await expect(page.locator('.adm-view-title', { hasText: 'メンバー管理' })).toBeVisible({ timeout: 10000 });
+
+    // CSV import section visible
+    await expect(page.locator('.adm-csv-import-section')).toBeVisible();
+    await expect(page.locator('.adm-csv-dropzone')).toBeVisible();
+  });
+});
+
 test.describe('MembersView スコアタイムライン', () => {
   test.beforeEach(async ({ page }) => {
     await skipOnboarding(page);

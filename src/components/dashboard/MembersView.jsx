@@ -124,6 +124,9 @@ export default function MembersView({ session, teams, onRefresh }) {
         </table>
       </div>
 
+      {/* CSVインポート */}
+      <CsvMemberImport session={session} teams={teams} onImportComplete={() => { loadMembers(); onRefresh(); }} />
+
       {/* 部署管理 */}
       <h3 className="adm-section-title">部署管理</h3>
       <div className="adm-dept-manage">
@@ -147,6 +150,194 @@ export default function MembersView({ session, teams, onRefresh }) {
         ※ メンバーの計測データは匿名集計のみ閲覧可能です。個人の計測結果を管理者が閲覧することはできません。
         自分自身のスコア推移のみ確認できます。
       </p>
+    </div>
+  );
+}
+
+/* ===== CSV Member Import ===== */
+
+function CsvMemberImport({ session, teams, onImportComplete }) {
+  const [parsedRows, setParsedRows] = useState([]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) throw new Error('ヘッダー行とデータ行が必要です');
+
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const nameIdx = header.findIndex(h => h === '名前' || h === 'name' || h === '表示名');
+    const emailIdx = header.findIndex(h => h === 'メール' || h === 'email' || h === 'メールアドレス');
+    const deptIdx = header.findIndex(h => h === '部署' || h === 'department' || h === 'team');
+
+    if (nameIdx === -1 || emailIdx === -1) {
+      throw new Error('「名前」と「メール」列が必要です（CSVヘッダーを確認してください）');
+    }
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(c => c.trim());
+      const name = cols[nameIdx];
+      const email = cols[emailIdx];
+      const dept = deptIdx !== -1 ? cols[deptIdx] || '' : '';
+
+      if (!name || !email) continue;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+
+      rows.push({ name, email, dept });
+    }
+    return rows;
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setSuccess('');
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const rows = parseCSV(ev.target.result);
+        if (rows.length === 0) {
+          setError('有効なデータ行が見つかりません');
+          return;
+        }
+        setParsedRows(rows);
+      } catch (err) {
+        setError(err.message);
+        setParsedRows([]);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  async function handleImport() {
+    setImporting(true);
+    setError('');
+    setSuccess('');
+    let imported = 0;
+    let skipped = 0;
+
+    // Build team name → id map
+    const teamMap = {};
+    for (const t of teams) {
+      teamMap[t.name] = t.id;
+    }
+
+    for (const row of parsedRows) {
+      try {
+        // Generate a temporary password (user will reset via invite)
+        const tempPass = crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : Math.random().toString(36).slice(2, 14);
+
+        const user = await dataService.createUser({
+          email: row.email,
+          password: tempPass,
+          name: row.name,
+          orgId: session.orgId,
+          role: 'member',
+        });
+
+        // Assign to team if department specified
+        if (row.dept && teamMap[row.dept]) {
+          await dataService.addTeamMember({ userId: user.id, teamId: teamMap[row.dept] });
+        } else if (row.dept) {
+          // Create new team
+          const newTeam = await dataService.createTeam({ name: row.dept, orgId: session.orgId });
+          teamMap[row.dept] = newTeam.id;
+          await dataService.addTeamMember({ userId: user.id, teamId: newTeam.id });
+        }
+        imported++;
+      } catch {
+        skipped++;
+      }
+    }
+
+    setSuccess(`${imported}名をインポートしました${skipped > 0 ? `（${skipped}名スキップ — メール重複等）` : ''}`);
+    setParsedRows([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setImporting(false);
+    onImportComplete();
+  }
+
+  function handleCancel() {
+    setParsedRows([]);
+    setError('');
+    setSuccess('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  return (
+    <div className="adm-csv-import-section">
+      <h3 className="adm-section-title">CSVインポート</h3>
+      <div
+        className="adm-csv-dropzone"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+          data-testid="csv-file-input"
+        />
+        <p className="adm-csv-dropzone-label">CSVファイルをクリックして選択</p>
+        <p className="adm-csv-dropzone-sub">
+          必須列: 名前, メール / 任意列: 部署
+        </p>
+      </div>
+
+      {error && <p className="adm-csv-error">{error}</p>}
+      {success && <p className="adm-csv-success">{success}</p>}
+
+      {parsedRows.length > 0 && (
+        <div className="adm-csv-preview">
+          <p className="adm-csv-preview-count">
+            {parsedRows.length}名のメンバーが検出されました
+          </p>
+          <div className="adm-table-wrap">
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>名前</th>
+                  <th>メール</th>
+                  <th>部署</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parsedRows.slice(0, 10).map((r, i) => (
+                  <tr key={i}>
+                    <td>{r.name}</td>
+                    <td>{r.email}</td>
+                    <td>{r.dept || '---'}</td>
+                  </tr>
+                ))}
+                {parsedRows.length > 10 && (
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                      ...他 {parsedRows.length - 10}名
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="adm-csv-actions">
+            <button
+              className="adm-btn-secondary"
+              onClick={handleImport}
+              disabled={importing}
+            >
+              {importing ? 'インポート中...' : `${parsedRows.length}名をインポート`}
+            </button>
+            <button className="adm-btn-ghost" onClick={handleCancel}>キャンセル</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

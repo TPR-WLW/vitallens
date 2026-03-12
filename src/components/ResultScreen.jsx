@@ -497,6 +497,11 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           <p>{hrInfo.message}</p>
         </div>
 
+        {/* Stress-level recommendations */}
+        {stress && stress.level !== 'unknown' && (
+          <StressRecommendation stressScore={stress.score} stressLabel={stress.label} />
+        )}
+
         {/* Personal trend mini-chart (last 5 real measurements) */}
         {!result.isShared && <MiniTrendChart currentCondition={condition} />}
 
@@ -628,6 +633,73 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           診断・治療の目的で使用しないでください。体調に不安がある場合は医療専門家にご相談ください。
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * ストレスレベル別レコメンデーション
+ */
+function StressRecommendation({ stressScore, stressLabel }) {
+  const getRecommendation = (score) => {
+    if (score <= 35) {
+      return {
+        level: 'low',
+        title: '良好な状態です',
+        color: '#22c55e',
+        icon: '\u2714',
+        items: [
+          'この調子を維持しましょう。規則正しい生活リズムが効果的です。',
+          '適度な運動を続けることで、ストレス耐性がさらに向上します。',
+          '十分な睡眠（7〜8時間）を心がけてください。',
+        ],
+      };
+    }
+    if (score <= 55) {
+      return {
+        level: 'moderate',
+        title: 'やや注意が必要です',
+        color: '#f59e0b',
+        icon: '\u26A0',
+        items: [
+          '5分間の深呼吸エクササイズを試してみましょう（4秒吸って、7秒止めて、8秒吐く）。',
+          '30分以上のウォーキングやストレッチで身体をリフレッシュしましょう。',
+          '作業の合間に短い休憩を入れ、画面から目を離す時間を作りましょう。',
+          'カフェインの摂取を控え、水分を十分に取りましょう。',
+        ],
+      };
+    }
+    return {
+      level: 'high',
+      title: 'ストレスケアを推奨します',
+      color: '#ef4444',
+      icon: '\u2757',
+      items: [
+        'まず深呼吸を3回行い、肩の力を抜いてください。',
+        '可能であれば、10〜15分の休憩を取り、静かな場所でリラックスしましょう。',
+        '信頼できる同僚や上司に今の状態を共有することも有効です。',
+        '今日は無理をせず、優先度の高いタスクだけに集中しましょう。',
+        '継続的に高ストレスが続く場合は、産業医やカウンセラーへの相談をお勧めします。',
+      ],
+    };
+  };
+
+  const rec = getRecommendation(stressScore);
+
+  return (
+    <div className="stress-recommendation" style={{ borderLeftColor: rec.color }}>
+      <h4 className="stress-rec-title">
+        <span className="stress-rec-icon">{rec.icon}</span>
+        {rec.title}
+      </h4>
+      <ul className="stress-rec-list">
+        {rec.items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
+      <p className="stress-rec-disclaimer">
+        ※ 一般的なウェルネスアドバイスです。医療上の助言ではありません。
+      </p>
     </div>
   );
 }

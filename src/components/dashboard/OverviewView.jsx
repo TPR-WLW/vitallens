@@ -1,3 +1,5 @@
+import { useState, useEffect, useMemo } from 'react';
+import { dataService } from '../../services/index.js';
 import { stressStatus, StatusBadge, KPICard } from './AdminDashboard.jsx';
 
 function AlertBanner({ teamStats, alertThreshold = 55 }) {
@@ -30,9 +32,94 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
   const participationRate = totalMembers > 0 ? Math.round((activeMeasured / totalMembers) * 100) : 0;
   const avgStress = orgStats?.stats?.avgStress;
 
+  // 直近7日ウィジェット
+  const [weeklyStats, setWeeklyStats] = useState(null);
+
+  useEffect(() => {
+    if (!orgStats?.orgId) return;
+    (async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      const thisWeek = await dataService.getMeasurements({
+        orgId: orgStats.orgId,
+        from: sevenDaysAgo.toISOString(),
+        to: now.toISOString(),
+      });
+      const lastWeek = await dataService.getMeasurements({
+        orgId: orgStats.orgId,
+        from: fourteenDaysAgo.toISOString(),
+        to: sevenDaysAgo.toISOString(),
+      });
+
+      const thisCount = thisWeek.length;
+      const lastCount = lastWeek.length;
+      const thisAvg = thisCount > 0
+        ? Math.round(thisWeek.reduce((s, m) => s + (m.stressScore || 0), 0) / thisCount)
+        : null;
+      const lastAvg = lastCount > 0
+        ? Math.round(lastWeek.reduce((s, m) => s + (m.stressScore || 0), 0) / lastCount)
+        : null;
+
+      // トレンド: ストレスが下がった=改善(up arrow green), 上がった=悪化(up arrow red)
+      let countTrend = 'flat';
+      if (lastCount > 0) {
+        const diff = ((thisCount - lastCount) / lastCount) * 100;
+        if (diff > 10) countTrend = 'up';
+        else if (diff < -10) countTrend = 'down';
+      } else if (thisCount > 0) {
+        countTrend = 'up';
+      }
+
+      let stressTrend = 'flat';
+      if (thisAvg != null && lastAvg != null) {
+        const diff = thisAvg - lastAvg;
+        if (diff > 3) stressTrend = 'worse';
+        else if (diff < -3) stressTrend = 'better';
+      }
+
+      setWeeklyStats({ thisCount, thisAvg, countTrend, stressTrend });
+    })();
+  }, [orgStats?.orgId]);
+
   return (
     <div className="adm-view">
       <AlertBanner teamStats={teamStats} alertThreshold={alertThreshold} />
+
+      {/* 直近7日ウィジェットカード */}
+      {weeklyStats && (
+        <div className="adm-weekly-widgets">
+          <h3 className="adm-section-title">直近7日間</h3>
+          <div className="adm-widget-row">
+            <div className="adm-widget-card">
+              <div className="adm-widget-value">
+                {weeklyStats.thisCount}
+                <span className={`adm-widget-trend adm-trend-${weeklyStats.countTrend}`}>
+                  {weeklyStats.countTrend === 'up' ? '\u2191' : weeklyStats.countTrend === 'down' ? '\u2193' : '\u2192'}
+                </span>
+              </div>
+              <div className="adm-widget-label">計測回数</div>
+              <div className="adm-widget-sub">前週比</div>
+            </div>
+            <div className="adm-widget-card">
+              <div className="adm-widget-value">
+                {weeklyStats.thisAvg != null ? weeklyStats.thisAvg : '---'}
+                {weeklyStats.stressTrend !== 'flat' && (
+                  <span className={`adm-widget-trend adm-trend-${weeklyStats.stressTrend === 'better' ? 'better' : 'worse'}`}>
+                    {weeklyStats.stressTrend === 'better' ? '\u2193' : '\u2191'}
+                  </span>
+                )}
+              </div>
+              <div className="adm-widget-label">平均ストレス</div>
+              <div className="adm-widget-sub">
+                {weeklyStats.thisAvg != null ? stressStatus(weeklyStats.thisAvg).label : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="adm-kpi-row">
         <KPICard value={`${totalMembers}名`} label="登録メンバー" />
         <KPICard value={`${activeMeasured}名`} label="計測済み" sub={`(${participationRate}%)`} />

@@ -2287,6 +2287,58 @@ body {
   background: rgba(245, 158, 11, 0.08);
 }
 
+/* ===== Stress Recommendation ===== */
+
+.stress-recommendation {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.stress-rec-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stress-rec-icon {
+  font-size: 1.1rem;
+}
+
+.stress-rec-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stress-rec-list li {
+  padding: 6px 0;
+  padding-left: 16px;
+  position: relative;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.stress-rec-list li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: var(--color-text-muted);
+}
+
+.stress-rec-disclaimer {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 10px;
+}
+
 /* ===== HR Mini Chart ===== */
 
 .hr-mini-chart {
