@@ -1604,6 +1604,72 @@ body {
   color: var(--color-primary);
 }
 
+/* PDF Export Button (Result Screen) */
+
+.btn-export-pdf {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.2s;
+}
+
+.btn-export-pdf:hover {
+  background: rgba(79, 140, 255, 0.15);
+}
+
+/* CSV Export Button (History Screen) */
+
+.history-export {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.btn-export-csv {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-export-csv:hover {
+  background: rgba(79, 140, 255, 0.06);
+  color: var(--color-primary);
+}
+
+/* PDF Button on History Cards */
+
+.btn-history-pdf {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-history-pdf:hover {
+  background: rgba(79, 140, 255, 0.06);
+  color: var(--color-primary);
+}
+
 @media (max-width: 480px) {
   .history-content {
     padding-top: 24px;

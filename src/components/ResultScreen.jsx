@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CONTACT_EMAIL } from './ContactForm.jsx';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
 import { saveEntry } from '../lib/history.js';
+import { printReport } from '../lib/report-pdf.js';
 
 export default function ResultScreen({ result, onRestart, onBack, onShowHistory }) {
   const { hr, confidence, hrv, emotion } = result;
@@ -385,6 +386,14 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
             無料パイロット（50名・3ヶ月）のご案内も可能です
           </p>
         </div>
+
+        {/* PDF Export */}
+        <button
+          className="btn-export-pdf"
+          onClick={() => printReport(result)}
+        >
+          結果レポートをPDFで保存
+        </button>
 
         {/* Save + History actions */}
         {(result.isDemo || result.isSample) && !saved && (

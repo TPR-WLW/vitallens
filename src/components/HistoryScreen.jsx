@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { getEntries, deleteEntry, clearAll } from '../lib/history.js';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
+import { downloadCSV } from '../lib/export-csv.js';
+import { printReport } from '../lib/report-pdf.js';
 
 /**
  * 計測履歴画面 — 過去の計測結果一覧 + トレンドチャート
@@ -53,18 +55,28 @@ export default function HistoryScreen({ onBack, onRestart }) {
             {/* トレンドチャート（実計測が2件以上ある場合のみ） */}
             {realEntries.length >= 2 && <TrendChart entries={realEntries} />}
 
-            {/* サマリー */}
+            {/* サマリー + エクスポート */}
             <div className="history-summary">
               <span>計測回数: {entries.length}回</span>
               {realEntries.length > 0 && (
                 <span>（実計測: {realEntries.length}回）</span>
               )}
             </div>
+            <div className="history-export">
+              <button className="btn-export-csv" onClick={() => downloadCSV(entries)}>
+                CSVエクスポート
+              </button>
+            </div>
 
             {/* 一覧 */}
             <div className="history-list">
               {entries.map((entry) => (
-                <HistoryCard key={entry.id} entry={entry} onDelete={handleDelete} />
+                <HistoryCard
+                  key={entry.id}
+                  entry={entry}
+                  onDelete={handleDelete}
+                  onPrintReport={(e) => printReport(e.data, e.timestamp)}
+                />
               ))}
             </div>
 
@@ -92,7 +104,7 @@ export default function HistoryScreen({ onBack, onRestart }) {
 /**
  * 個別の計測カード
  */
-function HistoryCard({ entry, onDelete }) {
+function HistoryCard({ entry, onDelete, onPrintReport }) {
   const { data, timestamp } = entry;
   const date = new Date(timestamp);
   const dateStr = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
@@ -158,6 +170,12 @@ function HistoryCard({ entry, onDelete }) {
             </div>
           )}
         </div>
+        <button
+          className="btn-history-pdf"
+          onClick={() => onPrintReport(entry)}
+        >
+          PDF
+        </button>
       </div>
     </div>
   );
