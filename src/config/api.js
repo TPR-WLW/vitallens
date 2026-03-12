@@ -2,9 +2,6 @@
 // Set VITE_API_URL in .env or .env.production to override
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-// Contact form URL — replace with real Google Form URL before deployment
-export const CONTACT_FORM_URL = 'https://forms.gle/mirucare-contact';
-
 export const API = {
   base: API_BASE,
   pilotRequest: `${API_BASE}/api/pilot-request`,

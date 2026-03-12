@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ContactForm from './ContactForm.jsx';
+import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
 import '../styles/landing.css';
 
 export default function LandingPage({ onTryDemo, onShowDashboard }) {
@@ -341,7 +341,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
             <div className="company-row">
               <span className="company-label">連絡先</span>
               <span className="company-value">
-                <a href="mailto:info@mirucare.jp">info@mirucare.jp</a>
+                <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
               </span>
             </div>
           </div>
@@ -393,7 +393,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
             </p>
 
             <h3>7. お問い合わせ窓口</h3>
-            <p>ミルケア運営チーム<br /><a href="mailto:info@mirucare.jp">info@mirucare.jp</a></p>
+            <p>ミルケア運営チーム<br /><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
 
             <p className="privacy-updated">最終更新: 2026年3月</p>
           </div>

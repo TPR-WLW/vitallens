@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CONTACT_FORM_URL } from '../config/api.js';
+import { CONTACT_EMAIL } from './ContactForm.jsx';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
 
 export default function ResultScreen({ result, onRestart, onBack }) {
@@ -355,9 +355,7 @@ export default function ResultScreen({ result, onRestart, onBack }) {
           </p>
           <a
             className="btn-primary btn-cta-enterprise"
-            href={CONTACT_FORM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('[法人導入相談] お問い合わせ')}`}
           >
             法人導入について相談する
           </a>
