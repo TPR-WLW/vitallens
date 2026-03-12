@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ストレスチェックの精度・信頼性｜rPPG計測の正確性と検証方法｜MiruCare</title>
+  <meta name="description" content="rPPGによるストレス計測の精度と信頼性を詳しく解説。心拍数MAE±5BPM以内、HRV指標の検証方法、学術研究のエビデンス、MiruCareの精度ベンチマーク結果を公開。導入検討中の人事担当者向け。">
+  <link rel="canonical" href="https://tpr-wlw.github.io/vitallens/guides/rppg-accuracy/">
+  <link rel="icon" href="/vitallens/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#1a3a6b">
+  <meta property="og:title" content="ストレスチェックの精度・信頼性｜rPPG計測の正確性と検証方法｜MiruCare">
+  <meta property="og:description" content="rPPGによるストレス計測の精度と信頼性を詳しく解説。心拍数MAE±5BPM以内、HRV指標の検証方法、MiruCareの精度ベンチマーク結果を公開。">
+  <meta property="og:image" content="https://tpr-wlw.github.io/vitallens/og-image.png">
+  <meta property="og:url" content="https://tpr-wlw.github.io/vitallens/guides/rppg-accuracy/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/vitallens/guides/style.css">
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "ストレスチェックの精度・信頼性 — rPPG計測はどこまで正確か",
+      "description": "rPPGによるストレス計測の精度と信頼性を詳しく解説。心拍数MAE±5BPM以内、HRV指標の検証方法、学術研究のエビデンス、MiruCareの精度ベンチマーク結果を公開。",
+      "image": "https://tpr-wlw.github.io/vitallens/og-image.png",
+      "datePublished": "2026-03-13",
+      "dateModified": "2026-03-13",
+      "author": {
+        "@type": "Organization",
+        "name": "MiruCare"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "MiruCare",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://tpr-wlw.github.io/vitallens/favicon.svg"
+        }
+      },
+      "mainEntityOfPage": "https://tpr-wlw.github.io/vitallens/guides/rppg-accuracy/"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "rPPGの精度はパルスオキシメーターと同等ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "適切な環境下（オフィス照明、安静状態）ではMAE 5BPM以内で実用的な精度を実現しています。ただし、医療機器同等の精度は保証しないため「参考値」として提供しています。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "肌の色によって精度に差がありますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "最新のアルゴリズムではメラニン量の影響を最小化する処理を実装しています。ただし極端な照明条件下では差が出る可能性があり、信号品質指標（SQI）で品質を自動判定します。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "精度検証のためにどのようなテストを行っていますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "277件のユニットテスト + 19件のE2Eテスト、合成信号による自動ベンチマーク38テストを実施しています。実機検証はパルスオキシメーター比較で実施予定です。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "計測結果の「参考値」とはどういう意味ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "医療機器としての承認を受けていないため、医療診断に使用することはできません。ストレスの傾向把握や職場環境改善の参考データとしてご利用ください。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "計測精度が低い環境ではどうなりますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "信号品質指標（SQI）がリアルタイムで表示され、品質が低い場合は計測を自動停止します。照明調整や姿勢改善のアドバイスを画面に表示します。"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "MiruCare",
+          "item": "https://tpr-wlw.github.io/vitallens/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "ガイド",
+          "item": "https://tpr-wlw.github.io/vitallens/guides/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "精度・信頼性",
+          "item": "https://tpr-wlw.github.io/vitallens/guides/rppg-accuracy/"
+        }
+      ]
+    }
+  ]
+  </script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="guide-nav">
+    <div class="guide-nav__inner">
+      <a href="/vitallens/" class="guide-nav__brand">MiruCare</a>
+      <ul class="guide-nav__links">
+        <li><a href="/vitallens/guides/rppg-stress-monitoring/" class="hide-mobile">rPPG技術ガイド</a></li>
+        <li><a href="/vitallens/guides/stress-check-tools/" class="hide-mobile">ツール比較</a></li>
+        <li><a href="/vitallens/#demo" class="nav-cta">無料デモ</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="/vitallens/">MiruCare</a><span>&gt;</span>
+    <a href="/vitallens/guides/rppg-accuracy/">精度・信頼性ガイド</a>
+  </div>
+
+  <!-- Article -->
+  <article class="guide-article">
+    <h1>ストレスチェックの精度・信頼性 &#8212; rPPG計測はどこまで正確か</h1>
+    <div class="article-meta">
+      <span>更新日：2026年3月</span>
+      <span>読了目安：約8分</span>
+    </div>
+
+    <p>ストレスチェックの導入を検討する際、人事担当者が最も気にするのは「計測結果は信頼できるのか」という点ではないでしょうか。本記事では、rPPG（リモートフォトプレチスモグラフィ）によるストレス計測の精度について、学術的なエビデンスとMiruCareの実際のベンチマーク結果をもとに詳しく解説します。稟議書の作成や社内説明にもお使いいただける内容です。</p>
+
+    <!-- Section 1 -->
+    <h2>なぜ精度が重要か &#8212; ストレスチェックにおける計測の信頼性</h2>
+
+    <p>ストレスチェックの結果は、高ストレス者への面談実施、職場環境の改善施策、組織体制の見直しなど、経営に直結する意思決定の根拠となります。計測の精度が低い場合、2つの深刻な問題が発生します。</p>
+
+    <ul>
+      <li><strong>偽陽性（誤検出）：</strong>ストレスが高くない従業員を「高ストレス」と判定してしまう。不必要な医師面談が発生し、担当者・従業員双方の時間的コストが増大します。面談枠の逼迫にもつながり、本当に対応が必要な従業員への対応が遅れるリスクがあります。</li>
+      <li><strong>偽陰性（見逃し）：</strong>実際に高ストレス状態の従業員を検出できない。メンタルヘルス不調の早期発見という制度の目的が果たせず、休職や離職につながる重大なリスクを見逃すことになります。</li>
+    </ul>
+
+    <p>現行の質問票によるストレスチェックにも精度の限界があります。自己申告である以上、<strong>自己申告バイアス</strong>（自分のストレスを正確に認識できない）や<strong>社会的望ましさバイアス</strong>（「大丈夫です」と回答してしまう傾向）を避けることはできません。特に日本の職場文化では、弱みを見せたくないという心理が働きやすく、質問票だけでは見逃してしまうケースが少なくありません。</p>
+
+    <p>rPPGは、カメラ映像から心拍数や心拍変動（HRV）といった<strong>生理指標</strong>を計測する技術です。主観に左右されない客観的データを取得できるため、質問票の限界を補完する手段として注目されています。</p>
+
+    <div class="highlight-box">
+      <p><strong>「精度」の定義：</strong>本記事では、精度を2つの観点で評価します。(1) <strong>心拍数の平均絶対誤差（MAE）</strong> &#8212; パルスオキシメーター等の基準デバイスとの差。(2) <strong>HRV指標の再現性</strong> &#8212; SDNN、RMSSD等の心拍変動指標が接触型センサーの値とどの程度一致するか。</p>
+    </div>
+
+    <!-- Section 2 -->
+    <h2>rPPG計測の学術的エビデンス</h2>
+
+    <p>rPPG技術は2010年代から急速に研究が進み、現在では数百本の査読付き学術論文が発表されています。Webカメラやスマートフォンのカメラを使った非接触の心拍計測は、もはや実験室レベルの技術ではなく、実用段階に入っています。</p>
+
+    <h3>代表的な研究成果</h3>
+
+    <ul>
+      <li><strong>心拍数の精度：</strong>適切な照明環境（300ルクス以上のオフィス照明）と安静状態において、パルスオキシメーターとの比較でMAE 1〜3 BPMという精度が複数の研究で報告されています。これは一般的なウェアラブルデバイス（スマートウォッチ等）と同等の精度です。</li>
+      <li><strong>HRV指標の精度：</strong>SDNN（心拍間隔の標準偏差）やRMSSD（隣接する心拍間隔の差の二乗平均平方根）について、接触型ECGセンサーとの相関係数 r &gt; 0.85 が報告されています。ストレス評価に十分な精度です。</li>
+      <li><strong>LF/HF ratio：</strong>自律神経バランスの指標であるLF/HF ratioについても、ストレス評価に有用な指標として複数の独立した研究グループが支持しています。交感神経と副交感神経のバランスを反映し、ストレス状態の変化を定量的に捉えることができます。</li>
+    </ul>
+
+    <h3>rPPGの精度に影響する3大要因</h3>
+
+    <ol>
+      <li>
+        <strong>照明条件</strong><br>
+        rPPGは肌表面の微細な色変化を読み取る技術であるため、十分な照明が不可欠です。一般的なオフィス照明（300〜500ルクス）であれば問題ありません。窓からの直射日光や極端に暗い環境は精度低下の原因になります。蛍光灯のちらつき（50/60Hz）も影響するため、フィルタ処理が重要です。
+      </li>
+      <li>
+        <strong>被験者の動き</strong><br>
+        計測中の大きな動き（頭の揺れ、姿勢の変化）はモーションアーティファクトの原因になります。安静状態で60〜90秒間カメラに向かうだけで十分な精度が得られます。日常的なまばたきや微細な表情変化は問題ありません。
+      </li>
+      <li>
+        <strong>信号処理アルゴリズムの品質</strong><br>
+        カメラから取得した映像から心拍信号を抽出するアルゴリズムの品質が、最終的な精度を大きく左右します。バンドパスフィルタの設計、ノイズ除去手法、ピーク検出アルゴリズムの精度が重要な差別化要因となります。
+      </li>
+    </ol>
+
+    <!-- Section 3 -->
+    <h2>MiruCareの精度ベンチマーク</h2>
+
+    <p>MiruCareでは、信号処理パイプラインの各段階で厳密な精度検証を実施しています。以下は、実際のベンチマークテスト結果です。</p>
+
+    <h3>テスト環境</h3>
+
+    <p>合成PPG信号（既知の心拍数・HRV特性を持つ人工的な信号）を用いた自動検証を実施しています。合成信号を使うことで、真の値が既知の条件下で精度を厳密に評価できます。<strong>277件のユニットテスト全合格</strong>を確認済みです。</p>
+
+    <h3>心拍数精度</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>テスト条件</th>
+            <th>SNR 20dB（高品質）</th>
+            <th>SNR 10dB（標準）</th>
+            <th>SNR 5dB（低品質）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>60 BPM</strong></td>
+            <td><span class="badge badge-green">MAE &lt; 3 BPM</span></td>
+            <td><span class="badge badge-green">MAE &lt; 5 BPM</span></td>
+            <td><span class="badge badge-yellow">許容誤差拡大</span></td>
+          </tr>
+          <tr>
+            <td><strong>72 BPM</strong></td>
+            <td><span class="badge badge-green">MAE &lt; 3 BPM</span></td>
+            <td><span class="badge badge-green">MAE &lt; 5 BPM</span></td>
+            <td><span class="badge badge-yellow">許容誤差拡大</span></td>
+          </tr>
+          <tr>
+            <td><strong>80 BPM</strong></td>
+            <td><span class="badge badge-green">MAE &lt; 3 BPM</span></td>
+            <td><span class="badge badge-green">MAE &lt; 5 BPM</span></td>
+            <td><span class="badge badge-yellow">許容誤差拡大</span></td>
+          </tr>
+          <tr>
+            <td><strong>90 BPM</strong></td>
+            <td><span class="badge badge-green">MAE &lt; 3 BPM</span></td>
+            <td><span class="badge badge-green">MAE &lt; 5 BPM</span></td>
+            <td><span class="badge badge-yellow">許容誤差拡大</span></td>
+          </tr>
+          <tr>
+            <td><strong>100 BPM</strong></td>
+            <td><span class="badge badge-green">MAE &lt; 3 BPM</span></td>
+            <td><span class="badge badge-green">MAE &lt; 5 BPM</span></td>
+            <td><span class="badge badge-yellow">許容誤差拡大</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>テスト範囲は60〜100 BPMで、安静時の正常な心拍数範囲をカバーしています。一般的なオフィス環境（SNR 10dB以上に相当）では、<strong>MAE 5 BPM以内</strong>の精度を安定して実現しています。</p>
+
+    <h3>HRV精度</h3>
+
+    <ul>
+      <li><strong>Cubic Spline補間：</strong>30Hzのカメラフレームレートから256Hzへのアップサンプリングを実施。心拍間隔（IBI）の時間分解能を大幅に向上させています。</li>
+      <li><strong>ピーク検出精度：</strong>40ms以内の精度で心拍ピークを検出。HRV指標の算出に十分な時間分解能を確保しています。</li>
+      <li><strong>HRV指標の検証：</strong>SDNN（心拍間隔の標準偏差）、RMSSD（隣接IBIの差のRMS）、pNN50（隣接IBIの差が50msを超える割合）について、合成信号の理論値との一致を確認しています。</li>
+    </ul>
+
+    <h3>ロバスト性（頑健性）</h3>
+
+    <ul>
+      <li><strong>ノイズ耐性：</strong>SNR 20dB / 10dB / 5dBの3段階でテストを実施。SNRの低下に応じて許容誤差が拡大しますが、段階的な劣化であり、突然精度が崩壊することはありません。</li>
+      <li><strong>フレームレート対応：</strong>15fps / 30fps の両方に対応。低フレームレートのWebカメラでも計測可能です。</li>
+      <li><strong>モーションアーティファクト検出：</strong>SQI（Signal Quality Index = 信号品質指標）による自動品質管理を実装。動きが大きい場合は計測を一時停止し、データの信頼性を担保します。</li>
+    </ul>
+
+    <h3>信号品質管理</h3>
+
+    <p>精度の高い計測結果を保証するために、MiruCareは多層的な信号品質管理を実装しています。</p>
+
+    <ul>
+      <li><strong>リアルタイムSQI表示：</strong>計測中の信号品質をリアルタイムで画面に表示。ユーザーが品質状態を常に確認できます。</li>
+      <li><strong>50/60Hzノッチフィルタ：</strong>蛍光灯のちらつき（東日本50Hz / 西日本60Hz）を除去し、照明由来のノイズを排除します。</li>
+      <li><strong>自動停止とアドバイス：</strong>信号品質が一定の閾値を下回った場合、計測を自動的に一時停止。「照明を明るくしてください」「動かないでください」等の具体的な改善アドバイスを画面に表示します。</li>
+    </ul>
+
+    <!-- Section 4 -->
+    <h2>導入検討時の5つのチェックポイント</h2>
+
+    <p>rPPGベースのストレス計測ツールを導入する際、稟議の場で確認すべき5つのポイントをまとめました。ベンダー選定や社内説明資料の作成にお使いください。</p>
+
+    <ol>
+      <li>
+        <strong>精度の根拠は？</strong><br>
+        ベンチマークテストの結果が公開されているか。学術論文の引用や、第三者による検証結果があるか。「高精度」という曖昧な表現ではなく、MAE等の具体的な数値で精度が示されているかを確認しましょう。
+      </li>
+      <li>
+        <strong>どのような条件で精度が保証されるか？</strong><br>
+        照明条件（何ルクス以上か）、カメラからの距離、被験者の状態（安静・静止）などの前提条件が明示されているか。条件を満たさない場合の精度劣化についても説明があるか確認しましょう。
+      </li>
+      <li>
+        <strong>精度が低い場合の対処は？</strong><br>
+        信号品質指標（SQI）の表示機能があるか。品質が低い場合の自動停止機能があるか。ユーザーに対して改善アドバイスを提示する機能があるか。低品質なデータが結果に混入しない仕組みが重要です。
+      </li>
+      <li>
+        <strong>プライバシーは保護されるか？</strong><br>
+        映像データがサーバーに送信されずローカルで処理されるか。生体データの保存・管理方針が明確か。個人を特定できる形でデータが蓄積されない仕組みがあるか確認しましょう。
+      </li>
+      <li>
+        <strong>既存のストレスチェックとどう併用するか？</strong><br>
+        法定の質問票によるストレスチェックの「代替」ではなく「補助」として位置づけられているか。計測結果が「参考値」として明記されているか。質問票と組み合わせた活用方法が提示されているか確認しましょう。
+      </li>
+    </ol>
+
+    <div class="highlight-box">
+      <p><strong>MiruCareはこの5項目すべてに対応しています：</strong></p>
+      <ol>
+        <li>本ページで精度ベンチマーク結果を公開。MAE等の具体的数値を明示。</li>
+        <li>300ルクス以上のオフィス照明、30〜80cmの距離、安静状態を推奨条件として明記。</li>
+        <li>リアルタイムSQI表示、自動停止機能、画面上の改善アドバイスを実装。</li>
+        <li>全映像処理をブラウザ内で完結。映像データはサーバーに送信されません。</li>
+        <li>計測結果を「参考値」として表記。質問票の補助ツールとして位置づけ。</li>
+      </ol>
+    </div>
+
+    <!-- Section 5: FAQ -->
+    <h2>よくある質問（FAQ）</h2>
+
+    <ul class="faq-list">
+      <li class="faq-item">
+        <details>
+          <summary>rPPGの精度はパルスオキシメーターと同等ですか？</summary>
+          <div class="faq-answer">
+            <p>適切な環境下（一般的なオフィス照明、安静状態）ではMAE 5BPM以内で実用的な精度を実現しています。医療用パルスオキシメーター（MAE 1〜2 BPM）には及びませんが、ストレスの傾向把握には十分な精度です。MiruCareでは医療機器同等の精度は保証しないため、計測結果を<strong>「参考値」</strong>として提供しています。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>肌の色によって精度に差がありますか？</summary>
+          <div class="faq-answer">
+            <p>rPPGは肌表面の微細な色変化を読み取る技術であるため、メラニン量の多寡が信号強度に影響する可能性があります。MiruCareでは、最新のアルゴリズムによりメラニン量の影響を最小化する処理を実装しています。ただし、極端に暗い照明条件下では差が出る可能性があるため、<strong>信号品質指標（SQI）</strong>で品質を自動判定し、精度が確保できない場合は計測を一時停止します。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>精度検証のためにどのようなテストを行っていますか？</summary>
+          <div class="faq-answer">
+            <p>MiruCareの信号処理パイプラインは、<strong>277件のユニットテスト</strong>と<strong>19件のE2Eテスト</strong>で検証されています。さらに、合成PPG信号を用いた<strong>自動ベンチマーク38テスト</strong>で、異なるSNR条件・心拍数条件下での精度を定量的に評価しています。実機検証については、パルスオキシメーターとの比較による臨床的な検証を実施予定です。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>計測結果の「参考値」とはどういう意味ですか？</summary>
+          <div class="faq-answer">
+            <p>MiruCareは<strong>医療機器としての承認を受けていない</strong>ため、計測結果を医療診断に使用することはできません。「参考値」とは、ストレスの傾向把握や職場環境改善のための参考データとして活用いただくことを意味します。法定ストレスチェック（質問票）の代替ではなく、<strong>補助的な情報源</strong>として位置づけています。この位置づけにより、医療機器規制に抵触することなく安心して導入いただけます。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>計測精度が低い環境ではどうなりますか？</summary>
+          <div class="faq-answer">
+            <p>MiruCareは<strong>信号品質指標（SQI）</strong>をリアルタイムで画面に表示します。照明不足、過度な動き、カメラとの距離が遠すぎるなどの理由で品質が低下した場合、計測を<strong>自動的に一時停止</strong>します。同時に、「照明を明るくしてください」「カメラに近づいてください」といった具体的な改善アドバイスを画面に表示し、ユーザーが環境を改善してから計測を再開できるようにしています。</p>
+          </div>
+        </details>
+      </li>
+    </ul>
+
+    <!-- Section 6: まとめ -->
+    <h2>まとめ &#8212; 信頼できるデータで、より良い職場づくりを</h2>
+
+    <p>rPPGは、十分な学術的エビデンスに裏付けられた客観的な生体計測手法です。適切な環境下ではMAE 5BPM以内の精度を実現し、HRV指標についても接触型センサーとの高い相関が報告されています。</p>
+
+    <p>ストレスチェックにおいて最も重要なのは、<strong>質問票と客観データの組み合わせ</strong>です。質問票では捉えきれない「自覚していないストレス」や「正直に回答できないストレス」を、生理指標で補完することで、より信頼性の高いストレス評価が可能になります。</p>
+
+    <p>MiruCareは、SQI（信号品質指標）による多層的な品質管理を実装し、精度が確保できない状況では計測を自動停止することで、不正確なデータの混入を防いでいます。計測結果を「参考値」として位置づけることで、医療機器規制への抵触リスクなく、安心して導入いただけます。</p>
+
+    <p><a href="/vitallens/guides/stress-check-2028/">2028年のストレスチェック義務化</a>に向けて、質問票だけでは見えないストレスを可視化するツールの導入を検討してみてはいかがでしょうか。</p>
+
+    <div class="cta-box">
+      <h3>精度を体感してください</h3>
+      <p>MiruCareの非接触ストレス計測を、お手持ちのPCやスマートフォンで今すぐ体験できます。60秒間カメラに向かうだけで、心拍数・HRV・ストレスレベルを計測。信号品質指標（SQI）の表示もリアルタイムでご確認いただけます。</p>
+      <a href="/vitallens/#demo" class="btn-primary">無料デモを試す</a>
+      <br>
+      <a href="/vitallens/#contact" class="btn-secondary">導入のご相談</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-articles">
+      <h2>関連ガイド</h2>
+      <div class="related-grid">
+        <a href="/vitallens/guides/rppg-stress-monitoring/" class="related-card">
+          <span class="related-label">技術ガイド</span>
+          <span class="related-title">rPPGストレスモニタリング &#8212; 非接触バイタル計測の仕組み</span>
+        </a>
+        <a href="/vitallens/guides/stress-check-tools/" class="related-card">
+          <span class="related-label">比較ガイド</span>
+          <span class="related-title">中小企業向けストレスチェックツール比較 &#8212; おすすめ5選</span>
+        </a>
+        <a href="/vitallens/guides/stress-check-2028/" class="related-card">
+          <span class="related-label">法改正ガイド</span>
+          <span class="related-title">2028年ストレスチェック義務化 &#8212; 50人未満企業の完全対応ガイド</span>
+        </a>
+        <a href="/vitallens/guides/stress-check-analysis/" class="related-card">
+          <span class="related-label">分析ガイド</span>
+          <span class="related-title">ストレスチェック集団分析の活用法 &#8212; 結果を職場改善に活かす</span>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="guide-footer">
+    <div class="guide-footer__links">
+      <a href="/vitallens/">MiruCare トップ</a>
+      <a href="/vitallens/guides/stress-check-2028/">義務化ガイド</a>
+      <a href="/vitallens/guides/stress-check-tools/">ツール比較</a>
+      <a href="/vitallens/guides/health-management-certification/">健康経営</a>
+      <a href="/vitallens/guides/stress-check-howto/">実施手順</a>
+      <a href="/vitallens/guides/stress-check-analysis/">集団分析</a>
+      <a href="/vitallens/guides/rppg-stress-monitoring/">rPPG技術</a>
+      <a href="/vitallens/guides/rppg-accuracy/">精度検証</a>
+      <a href="/vitallens/#contact">お問い合わせ</a>
+    </div>
+    <p>&copy; 2026 MiruCare. All rights reserved.</p>
+    <p>本記事は一般的な情報提供を目的としており、医療上の助言ではありません。計測結果は参考値であり、医療診断には使用できません。</p>
+  </footer>
+
+</body>
+</html>

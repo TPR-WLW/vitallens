@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rPPGとは？カメラだけで心拍・ストレスを測る技術の仕組みと企業活用｜MiruCare</title>
+  <meta name="description" content="rPPG（リモートフォトプレチスモグラフィ）の仕組みを人事担当者向けにわかりやすく解説。カメラ映像から心拍変動（HRV）を非接触で計測し、従業員のストレス状態を客観的に可視化する技術と企業での活用法。">
+  <link rel="canonical" href="https://tpr-wlw.github.io/vitallens/guides/rppg-stress-monitoring/">
+  <link rel="icon" href="/vitallens/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#1a3a6b">
+  <meta property="og:title" content="rPPGとは？カメラだけで心拍・ストレスを測る技術の仕組みと企業活用｜MiruCare">
+  <meta property="og:description" content="rPPG（リモートフォトプレチスモグラフィ）の仕組みを人事担当者向けにわかりやすく解説。カメラ映像から心拍変動（HRV）を非接触で計測し、従業員のストレス状態を客観的に可視化する技術と企業での活用法。">
+  <meta property="og:image" content="https://tpr-wlw.github.io/vitallens/og-image.png">
+  <meta property="og:url" content="https://tpr-wlw.github.io/vitallens/guides/rppg-stress-monitoring/">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/vitallens/guides/style.css">
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "rPPGとは？カメラだけで心拍・ストレスを測る技術と企業活用ガイド",
+      "description": "rPPG（リモートフォトプレチスモグラフィ）の仕組みを人事担当者向けにわかりやすく解説。カメラ映像から心拍変動（HRV）を非接触で計測し、従業員のストレス状態を客観的に可視化する技術と企業での活用法。",
+      "image": "https://tpr-wlw.github.io/vitallens/og-image.png",
+      "datePublished": "2026-03-13",
+      "dateModified": "2026-03-13",
+      "author": {
+        "@type": "Organization",
+        "name": "MiruCare"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "MiruCare",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://tpr-wlw.github.io/vitallens/favicon.svg"
+        }
+      },
+      "mainEntityOfPage": "https://tpr-wlw.github.io/vitallens/guides/rppg-stress-monitoring/"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "rPPGの計測にはどのようなカメラが必要ですか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "一般的なWebカメラやスマートフォンのカメラで計測可能です。特別な赤外線カメラや高価な機器は不要で、ノートPCの内蔵カメラでも十分な精度で計測できます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "顔の映像はサーバーに送信されますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "いいえ。MiruCareは全ての処理を端末内（ブラウザ上）で完結させています。顔の映像データは保存も送信もされません。サーバーに送信されるのは計測結果の数値データのみです。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "メガネやマスクをしていても計測できますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "メガネは問題なく計測できます。マスクは顔の露出面積が減るため精度が低下する可能性があります。より正確な計測のため、計測時はマスクを外すことを推奨しています。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "rPPGの計測結果は医療用として使えますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "rPPGによる計測結果は医療機器認定を受けていないため、医療診断には使用できません。あくまで「参考値」として提供しており、ストレスチェック制度における質問票の補助的な指標として活用いただけます。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "暗い部屋でも計測できますか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "一定の照明が必要です。オフィスの通常照明（300ルクス以上）であれば問題なく計測可能です。極端に暗い環境や、強い逆光がある環境では精度が低下します。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "従業員の監視ツールとして使われませんか？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MiruCareは完全任意参加（デフォルトOFF）で設計されています。個人の計測結果は本人のみが閲覧でき、管理者が閲覧できるのは5名以上の集計データのみです。従業員の監視を目的とした利用はできない設計になっています。"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "MiruCare",
+          "item": "https://tpr-wlw.github.io/vitallens/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "ガイド",
+          "item": "https://tpr-wlw.github.io/vitallens/guides/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "rPPG技術ガイド",
+          "item": "https://tpr-wlw.github.io/vitallens/guides/rppg-stress-monitoring/"
+        }
+      ]
+    }
+  ]
+  </script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="guide-nav">
+    <div class="guide-nav__inner">
+      <a href="/vitallens/" class="guide-nav__brand">MiruCare</a>
+      <ul class="guide-nav__links">
+        <li><a href="/vitallens/guides/rppg-accuracy/" class="hide-mobile">rPPG精度検証</a></li>
+        <li><a href="/vitallens/guides/stress-check-tools/" class="hide-mobile">ツール比較</a></li>
+        <li><a href="/vitallens/#demo" class="nav-cta">無料デモ</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="/vitallens/">MiruCare</a><span>&gt;</span>
+    <a href="/vitallens/guides/rppg-stress-monitoring/">rPPG技術ガイド</a>
+  </div>
+
+  <!-- Article -->
+  <article class="guide-article">
+    <h1>rPPGとは？カメラだけで心拍・ストレスを測る技術と企業活用ガイド</h1>
+    <div class="article-meta">
+      <span>更新日：2026年3月</span>
+      <span>読了目安：約7分</span>
+    </div>
+
+    <p>「従業員のストレスを客観的に測りたいが、ウェアラブルデバイスの配布はコストも手間もかかる」。そんな人事担当者の課題を解決する技術が<strong>rPPG（リモートフォトプレチスモグラフィ）</strong>です。パソコンやスマートフォンのカメラだけで、非接触で心拍数や心拍変動（HRV）を計測し、ストレス状態を可視化できます。本記事では、rPPGの仕組みから企業での具体的な活用法まで、人事担当者が知るべき情報をまとめました。</p>
+
+    <!-- Section 1 -->
+    <h2>rPPG（リモートフォトプレチスモグラフィ）とは</h2>
+
+    <p>rPPGとは<strong>Remote Photoplethysmography（リモートフォトプレチスモグラフィ）</strong>の略称で、カメラ映像から非接触で脈波信号を検出する技術です。心臓が血液を送り出すたびに、皮膚表面の血流量がわずかに変化します。この変化は肉眼では見えませんが、カメラはRGB信号としてこの微小な色変動を捉えることができます。</p>
+
+    <div class="highlight-box">
+      <p><strong>わかりやすく言えば：</strong>病院で指に挟むパルスオキシメーターと同じ原理です。パルスオキシメーターは指に光を当てて血流の変化を検出しますが、rPPGは指の代わりに<strong>顔全体</strong>を使い、<strong>接触なし</strong>で同じ計測を行います。特別な機器は不要で、普通のWebカメラがあれば計測できます。</p>
+    </div>
+
+    <p>rPPGの研究は<strong>2008年のMIT（マサチューセッツ工科大学）</strong>の研究に端を発します。当初は研究室レベルの実験でしたが、2020年代に入りコンピュータビジョンと機械学習の進歩により実用的な精度に到達しました。現在では、WebブラウザのJavaScriptだけで動作するほど軽量化が進み、企業が手軽に導入できる段階にあります。</p>
+
+    <p>rPPGの最大の利点は<strong>導入障壁の低さ</strong>です。ウェアラブルデバイスの購入・配布・管理が不要で、既存のパソコンやスマートフォンのカメラをそのまま活用できます。従業員にとっても、機器を装着するストレスがなく、自然な状態で計測できるため、より正確なデータが得られます。</p>
+
+    <!-- Section 2 -->
+    <h2>カメラで心拍を測る4つのステップ</h2>
+
+    <p>rPPGがカメラ映像から心拍数を算出するまでのプロセスは、大きく4つのステップに分かれます。技術的な詳細を知らなくても利用できますが、仕組みを理解しておくことで、計測結果への信頼度や限界を正しく判断できるようになります。</p>
+
+    <h3>ステップ1：顔検出 &#8212; 計測エリアの特定</h3>
+
+    <p>まず、カメラ映像の中から顔を検出し、計測に適した<strong>関心領域（ROI: Region of Interest）</strong>を特定します。一般的にはMediaPipeなどの顔検出ライブラリを使い、額や頬など血流変化が現れやすい部位を自動的に選択します。顔の位置が動いても、リアルタイムで追跡し続けます。</p>
+
+    <h3>ステップ2：色変動抽出 &#8212; 微小な色の変化を捉える</h3>
+
+    <p>特定したROIから、フレームごとのRGB（赤・緑・青）信号を抽出します。心拍に伴う皮膚の色変化はごくわずか（1%未満）ですが、<strong>POSアルゴリズム（Plane-Orthogonal-to-Skin）</strong>などの信号処理技術を使うことで、照明変化や体動などのノイズから脈波信号だけを分離できます。</p>
+
+    <h3>ステップ3：信号処理 &#8212; ノイズ除去と心拍数の算出</h3>
+
+    <p>抽出した脈波信号に<strong>バンドパスフィルタ</strong>（通常0.7〜4Hz = 42〜240bpm相当）を適用し、心拍に関係のない周波数成分を除去します。その後、ピーク検出アルゴリズムにより脈波のピーク間隔を特定し、心拍数（HR: Heart Rate）を算出します。</p>
+
+    <h3>ステップ4：HRV分析 &#8212; 心拍変動からストレスを評価</h3>
+
+    <p>心拍数だけでなく、心拍の<strong>「揺らぎ」</strong>を分析することがストレス評価の核心です。心拍間隔（IBI: Inter-Beat Interval）のばらつきを<strong>心拍変動（HRV: Heart Rate Variability）</strong>と呼び、以下の指標でストレス状態を評価します。</p>
+
+    <ul>
+      <li><strong>SDNN：</strong>心拍間隔の標準偏差。全体的な自律神経活動を反映</li>
+      <li><strong>RMSSD：</strong>隣接する心拍間隔の差の二乗平均平方根。副交感神経（リラックス）の活動を反映</li>
+      <li><strong>pNN50：</strong>隣接する心拍間隔の差が50ms以上である割合。副交感神経の指標</li>
+      <li><strong>LF/HF比：</strong>低周波成分と高周波成分の比率。交感神経（緊張）と副交感神経のバランスを反映</li>
+    </ul>
+
+    <p>一般に、HRVが高い（揺らぎが大きい）ほどリラックス状態、低い（揺らぎが小さい）ほどストレス状態にあると判断されます。これらの指標を総合的に評価することで、質問票では捉えられない<strong>生理的なストレス反応</strong>を客観的に可視化できます。</p>
+
+    <!-- Section 3 -->
+    <h2>企業でのrPPG活用 &#8212; ストレスチェックとの連携</h2>
+
+    <p>rPPGは、企業のメンタルヘルス対策においてどのように位置づけられるのでしょうか。重要なのは、rPPGは既存のストレスチェック制度を<strong>置き換えるものではなく、補完するもの</strong>だという点です。</p>
+
+    <h3>質問票の弱点をrPPGが補う</h3>
+
+    <p>現行のストレスチェック制度で使われる質問票（職業性ストレス簡易調査票等）には、<strong>自己申告バイアス</strong>という根本的な限界があります。「ストレスを感じている」と正直に回答できない従業員、自分のストレスに気づいていない従業員は少なくありません。実際、高ストレス者の約30%が質問票では「問題なし」と判定されるという研究報告もあります。</p>
+
+    <p>rPPGによるHRV計測は、自己申告に依存しない<strong>客観的な生理指標</strong>です。質問票の結果とHRVデータを組み合わせることで、より正確なストレス評価が可能になります。ただし、rPPGの計測結果はあくまで<strong>「参考値」</strong>として提供され、法定のストレスチェックの代替にはなりません。</p>
+
+    <h3>健康経営優良法人の申請材料として</h3>
+
+    <p>経済産業省が推進する<strong>健康経営優良法人認定制度</strong>では、従業員の健康課題を客観的に把握し、改善に取り組んでいることが評価されます。rPPGを活用したストレス計測の導入は、先進的な健康管理への取り組みとして申請材料に活用できます。詳しくは<a href="/vitallens/guides/health-management-certification/">健康経営優良法人認定ガイド</a>をご覧ください。</p>
+
+    <h3>プライバシー設計 &#8212; 安心して導入するために</h3>
+
+    <p>顔の映像を使う技術である以上、プライバシーへの配慮は最重要課題です。MiruCareでは以下の設計原則を採用しています。</p>
+
+    <ul>
+      <li><strong>端末内処理：</strong>顔の映像は全てブラウザ内で処理され、サーバーに送信されません</li>
+      <li><strong>映像の非保存：</strong>計測中の映像データは一切保存されません。サーバーに送信されるのは心拍数やHRVなどの数値データのみ</li>
+      <li><strong>個人情報保護法準拠：</strong>計測結果の取り扱いは個人情報保護法に準拠し、本人の同意なく第三者に提供されません</li>
+      <li><strong>任意参加：</strong>計測は完全任意（デフォルトOFF）。従業員が自分の意思で利用を開始します</li>
+    </ul>
+
+    <p>2028年のストレスチェック義務化拡大に向けた準備については、<a href="/vitallens/guides/stress-check-2028/">ストレスチェック義務化2028ガイド</a>で詳しく解説しています。</p>
+
+    <!-- Section 4 -->
+    <h2>rPPGの精度と限界 &#8212; 正しく理解する</h2>
+
+    <p>rPPGを導入する上で、その精度と限界を正しく理解することは不可欠です。過度な期待も過度な懐疑も、適切な活用の妨げになります。</p>
+
+    <h3>精度に影響する主な要因</h3>
+
+    <ul>
+      <li><strong>照明条件：</strong>安定した照明環境（オフィスの蛍光灯やLED照明）で最も精度が高くなります。直射日光や強い逆光は精度を低下させます</li>
+      <li><strong>体の動き：</strong>計測中の大きな体動はノイズの原因になります。30秒程度、静かに座っていることで十分な精度が得られます</li>
+      <li><strong>肌色・個人差：</strong>肌色の濃淡により信号強度に差が出ることがあります。最新のアルゴリズムはこの差を補正する技術を搭載しています</li>
+    </ul>
+
+    <h3>信号品質指標（SQI）による品質管理</h3>
+
+    <p>MiruCareでは、計測中にリアルタイムで<strong>信号品質指標（SQI: Signal Quality Index）</strong>を計算しています。SQIが一定の閾値を下回った場合、そのデータは「信頼性が低い」として結果に含めません。これにより、ノイズが多い環境でも誤ったデータが報告されることを防いでいます。</p>
+
+    <h3>「参考値」としての位置づけ</h3>
+
+    <p>rPPGによる計測結果は、<strong>医療機器としての認定を受けていません</strong>。そのため、医療診断に使用することはできず、あくまで「参考値」としての提供となります。しかし、質問票による自己申告もまた完璧ではありません。質問票には回答者のバイアスや気分の影響が含まれ、その日の体調や直前の出来事に左右されることもあります。</p>
+
+    <p>理想的なストレス評価は、<strong>質問票（主観的評価）とrPPG（客観的な生理指標）の両方を組み合わせる</strong>ことです。一方だけでは見えないストレスの全体像を、二つのアプローチで補完し合うことが重要です。rPPGの精度に関する詳細なデータは<a href="/vitallens/guides/rppg-accuracy/">rPPG精度検証ガイド</a>をご覧ください。</p>
+
+    <!-- Section 5: FAQ -->
+    <h2>よくある質問（FAQ）</h2>
+
+    <ul class="faq-list">
+      <li class="faq-item">
+        <details>
+          <summary>rPPGの計測にはどのようなカメラが必要ですか？</summary>
+          <div class="faq-answer">
+            <p>一般的なWebカメラやスマートフォンのカメラで計測可能です。特別な赤外線カメラや高価な機器は不要で、ノートPCの内蔵カメラでも十分な精度で計測できます。解像度はVGA（640x480）以上、フレームレートは15fps以上が推奨です。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>顔の映像はサーバーに送信されますか？</summary>
+          <div class="faq-answer">
+            <p>いいえ。MiruCareは全ての映像処理を<strong>端末内（ブラウザ上）</strong>で完結させています。顔の映像データは保存も送信もされません。サーバーに送信されるのは心拍数やHRVなどの計測結果の数値データのみです。個人を特定できる映像が外部に出ることは一切ありません。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>メガネやマスクをしていても計測できますか？</summary>
+          <div class="faq-answer">
+            <p>メガネは問題なく計測できます。マスクは顔の露出面積が減るため、信号の取得可能領域が制限され精度が低下する可能性があります。より正確な計測のため、計測時（約30秒間）はマスクを外すことを推奨しています。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>rPPGの計測結果は医療用として使えますか？</summary>
+          <div class="faq-answer">
+            <p>rPPGによる計測結果は<strong>医療機器認定を受けていない</strong>ため、医療診断には使用できません。あくまで「参考値」として提供しており、ストレスチェック制度における質問票の補助的な指標として活用いただけます。異常な数値が継続する場合は、医療機関への相談を推奨しています。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>暗い部屋でも計測できますか？</summary>
+          <div class="faq-answer">
+            <p>一定の照明が必要です。オフィスの通常照明（<strong>300ルクス以上</strong>）であれば問題なく計測可能です。極端に暗い環境や、窓からの強い逆光がある環境では精度が低下します。計測時は顔に均一な光が当たる状態が理想的です。</p>
+          </div>
+        </details>
+      </li>
+      <li class="faq-item">
+        <details>
+          <summary>従業員の監視ツールとして使われませんか？</summary>
+          <div class="faq-answer">
+            <p>MiruCareは<strong>完全任意参加（デフォルトOFF）</strong>で設計されています。従業員が自分の意思で計測を開始し、個人の計測結果は本人のみが閲覧できます。管理者（人事担当者等）が閲覧できるのは<strong>5名以上の集計データのみ</strong>であり、個人を特定した監視はシステム上不可能です。</p>
+          </div>
+        </details>
+      </li>
+    </ul>
+
+    <!-- Section 6: まとめ -->
+    <h2>まとめ &#8212; rPPGが企業にもたらす価値</h2>
+
+    <p>rPPGは、従業員のストレス管理に新しいアプローチをもたらす技術です。ここまで解説した内容を整理すると、rPPGが企業に提供する価値は以下の3点に集約されます。</p>
+
+    <ol>
+      <li><strong>非接触・カメラのみで客観的なストレス計測</strong> &#8212; ウェアラブルデバイスの配布・管理コストが不要。既存のPCやスマートフォンのカメラだけで、生理指標に基づく客観的なストレス評価が可能になります</li>
+      <li><strong>質問票との組み合わせでより正確な評価</strong> &#8212; 自己申告バイアスのある質問票を、客観的なHRVデータで補完。両方のアプローチを組み合わせることで、見落とされがちなストレスの兆候を早期に発見できます</li>
+      <li><strong>2028年義務化への先進的な対応</strong> &#8212; ストレスチェック義務化の対象拡大を見据え、単なる法令遵守にとどまらない、データに基づく健康経営の実践が可能になります</li>
+    </ol>
+
+    <p>メンタルヘルス不調の予防は、発生後の対応に比べてはるかに低コストです。rPPGによる客観的な計測を日常に取り入れることで、ストレスの蓄積を「見える化」し、不調に至る前に手を打てる体制を整えましょう。</p>
+
+    <div class="cta-box">
+      <h3>カメラだけでストレスを「見える化」</h3>
+      <p>MiruCareは、rPPG技術を活用して従業員のストレス状態をカメラ映像から非接触で可視化するツールです。30秒の計測で、質問票では見えないストレスの兆候を客観的にキャッチできます。</p>
+      <a href="/vitallens/#demo" class="btn-primary">無料デモを試す</a>
+      <br>
+      <a href="/vitallens/#contact" class="btn-secondary">お問い合わせ</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-articles">
+      <h2>関連ガイド</h2>
+      <div class="related-grid">
+        <a href="/vitallens/guides/stress-check-2028/" class="related-card">
+          <span class="related-label">法令ガイド</span>
+          <span class="related-title">ストレスチェック義務化2028｜50人未満企業の完全対応ガイド</span>
+        </a>
+        <a href="/vitallens/guides/stress-check-tools/" class="related-card">
+          <span class="related-label">比較ガイド</span>
+          <span class="related-title">中小企業向けストレスチェックツール比較 &#8212; おすすめ5選</span>
+        </a>
+        <a href="/vitallens/guides/rppg-accuracy/" class="related-card">
+          <span class="related-label">技術ガイド</span>
+          <span class="related-title">rPPG精度検証 &#8212; カメラ心拍計測はどこまで正確か</span>
+        </a>
+        <a href="/vitallens/guides/stress-check-howto/" class="related-card">
+          <span class="related-label">実務ガイド</span>
+          <span class="related-title">50人未満企業のストレスチェック実施手順ガイド</span>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="guide-footer">
+    <div class="guide-footer__links">
+      <a href="/vitallens/">MiruCare トップ</a>
+      <a href="/vitallens/guides/stress-check-2028/">義務化ガイド</a>
+      <a href="/vitallens/guides/stress-check-tools/">ツール比較</a>
+      <a href="/vitallens/guides/health-management-certification/">健康経営</a>
+      <a href="/vitallens/guides/stress-check-howto/">実施手順</a>
+      <a href="/vitallens/guides/stress-check-analysis/">集団分析</a>
+      <a href="/vitallens/guides/rppg-stress-monitoring/">rPPG技術</a>
+      <a href="/vitallens/guides/rppg-accuracy/">精度検証</a>
+      <a href="/vitallens/#contact">お問い合わせ</a>
+    </div>
+    <p>&copy; 2026 MiruCare. All rights reserved.</p>
+    <p>本記事は一般的な情報提供を目的としており、法的助言や医療上のアドバイスではありません。rPPGによる計測結果は参考値であり、医療診断に使用することはできません。</p>
+  </footer>
+
+</body>
+</html>
