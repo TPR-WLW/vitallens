@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
 import { StatusBadge } from './AdminDashboard.jsx';
 
@@ -6,6 +6,9 @@ export default function PersonalView({ session }) {
   const [measurements, setMeasurements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(30);
+  const [editingMemoId, setEditingMemoId] = useState(null);
+  const [memoText, setMemoText] = useState('');
+  const [memoSaved, setMemoSaved] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -60,6 +63,30 @@ export default function PersonalView({ session }) {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Export error:', err);
+    }
+  };
+
+  const handleMemoClick = (m) => {
+    if (editingMemoId === m.id) {
+      setEditingMemoId(null);
+      return;
+    }
+    setEditingMemoId(m.id);
+    setMemoText(m.memo || '');
+    setMemoSaved(null);
+  };
+
+  const handleSaveMemo = async (measurementId) => {
+    try {
+      await dataService.updateMeasurementMemo(measurementId, memoText);
+      setMemoSaved(measurementId);
+      // Update local state
+      setMeasurements(prev => prev.map(m =>
+        m.id === measurementId ? { ...m, memo: memoText, memoUpdatedAt: new Date().toISOString() } : m
+      ));
+      setTimeout(() => setMemoSaved(null), 2000);
+    } catch (err) {
+      console.error('Memo save error:', err);
     }
   };
 
@@ -123,17 +150,46 @@ export default function PersonalView({ session }) {
                 <th>心拍数</th>
                 <th>RMSSD</th>
                 <th>品質</th>
+                <th>メモ</th>
               </tr>
             </thead>
             <tbody>
               {recentFive.map((m) => (
-                <tr key={m.id}>
-                  <td>{new Date(m.timestamp).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                  <td><StatusBadge score={m.stressScore} /></td>
-                  <td>{m.hr} bpm</td>
-                  <td>{m.hrv?.rmssd ? `${Math.round(m.hrv.rmssd * 10) / 10} ms` : '---'}</td>
-                  <td>{m.qualityGrade || '---'}</td>
-                </tr>
+                <React.Fragment key={m.id}>
+                  <tr className="adm-member-clickable" onClick={() => handleMemoClick(m)} title="クリックしてメモを編集">
+                    <td>{new Date(m.timestamp).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td><StatusBadge score={m.stressScore} /></td>
+                    <td>{m.hr} bpm</td>
+                    <td>{m.hrv?.rmssd ? `${Math.round(m.hrv.rmssd * 10) / 10} ms` : '---'}</td>
+                    <td>{m.qualityGrade || '---'}</td>
+                    <td>{m.memo ? '📝' : '---'}</td>
+                  </tr>
+                  {editingMemoId === m.id && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '8px 12px', border: 'none' }}>
+                        <div className="adm-memo-section">
+                          <textarea
+                            className="adm-memo-textarea"
+                            value={memoText}
+                            onChange={(e) => setMemoText(e.target.value)}
+                            placeholder="体調、環境、気分などを記録…"
+                            maxLength={300}
+                            aria-label="計測メモ"
+                          />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                            <button className="adm-btn-primary adm-btn-sm" onClick={() => handleSaveMemo(m.id)}>
+                              保存
+                            </button>
+                            <button className="adm-btn-ghost adm-btn-sm" onClick={() => setEditingMemoId(null)}>
+                              閉じる
+                            </button>
+                            {memoSaved === m.id && <span className="adm-memo-saved">保存しました</span>}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

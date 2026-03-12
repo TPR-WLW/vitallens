@@ -4,7 +4,7 @@
  */
 
 import { put, get, getAll, getByIndex, del, clearAll } from './idb-helpers.js';
-import { register, login, logout, getSession, getUsersByOrg, changePassword } from './auth-local.js';
+import { register, login, logout, getSession, getUsersByOrg, changePassword, setSecurityQuestion, resetPasswordWithSecurityAnswer, getSecurityQuestion } from './auth-local.js';
 
 /** ID生成 */
 function generateId() {
@@ -72,6 +72,18 @@ export class LocalDataService {
 
   async changePassword({ userId, currentPassword, newPassword }) {
     return changePassword({ userId, currentPassword, newPassword });
+  }
+
+  async setSecurityQuestion({ userId, question, answer }) {
+    return setSecurityQuestion({ userId, question, answer });
+  }
+
+  async resetPasswordWithSecurityAnswer({ email, answer, newPassword }) {
+    return resetPasswordWithSecurityAnswer({ email, answer, newPassword });
+  }
+
+  async getSecurityQuestion(email) {
+    return getSecurityQuestion(email);
   }
 
   // === 計測データ ===
@@ -404,6 +416,34 @@ export class LocalDataService {
   }
 
   // === データ管理 ===
+
+  async updateMeasurementMemo(measurementId, memo) {
+    const m = await get('measurements', measurementId);
+    if (!m) throw new Error('計測データが見つかりません');
+    m.memo = memo || '';
+    m.memoUpdatedAt = new Date().toISOString();
+    await put('measurements', m);
+    return m;
+  }
+
+  async deactivateUser(userId, orgId) {
+    const user = await get('users', userId);
+    if (!user) throw new Error('ユーザーが見つかりません');
+    if (user.orgId !== orgId) throw new Error('権限がありません');
+    // チームメンバーシップを削除
+    const memberships = await getByIndex('teamMemberships', 'userId', userId);
+    for (const ms of memberships) {
+      await del('teamMemberships', ms.id);
+    }
+    // 計測データを削除
+    const measurements = await getByIndex('measurements', 'userId', userId);
+    for (const m of measurements) {
+      await del('measurements', m.id);
+    }
+    // ユーザーレコード自体を削除
+    await del('users', userId);
+    return { deleted: true, measurementsDeleted: measurements.length };
+  }
 
   async deleteUserData(userId) {
     const measurements = await getByIndex('measurements', 'userId', userId);

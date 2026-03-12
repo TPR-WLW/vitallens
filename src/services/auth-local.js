@@ -183,6 +183,57 @@ export async function changePassword({ userId, currentPassword, newPassword }) {
 }
 
 /**
+ * 秘密の質問を設定
+ */
+export async function setSecurityQuestion({ userId, question, answer }) {
+  if (!userId || !question || !answer) throw new Error('必須項目が入力されていません');
+  const user = await get('users', userId);
+  if (!user) throw new Error('ユーザーが見つかりません');
+
+  const answerHash = await hashPassword(answer.trim().toLowerCase(), user.salt);
+  user.securityQuestion = question;
+  user.securityAnswerHash = answerHash;
+  user.updatedAt = new Date().toISOString();
+  await put('users', user);
+}
+
+/**
+ * 秘密の質問でパスワードリセット
+ */
+export async function resetPasswordWithSecurityAnswer({ email, answer, newPassword }) {
+  if (!email || !answer || !newPassword) throw new Error('必須項目が入力されていません');
+  if (newPassword.length < 8) throw new Error('新しいパスワードは8文字以上で入力してください');
+
+  const user = await getOneByIndex('users', 'email', email);
+  if (!user) throw new Error('メールアドレスが見つかりません');
+  if (!user.securityQuestion || !user.securityAnswerHash) {
+    throw new Error('秘密の質問が設定されていません');
+  }
+
+  const answerHash = await hashPassword(answer.trim().toLowerCase(), user.salt);
+  if (answerHash !== user.securityAnswerHash) {
+    throw new Error('秘密の質問の回答が正しくありません');
+  }
+
+  const newSalt = generateSalt();
+  const newHash = await hashPassword(newPassword, newSalt);
+  user.salt = newSalt;
+  user.passwordHash = newHash;
+  user.updatedAt = new Date().toISOString();
+  await put('users', user);
+}
+
+/**
+ * メールアドレスで秘密の質問を取得
+ */
+export async function getSecurityQuestion(email) {
+  if (!email) return null;
+  const user = await getOneByIndex('users', 'email', email);
+  if (!user || !user.securityQuestion) return null;
+  return user.securityQuestion;
+}
+
+/**
  * 組織のユーザー一覧取得（パスワード情報除外）
  */
 export async function getUsersByOrg(orgId) {

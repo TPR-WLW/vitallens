@@ -109,6 +109,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   const [showOrgJoin, setShowOrgJoin] = useState(false);
   const [orgJoinCode, setOrgJoinCode] = useState('');
   const [orgJoinMsg, setOrgJoinMsg] = useState(null);
+  const [announcement, setAnnouncement] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -118,6 +119,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
       if (org?.config?.goalStress != null) setGoalStress(org.config.goalStress);
       if (org?.config?.goalParticipation != null) setGoalParticipation(org.config.goalParticipation);
       if (org?.config?.measureSchedule) setMeasureSchedule(org.config.measureSchedule);
+      if (org?.config?.announcement) setAnnouncement(org.config.announcement);
 
       const orgS = await dataService.getOrgStats(session.orgId);
       setOrgStats(orgS);
@@ -366,6 +368,20 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
           </div>
         )}
 
+        {announcement?.text && (
+          <div className="adm-announcement-banner" role="status">
+            <span className="adm-announcement-icon">📢</span>
+            <div>
+              <div className="adm-announcement-text">{announcement.text}</div>
+              {announcement.updatedAt && (
+                <div className="adm-announcement-meta">
+                  {new Date(announcement.updatedAt).toLocaleDateString('ja-JP')} 更新
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="adm-main-header">
           <h1>{orgName || '管理画面'}</h1>
           <button
@@ -409,7 +425,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} isAdmin={isAdmin} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); }} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} isAdmin={isAdmin} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); if (changes.announcement !== undefined) setAnnouncement(changes.announcement); }} />
           </Suspense>
         )}
       </main>

@@ -2396,3 +2396,109 @@
     border: 1px solid #d1d5db;
   }
 }
+
+/* ===== 小さいボタン ===== */
+.adm-btn-sm {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+.adm-btn-remove {
+  color: #ef4444;
+  opacity: 0.7;
+}
+.adm-btn-remove:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}
+.adm-member-remove-confirm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ===== お知らせバナー ===== */
+.adm-announcement-banner {
+  background: linear-gradient(90deg, rgba(79, 140, 255, 0.12), rgba(79, 140, 255, 0.06));
+  border: 1px solid rgba(79, 140, 255, 0.25);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.adm-announcement-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.adm-announcement-text {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.adm-announcement-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+.adm-announcement-edit {
+  margin-top: 12px;
+}
+.adm-announcement-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+}
+.adm-announcement-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ===== 計測メモ ===== */
+.adm-memo-section {
+  margin-top: 16px;
+}
+.adm-memo-textarea {
+  width: 100%;
+  min-height: 50px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  resize: vertical;
+  font-family: inherit;
+}
+.adm-memo-saved {
+  font-size: 0.78rem;
+  color: #22c55e;
+  margin-top: 4px;
+}
+
+/* ===== 秘密の質問 ===== */
+.adm-security-qa {
+  margin-top: 8px;
+}
+.adm-security-qa select,
+.adm-security-qa input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}

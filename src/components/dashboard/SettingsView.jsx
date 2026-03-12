@@ -35,6 +35,15 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
   const [deleteMyDataLoading, setDeleteMyDataLoading] = useState(false);
   const [deleteMyDataMsg, setDeleteMyDataMsg] = useState(null);
 
+  // お知らせバナー
+  const [announcementText, setAnnouncementText] = useState('');
+  const [announcementMsg, setAnnouncementMsg] = useState(null);
+
+  // 秘密の質問
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
+  const [securityMsg, setSecurityMsg] = useState(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -43,6 +52,7 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
         if (config.goalStress != null) setGoalStress(config.goalStress);
         if (config.goalParticipation != null) setGoalParticipation(config.goalParticipation);
         if (config.measureSchedule) setMeasureSchedule(config.measureSchedule);
+        if (config.announcement?.text) setAnnouncementText(config.announcement.text);
       } catch { /* デフォルト値を使用 */ }
     })();
   }, [session.orgId]);
@@ -111,6 +121,20 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
     }
   };
 
+  const handleSaveAnnouncement = async () => {
+    setAnnouncementMsg(null);
+    try {
+      const announcement = announcementText.trim()
+        ? { text: announcementText.trim(), updatedAt: new Date().toISOString() }
+        : null;
+      await dataService.updateOrgSettings(session.orgId, { announcement });
+      setAnnouncementMsg({ type: 'success', text: announcement ? 'お知らせを更新しました' : 'お知らせを削除しました' });
+      if (onSettingsChange) onSettingsChange({ announcement });
+    } catch (err) {
+      setAnnouncementMsg({ type: 'error', text: err.message });
+    }
+  };
+
   const handleToggleNotification = async () => {
     setNotifMsg(null);
     if (!notifEnabled) {
@@ -132,6 +156,25 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
       ReminderService.clearTimer();
       setNotifEnabled(false);
       setNotifMsg({ type: 'success', text: '計測リマインダー通知を無効にしました' });
+    }
+  };
+
+  const handleSaveSecurityQuestion = async () => {
+    setSecurityMsg(null);
+    if (!securityQuestion || !securityAnswer.trim()) {
+      setSecurityMsg({ type: 'error', text: '質問と回答の両方を入力してください' });
+      return;
+    }
+    try {
+      await dataService.setSecurityQuestion({
+        userId: session.userId,
+        question: securityQuestion,
+        answer: securityAnswer,
+      });
+      setSecurityMsg({ type: 'success', text: '秘密の質問を設定しました' });
+      setSecurityAnswer('');
+    } catch (err) {
+      setSecurityMsg({ type: 'error', text: err.message });
     }
   };
 
@@ -183,6 +226,41 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
           </div>
         </div>
       </div>
+
+      {/* お知らせバナー（管理者のみ） */}
+      {isAdmin && (
+        <div className="adm-settings-section">
+          <h3 className="adm-section-title">お知らせバナー</h3>
+          <div className="adm-settings-card">
+            {announcementMsg && (
+              <div className={announcementMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+                {announcementMsg.text}
+              </div>
+            )}
+            <p className="adm-privacy-note" style={{ marginBottom: 8 }}>
+              ダッシュボード上部にメッセージを表示します。全メンバーに表示されます。
+            </p>
+            <textarea
+              className="adm-announcement-textarea"
+              value={announcementText}
+              onChange={(e) => setAnnouncementText(e.target.value)}
+              placeholder="お知らせ内容を入力（空にすると非表示）"
+              maxLength={500}
+              aria-label="お知らせバナー内容"
+            />
+            <div className="adm-announcement-actions">
+              <button className="adm-btn-primary" onClick={handleSaveAnnouncement}>
+                お知らせを保存
+              </button>
+              {announcementText && (
+                <button className="adm-btn-ghost" onClick={() => { setAnnouncementText(''); }}>
+                  クリア
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 通知設定（管理者のみ） */}
       {isAdmin && <div className="adm-settings-section">
@@ -390,6 +468,56 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
             {pwLoading ? '変更中...' : 'パスワードを変更'}
           </button>
         </form>
+      </div>
+
+      {/* 秘密の質問（パスワードリセット用） */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">秘密の質問（パスワードリセット用）</h3>
+        <div className="adm-settings-card">
+          {securityMsg && (
+            <div className={securityMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+              {securityMsg.text}
+            </div>
+          )}
+          <p className="adm-privacy-note" style={{ marginBottom: 8 }}>
+            パスワードを忘れた場合に、秘密の質問で本人確認を行いリセットできます。
+          </p>
+          <div className="adm-security-qa">
+            <div className="adm-field">
+              <span>秘密の質問</span>
+              <select
+                value={securityQuestion}
+                onChange={(e) => setSecurityQuestion(e.target.value)}
+                aria-label="秘密の質問"
+              >
+                <option value="">質問を選択してください</option>
+                <option value="母親の旧姓は？">母親の旧姓は？</option>
+                <option value="最初に飼ったペットの名前は？">最初に飼ったペットの名前は？</option>
+                <option value="出身小学校の名前は？">出身小学校の名前は？</option>
+                <option value="好きな食べ物は？">好きな食べ物は？</option>
+                <option value="子供の頃のニックネームは？">子供の頃のニックネームは？</option>
+              </select>
+            </div>
+            <div className="adm-field">
+              <span>回答</span>
+              <input
+                type="text"
+                value={securityAnswer}
+                onChange={(e) => setSecurityAnswer(e.target.value)}
+                placeholder="回答を入力"
+                aria-label="秘密の質問の回答"
+              />
+            </div>
+          </div>
+          <button
+            className="adm-btn-primary"
+            onClick={handleSaveSecurityQuestion}
+            disabled={!securityQuestion || !securityAnswer.trim()}
+            style={{ marginTop: 8 }}
+          >
+            秘密の質問を設定
+          </button>
+        </div>
       </div>
 
       {/* 個人データ削除リクエスト */}

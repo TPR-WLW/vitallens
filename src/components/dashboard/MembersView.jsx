@@ -9,6 +9,8 @@ export default function MembersView({ session, teams, onRefresh }) {
   const [timelineData, setTimelineData] = useState(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [lastMeasurementDates, setLastMeasurementDates] = useState({});
+  const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [removeMsg, setRemoveMsg] = useState(null);
 
   useEffect(() => {
     loadMembers();
@@ -57,6 +59,19 @@ export default function MembersView({ session, teams, onRefresh }) {
     onRefresh();
   };
 
+  const handleRemoveMember = async (memberId) => {
+    setRemoveMsg(null);
+    try {
+      await dataService.deactivateUser(memberId, session.orgId);
+      setRemoveMsg({ type: 'success', text: 'メンバーを削除しました' });
+      setRemovingMemberId(null);
+      loadMembers();
+      onRefresh();
+    } catch (err) {
+      setRemoveMsg({ type: 'error', text: err.message });
+    }
+  };
+
   const filteredMembers = filter === 'all'
     ? members
     : members; // フィルタリングは将来拡張
@@ -80,6 +95,11 @@ export default function MembersView({ session, teams, onRefresh }) {
 
       {/* メンバー一覧 */}
       <h3 className="adm-section-title">メンバー一覧（{members.length}名）</h3>
+      {removeMsg && (
+        <div className={removeMsg.type === 'success' ? 'adm-csv-success' : 'adm-csv-error'}>
+          {removeMsg.text}
+        </div>
+      )}
       <div className="adm-table-wrap">
         <table className="adm-table">
           <thead>
@@ -88,12 +108,15 @@ export default function MembersView({ session, teams, onRefresh }) {
               <th>ロール</th>
               <th>参加日</th>
               <th>最終計測</th>
+              {session.role === 'admin' && <th>操作</th>}
             </tr>
           </thead>
           <tbody>
             {filteredMembers.map(m => {
               const isOwn = m.id === session.userId;
               const isExpanded = expandedMemberId === m.id;
+              const isRemoving = removingMemberId === m.id;
+              const colCount = session.role === 'admin' ? 5 : 4;
               return (
                 <React.Fragment key={m.id}>
                   <tr
@@ -113,10 +136,34 @@ export default function MembersView({ session, teams, onRefresh }) {
                         ? new Date(lastMeasurementDates[m.id]).toLocaleDateString('ja-JP')
                         : '未計測'}
                     </td>
+                    {session.role === 'admin' && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {isOwn ? (
+                          <span className="adm-text-muted">---</span>
+                        ) : isRemoving ? (
+                          <div className="adm-member-remove-confirm">
+                            <button className="adm-btn-danger adm-btn-sm" onClick={() => handleRemoveMember(m.id)}>
+                              削除する
+                            </button>
+                            <button className="adm-btn-ghost adm-btn-sm" onClick={() => setRemovingMemberId(null)}>
+                              取消
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="adm-btn-ghost adm-btn-sm adm-btn-remove"
+                            onClick={() => { setRemovingMemberId(m.id); setRemoveMsg(null); }}
+                            aria-label={`${m.name}を削除`}
+                          >
+                            削除
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                   {isOwn && isExpanded && (
                     <tr>
-                      <td colSpan={4} style={{ padding: 0, border: 'none' }}>
+                      <td colSpan={colCount} style={{ padding: 0, border: 'none' }}>
                         <ScoreTimeline
                           data={timelineData}
                           loading={timelineLoading}

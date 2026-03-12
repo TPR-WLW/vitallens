@@ -7,7 +7,7 @@ import '../../styles/admin-dashboard.css';
  * ローカルファースト認証（IndexedDB + PBKDF2）
  */
 export default function LoginScreen({ onLogin, onBack }) {
-  const [tab, setTab] = useState('login'); // 'login' | 'register'
+  const [tab, setTab] = useState('login'); // 'login' | 'register' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -16,6 +16,13 @@ export default function LoginScreen({ onLogin, onBack }) {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // パスワードリセット
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetQuestion, setResetQuestion] = useState('');
+  const [resetAnswer, setResetAnswer] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetStep, setResetStep] = useState(1); // 1: email, 2: answer+newpw
+  const [resetMsg, setResetMsg] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -89,6 +96,55 @@ export default function LoginScreen({ onLogin, onBack }) {
     }
   };
 
+  const handleResetStep1 = async (e) => {
+    e.preventDefault();
+    setResetMsg(null);
+    setLoading(true);
+    try {
+      const question = await dataService.getSecurityQuestion(resetEmail);
+      if (!question) {
+        setResetMsg({ type: 'error', text: '秘密の質問が設定されていないか、メールアドレスが見つかりません' });
+      } else {
+        setResetQuestion(question);
+        setResetStep(2);
+      }
+    } catch (err) {
+      setResetMsg({ type: 'error', text: err.message });
+    }
+    setLoading(false);
+  };
+
+  const handleResetStep2 = async (e) => {
+    e.preventDefault();
+    setResetMsg(null);
+    if (resetNewPassword.length < 8) {
+      setResetMsg({ type: 'error', text: '新しいパスワードは8文字以上で入力してください' });
+      return;
+    }
+    setLoading(true);
+    try {
+      await dataService.resetPasswordWithSecurityAnswer({
+        email: resetEmail,
+        answer: resetAnswer,
+        newPassword: resetNewPassword,
+      });
+      setResetMsg({ type: 'success', text: 'パスワードをリセットしました。ログインしてください。' });
+      setTimeout(() => {
+        setTab('login');
+        setEmail(resetEmail);
+        setResetStep(1);
+        setResetEmail('');
+        setResetAnswer('');
+        setResetNewPassword('');
+        setResetQuestion('');
+        setResetMsg(null);
+      }, 2000);
+    } catch (err) {
+      setResetMsg({ type: 'error', text: err.message });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="adm-login-page">
       <div className="adm-login-card">
@@ -140,8 +196,16 @@ export default function LoginScreen({ onLogin, onBack }) {
             <button type="submit" className="adm-btn-primary" disabled={loading}>
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>
+            <button
+              type="button"
+              className="adm-link-btn"
+              style={{ marginTop: 8, fontSize: '0.85rem' }}
+              onClick={() => { setTab('reset'); setError(''); setResetMsg(null); setResetStep(1); }}
+            >
+              パスワードを忘れた方
+            </button>
           </form>
-        ) : (
+        ) : tab === 'register' ? (
           <form onSubmit={handleRegister} className="adm-login-form">
             <label className="adm-field">
               <span>お名前</span>
@@ -228,9 +292,76 @@ export default function LoginScreen({ onLogin, onBack }) {
             </button>
 
             <p className="adm-login-warning">
-              パスワードを忘れた場合、復旧できません。メモを取ってください。
+              ログイン後、設定画面で「秘密の質問」を設定するとパスワードリセットが可能になります。
             </p>
           </form>
+        ) : (
+          /* パスワードリセットフォーム */
+          <div className="adm-login-form">
+            <h3 style={{ margin: '0 0 12px', fontSize: '1rem', color: 'var(--color-text)' }}>パスワードリセット</h3>
+            {resetMsg && (
+              <div className={resetMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+                {resetMsg.text}
+              </div>
+            )}
+            {resetStep === 1 ? (
+              <form onSubmit={handleResetStep1}>
+                <label className="adm-field">
+                  <span>登録済みメールアドレス</span>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="例: tanaka@example.co.jp"
+                    required
+                    autoComplete="email"
+                  />
+                </label>
+                <button type="submit" className="adm-btn-primary" disabled={loading}>
+                  {loading ? '確認中...' : '次へ'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetStep2}>
+                <div className="adm-field">
+                  <span>秘密の質問</span>
+                  <p style={{ margin: '4px 0 8px', fontWeight: 600, color: 'var(--color-text)' }}>{resetQuestion}</p>
+                </div>
+                <label className="adm-field">
+                  <span>回答</span>
+                  <input
+                    type="text"
+                    value={resetAnswer}
+                    onChange={(e) => setResetAnswer(e.target.value)}
+                    placeholder="回答を入力"
+                    required
+                  />
+                </label>
+                <label className="adm-field">
+                  <span>新しいパスワード（8文字以上）</span>
+                  <input
+                    type="password"
+                    value={resetNewPassword}
+                    onChange={(e) => setResetNewPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </label>
+                <button type="submit" className="adm-btn-primary" disabled={loading}>
+                  {loading ? 'リセット中...' : 'パスワードをリセット'}
+                </button>
+              </form>
+            )}
+            <button
+              type="button"
+              className="adm-link-btn"
+              style={{ marginTop: 12 }}
+              onClick={() => { setTab('login'); setError(''); setResetMsg(null); setResetStep(1); }}
+            >
+              ログインに戻る
+            </button>
+          </div>
         )}
 
         <div className="adm-login-footer">
