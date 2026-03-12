@@ -495,6 +495,8 @@ const WIDGET_DEFAULTS = {
 };
 
 const WIDGET_STORAGE_KEY = 'mirucare_widget_config';
+const WIDGET_ORDER_KEY = 'mirucare_widget_order';
+const DEFAULT_WIDGET_ORDER = ['periodWidgets', 'notifications', 'kpiCards', 'kpiGoals', 'heatmap', 'teamSummary'];
 
 function loadWidgetConfig() {
   try {
@@ -502,6 +504,25 @@ function loadWidgetConfig() {
     return raw ? { ...WIDGET_DEFAULTS, ...JSON.parse(raw) } : { ...WIDGET_DEFAULTS };
   } catch {
     return { ...WIDGET_DEFAULTS };
+  }
+}
+
+function loadWidgetOrder() {
+  try {
+    const raw = localStorage.getItem(WIDGET_ORDER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Ensure all keys are present
+      const allKeys = new Set(DEFAULT_WIDGET_ORDER);
+      const valid = parsed.filter(k => allKeys.has(k));
+      for (const k of DEFAULT_WIDGET_ORDER) {
+        if (!valid.includes(k)) valid.push(k);
+      }
+      return valid;
+    }
+    return [...DEFAULT_WIDGET_ORDER];
+  } catch {
+    return [...DEFAULT_WIDGET_ORDER];
   }
 }
 
@@ -522,12 +543,26 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
 
   // ウィジェットカスタマイズ
   const [widgetConfig, setWidgetConfig] = useState(loadWidgetConfig);
+  const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
   const [showWidgetPanel, setShowWidgetPanel] = useState(false);
 
   const toggleWidget = (key) => {
     setWidgetConfig(prev => {
       const next = { ...prev, [key]: !prev[key] };
       localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const moveWidget = (key, direction) => {
+    setWidgetOrder(prev => {
+      const idx = prev.indexOf(key);
+      if (idx < 0) return prev;
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+      localStorage.setItem(WIDGET_ORDER_KEY, JSON.stringify(next));
       return next;
     });
   };
@@ -610,167 +645,200 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
       {showWidgetPanel && (
         <div className="adm-widget-panel">
           <h4>表示ウィジェット</h4>
-          {Object.entries(WIDGET_LABELS).map(([key, label]) => (
+          {widgetOrder.map((key, idx) => (
             <div key={key} className="adm-widget-toggle">
+              <div className="adm-widget-order-btns">
+                <button
+                  className="adm-widget-move-btn"
+                  disabled={idx === 0}
+                  onClick={() => moveWidget(key, -1)}
+                  aria-label={`${WIDGET_LABELS[key]}を上に移動`}
+                  title="上に移動"
+                >▲</button>
+                <button
+                  className="adm-widget-move-btn"
+                  disabled={idx === widgetOrder.length - 1}
+                  onClick={() => moveWidget(key, 1)}
+                  aria-label={`${WIDGET_LABELS[key]}を下に移動`}
+                  title="下に移動"
+                >▼</button>
+              </div>
               <input
                 type="checkbox"
                 id={`widget-${key}`}
                 checked={widgetConfig[key]}
                 onChange={() => toggleWidget(key)}
               />
-              <label htmlFor={`widget-${key}`}>{label}</label>
+              <label htmlFor={`widget-${key}`}>{WIDGET_LABELS[key]}</label>
             </div>
           ))}
         </div>
       )}
 
-      {/* 期間セレクター + ウィジェットカード */}
-      {widgetConfig.periodWidgets && <div className="adm-weekly-widgets">
-        <div className="adm-period-header">
-          <h3 className="adm-section-title">{periodLabel}</h3>
-          <div className="adm-period-selector" role="group" aria-label="表示期間">
-            {PERIOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                className={`adm-period-btn${period === opt.value ? ' active' : ''}`}
-                onClick={() => setPeriod(opt.value)}
-                aria-pressed={period === opt.value}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {periodStats && (
-          <div className="adm-widget-row">
-            <div className="adm-widget-card">
-              <div className="adm-widget-value">
-                {periodStats.thisCount}
-                <span className={`adm-widget-trend adm-trend-${periodStats.countTrend}`}>
-                  {periodStats.countTrend === 'up' ? '\u2191' : periodStats.countTrend === 'down' ? '\u2193' : '\u2192'}
-                </span>
-              </div>
-              <div className="adm-widget-label">計測回数</div>
-              <div className="adm-widget-sub">{comparisonLabel}</div>
-            </div>
-            <div className="adm-widget-card">
-              <div className="adm-widget-value">
-                {periodStats.thisAvg != null ? periodStats.thisAvg : '---'}
-                {periodStats.stressTrend !== 'flat' && (
-                  <span className={`adm-widget-trend adm-trend-${periodStats.stressTrend === 'better' ? 'better' : 'worse'}`}>
-                    {periodStats.stressTrend === 'better' ? '\u2193' : '\u2191'}
-                  </span>
+      {/* ウィジェットを保存済み順序で描画 */}
+      {widgetOrder.map((widgetKey) => {
+        if (!widgetConfig[widgetKey]) return null;
+
+        switch (widgetKey) {
+          case 'periodWidgets':
+            return (
+              <div key={widgetKey} className="adm-weekly-widgets">
+                <div className="adm-period-header">
+                  <h3 className="adm-section-title">{periodLabel}</h3>
+                  <div className="adm-period-selector" role="group" aria-label="表示期間">
+                    {PERIOD_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        className={`adm-period-btn${period === opt.value ? ' active' : ''}`}
+                        onClick={() => setPeriod(opt.value)}
+                        aria-pressed={period === opt.value}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {periodStats && (
+                  <div className="adm-widget-row">
+                    <div className="adm-widget-card">
+                      <div className="adm-widget-value">
+                        {periodStats.thisCount}
+                        <span className={`adm-widget-trend adm-trend-${periodStats.countTrend}`}>
+                          {periodStats.countTrend === 'up' ? '\u2191' : periodStats.countTrend === 'down' ? '\u2193' : '\u2192'}
+                        </span>
+                      </div>
+                      <div className="adm-widget-label">計測回数</div>
+                      <div className="adm-widget-sub">{comparisonLabel}</div>
+                    </div>
+                    <div className="adm-widget-card">
+                      <div className="adm-widget-value">
+                        {periodStats.thisAvg != null ? periodStats.thisAvg : '---'}
+                        {periodStats.stressTrend !== 'flat' && (
+                          <span className={`adm-widget-trend adm-trend-${periodStats.stressTrend === 'better' ? 'better' : 'worse'}`}>
+                            {periodStats.stressTrend === 'better' ? '\u2193' : '\u2191'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="adm-widget-label">平均ストレス</div>
+                      <div className="adm-widget-sub">
+                        {periodStats.thisAvg != null ? stressStatus(periodStats.thisAvg).label : ''}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-              <div className="adm-widget-label">平均ストレス</div>
-              <div className="adm-widget-sub">
-                {periodStats.thisAvg != null ? stressStatus(periodStats.thisAvg).label : ''}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>}
+            );
 
-      {/* 通知パネル */}
-      {widgetConfig.notifications && <NotificationPanel orgStats={orgStats} alertThreshold={alertThreshold} />}
+          case 'notifications':
+            return <NotificationPanel key={widgetKey} orgStats={orgStats} alertThreshold={alertThreshold} />;
 
-      {widgetConfig.kpiCards && (
-        <div className="adm-kpi-row">
-          <KPICard value={`${totalMembers}名`} label="登録メンバー" />
-          <KPICard value={`${activeMeasured}名`} label="計測済み" sub={`(${participationRate}%)`} />
-          <KPICard
-            value={avgStress != null ? avgStress : '---'}
-            label="平均ストレス"
-            sub={avgStress != null ? stressStatus(avgStress).label : ''}
-          />
-        </div>
-      )}
-
-      {/* KPI目標達成状況 */}
-      {widgetConfig.kpiGoals && (goalStress != null || goalParticipation != null) && (
-        <div className="adm-kpi-goals">
-          <h3 className="adm-section-title">KPI目標達成状況</h3>
-          {goalStress != null && avgStress != null && (() => {
-            const stressDiff = avgStress - goalStress;
-            const fillClass = stressDiff <= 0 ? 'adm-goal-fill-good' : stressDiff <= 10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
-            const pct = Math.min(100, Math.round((avgStress / (goalStress + 30)) * 100));
-            const goalPct = Math.round((goalStress / (goalStress + 30)) * 100);
+          case 'kpiCards':
             return (
-              <div className="adm-goal-row">
-                <div className="adm-goal-label">ストレス目標</div>
-                <div className="adm-goal-bar">
-                  <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
-                  <div className="adm-goal-marker" style={{ left: `${goalPct}%` }} />
-                </div>
-                <div className="adm-goal-value">
-                  目標: {goalStress} / 実績: {avgStress}
-                </div>
+              <div key={widgetKey} className="adm-kpi-row">
+                <KPICard value={`${totalMembers}名`} label="登録メンバー" />
+                <KPICard value={`${activeMeasured}名`} label="計測済み" sub={`(${participationRate}%)`} />
+                <KPICard
+                  value={avgStress != null ? avgStress : '---'}
+                  label="平均ストレス"
+                  sub={avgStress != null ? stressStatus(avgStress).label : ''}
+                />
               </div>
             );
-          })()}
-          {goalParticipation != null && (() => {
-            const partDiff = participationRate - goalParticipation;
-            const fillClass = partDiff >= 0 ? 'adm-goal-fill-good' : partDiff >= -10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
-            const pct = Math.min(100, participationRate);
+
+          case 'kpiGoals':
+            if (goalStress == null && goalParticipation == null) return null;
             return (
-              <div className="adm-goal-row">
-                <div className="adm-goal-label">参加率目標</div>
-                <div className="adm-goal-bar">
-                  <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
-                  <div className="adm-goal-marker" style={{ left: `${goalParticipation}%` }} />
-                </div>
-                <div className="adm-goal-value">
-                  目標: {goalParticipation}% / 実績: {participationRate}%
-                </div>
+              <div key={widgetKey} className="adm-kpi-goals">
+                <h3 className="adm-section-title">KPI目標達成状況</h3>
+                {goalStress != null && avgStress != null && (() => {
+                  const stressDiff = avgStress - goalStress;
+                  const fillClass = stressDiff <= 0 ? 'adm-goal-fill-good' : stressDiff <= 10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
+                  const pct = Math.min(100, Math.round((avgStress / (goalStress + 30)) * 100));
+                  const goalPct = Math.round((goalStress / (goalStress + 30)) * 100);
+                  return (
+                    <div className="adm-goal-row">
+                      <div className="adm-goal-label">ストレス目標</div>
+                      <div className="adm-goal-bar">
+                        <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                        <div className="adm-goal-marker" style={{ left: `${goalPct}%` }} />
+                      </div>
+                      <div className="adm-goal-value">
+                        目標: {goalStress} / 実績: {avgStress}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {goalParticipation != null && (() => {
+                  const partDiff = participationRate - goalParticipation;
+                  const fillClass = partDiff >= 0 ? 'adm-goal-fill-good' : partDiff >= -10 ? 'adm-goal-fill-warn' : 'adm-goal-fill-bad';
+                  const pct = Math.min(100, participationRate);
+                  return (
+                    <div className="adm-goal-row">
+                      <div className="adm-goal-label">参加率目標</div>
+                      <div className="adm-goal-bar">
+                        <div className={`adm-goal-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                        <div className="adm-goal-marker" style={{ left: `${goalParticipation}%` }} />
+                      </div>
+                      <div className="adm-goal-value">
+                        目標: {goalParticipation}% / 実績: {participationRate}%
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
-          })()}
-        </div>
-      )}
 
-      {/* 計測アクティビティヒートマップ */}
-      {widgetConfig.heatmap && <ActivityHeatmap orgId={orgStats?.orgId} teams={teams || []} />}
+          case 'heatmap':
+            return <ActivityHeatmap key={widgetKey} orgId={orgStats?.orgId} teams={teams || []} />;
 
-      {widgetConfig.teamSummary && <>
-      <h3 className="adm-section-title">部署別サマリー</h3>
-      <div className="adm-table-wrap">
-        <table className="adm-table" aria-label="部署別サマリー">
-          <thead>
-            <tr>
-              <th scope="col">部署</th>
-              <th scope="col">計測数 / 登録数</th>
-              <th scope="col">平均ストレス</th>
-              <th scope="col">状態</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teamStats.map((ts) => {
-              const clickable = !ts.privacyFiltered;
-              return (
-                <tr
-                  key={ts.teamId}
-                  className={clickable ? 'adm-row-clickable' : 'adm-row-muted'}
-                  onClick={() => clickable && onTeamClick(ts.teamId)}
-                >
-                  <td>{ts.teamName}</td>
-                  <td>
-                    {ts.stats ? ts.stats.measurementCount : '---'} / {ts.memberCount}
-                  </td>
-                  <td>{ts.stats ? ts.stats.avgStress : '---'}</td>
-                  <td><StatusBadge score={ts.stats?.avgStress ?? null} /></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="adm-privacy-note">
-        ※ 計測数が5名未満の部署はプライバシー保護のため集計データを表示しません。
-      </p>
-      <p className="adm-privacy-note">
-        すべてのデータは匿名化・集計された状態で表示されます。個人の計測結果は管理者に表示されません。
-      </p>
-      </>}
+          case 'teamSummary':
+            return (
+              <div key={widgetKey}>
+                <h3 className="adm-section-title">部署別サマリー</h3>
+                <div className="adm-table-wrap">
+                  <table className="adm-table" aria-label="部署別サマリー">
+                    <thead>
+                      <tr>
+                        <th scope="col">部署</th>
+                        <th scope="col">計測数 / 登録数</th>
+                        <th scope="col">平均ストレス</th>
+                        <th scope="col">状態</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamStats.map((ts) => {
+                        const clickable = !ts.privacyFiltered;
+                        return (
+                          <tr
+                            key={ts.teamId}
+                            className={clickable ? 'adm-row-clickable' : 'adm-row-muted'}
+                            onClick={() => clickable && onTeamClick(ts.teamId)}
+                          >
+                            <td>{ts.teamName}</td>
+                            <td>
+                              {ts.stats ? ts.stats.measurementCount : '---'} / {ts.memberCount}
+                            </td>
+                            <td>{ts.stats ? ts.stats.avgStress : '---'}</td>
+                            <td><StatusBadge score={ts.stats?.avgStress ?? null} /></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="adm-privacy-note">
+                  ※ 計測数が5名未満の部署はプライバシー保護のため集計データを表示しません。
+                </p>
+                <p className="adm-privacy-note">
+                  すべてのデータは匿名化・集計された状態で表示されます。個人の計測結果は管理者に表示されません。
+                </p>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      })}
     </div>
   );
 }

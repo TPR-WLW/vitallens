@@ -8,6 +8,8 @@ const LazyTeamView = lazy(() => import('./TeamView.jsx'));
 const LazyMembersView = lazy(() => import('./MembersView.jsx'));
 const LazyExportView = lazy(() => import('./ExportView.jsx'));
 const LazySettingsView = lazy(() => import('./SettingsView.jsx'));
+const LazyPersonalView = lazy(() => import('./PersonalView.jsx'));
+const LazyCompareView = lazy(() => import('./CompareView.jsx'));
 
 // ===== トラフィックライト =====
 export function stressStatus(score) {
@@ -42,9 +44,56 @@ export function KPICard({ value, label, sub }) {
 
 const SuspenseFallback = <div className="adm-view">読み込み中...</div>;
 
+// ===== 参加済み組織リスト =====
+function OrgList({ currentOrgId, session }) {
+  const [orgs, setOrgs] = useState([]);
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('mirucare_orgs') || '[]');
+    if (stored.length === 0) return;
+
+    (async () => {
+      const resolved = [];
+      for (const orgId of stored) {
+        if (orgId === currentOrgId) continue;
+        try {
+          const org = await dataService.getOrg(orgId);
+          if (org) resolved.push({ id: orgId, name: org.name });
+        } catch { /* skip invalid */ }
+      }
+      setOrgs(resolved);
+    })();
+  }, [currentOrgId]);
+
+  const handleSwitch = (orgId) => {
+    const newSession = { ...session, orgId };
+    localStorage.setItem('mirucare_session', JSON.stringify({ ...newSession, exp: Date.now() + 86400000 }));
+    window.location.reload();
+  };
+
+  if (orgs.length === 0) return null;
+
+  return (
+    <div className="adm-org-list" aria-label="参加済み組織">
+      {orgs.map((o) => (
+        <button
+          key={o.id}
+          className="adm-org-list-item"
+          onClick={() => handleSwitch(o.id)}
+          title={`組織ID: ${o.id}`}
+        >
+          <span className="adm-org-list-icon">🏢</span>
+          <span className="adm-org-list-name">{o.name}</span>
+          <span className="adm-org-list-arrow">→</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ===== メインダッシュボード =====
 export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
-  const [view, setView] = useState('overview');
+  const [view, setView] = useState(session.role === 'admin' ? 'overview' : 'personal');
   const [orgStats, setOrgStats] = useState(null);
   const [teamStats, setTeamStats] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -159,13 +208,21 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
     setView('team');
   };
 
-  const navItems = [
-    { id: 'overview', label: 'ダッシュボード' },
-    { id: 'team', label: 'チーム' },
-    { id: 'members', label: 'メンバー' },
-    { id: 'export', label: 'CSV出力' },
-    { id: 'settings', label: '設定' },
-  ];
+  const isAdmin = session.role === 'admin';
+
+  const navItems = isAdmin
+    ? [
+        { id: 'overview', label: 'ダッシュボード' },
+        { id: 'team', label: 'チーム' },
+        { id: 'members', label: 'メンバー' },
+        { id: 'compare', label: '部署比較' },
+        { id: 'export', label: 'CSV出力' },
+        { id: 'settings', label: '設定' },
+      ]
+    : [
+        { id: 'personal', label: 'マイデータ' },
+        { id: 'settings', label: '設定' },
+      ];
 
   return (
     <div className="adm-layout">
@@ -190,6 +247,10 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
             <span className="adm-org-icon">🏢</span>
             <span className="adm-org-name">{orgName || '組織名未設定'}</span>
           </div>
+
+          {/* 参加済み組織リスト */}
+          <OrgList currentOrgId={session.orgId} session={session} />
+
           {!showOrgJoin ? (
             <button className="adm-btn-ghost adm-org-add-btn" onClick={() => { setShowOrgJoin(true); setOrgJoinMsg(null); }}>
               + 組織を追加
@@ -257,21 +318,23 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
 
         <div className="adm-sidebar-divider" />
 
-        <div className="adm-sidebar-actions">
-          {!sampleLoaded ? (
-            <button
-              className="adm-btn-ghost adm-sidebar-btn"
-              onClick={handleLoadSample}
-              disabled={sampleLoading}
-            >
-              {sampleLoading ? '読込中...' : 'サンプルデータ読込'}
-            </button>
-          ) : (
-            <button className="adm-btn-ghost adm-sidebar-btn" onClick={handleClearSample}>
-              サンプルをクリア
-            </button>
-          )}
-        </div>
+        {isAdmin && (
+          <div className="adm-sidebar-actions">
+            {!sampleLoaded ? (
+              <button
+                className="adm-btn-ghost adm-sidebar-btn"
+                onClick={handleLoadSample}
+                disabled={sampleLoading}
+              >
+                {sampleLoading ? '読込中...' : 'サンプルデータ読込'}
+              </button>
+            ) : (
+              <button className="adm-btn-ghost adm-sidebar-btn" onClick={handleClearSample}>
+                サンプルをクリア
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="adm-sidebar-divider" />
 
@@ -305,29 +368,39 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
           </button>
         </div>
 
-        {view === 'overview' && (
+        {view === 'overview' && isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} goalStress={goalStress} goalParticipation={goalParticipation} teams={teams} measureSchedule={measureSchedule} />
           </Suspense>
         )}
-        {view === 'team' && (
+        {view === 'personal' && !isAdmin && (
+          <Suspense fallback={SuspenseFallback}>
+            <LazyPersonalView session={session} />
+          </Suspense>
+        )}
+        {view === 'team' && isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyTeamView teamStats={teamStats} orgId={session.orgId} />
           </Suspense>
         )}
-        {view === 'members' && (
+        {view === 'members' && isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyMembersView session={session} teams={teams} onRefresh={loadData} />
           </Suspense>
         )}
-        {view === 'export' && (
+        {view === 'compare' && isAdmin && (
+          <Suspense fallback={SuspenseFallback}>
+            <LazyCompareView session={session} teams={teams} />
+          </Suspense>
+        )}
+        {view === 'export' && isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyExportView session={session} teams={teams} />
           </Suspense>
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); }} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} isAdmin={isAdmin} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); }} />
           </Suspense>
         )}
       </main>

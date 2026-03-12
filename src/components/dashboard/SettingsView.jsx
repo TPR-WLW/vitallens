@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
 
-export default function SettingsView({ session, orgName, orgStats, onLogout, onSettingsChange }) {
+export default function SettingsView({ session, orgName, orgStats, onLogout, isAdmin = true, onSettingsChange }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -136,8 +136,8 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
         </div>
       </div>
 
-      {/* 通知設定 */}
-      <div className="adm-settings-section">
+      {/* 通知設定（管理者のみ） */}
+      {isAdmin && <div className="adm-settings-section">
         <h3 className="adm-section-title">通知設定</h3>
         <div className="adm-settings-card">
           {alertMsg && (
@@ -172,8 +172,10 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
         </div>
       </div>
 
-      {/* KPI目標設定 */}
-      <div className="adm-settings-section">
+      }
+
+      {/* KPI目標設定（管理者のみ） */}
+      {isAdmin && <div className="adm-settings-section">
         <h3 className="adm-section-title">KPI目標設定</h3>
         <div className="adm-settings-card">
           {goalMsg && (
@@ -231,8 +233,10 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
         </div>
       </div>
 
-      {/* 計測スケジュール設定 */}
-      <div className="adm-settings-section">
+      }
+
+      {/* 計測スケジュール設定（管理者のみ） */}
+      {isAdmin && <div className="adm-settings-section">
         <h3 className="adm-section-title">計測スケジュール設定</h3>
         <div className="adm-settings-card">
           {scheduleMsg && (
@@ -261,6 +265,8 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
           </button>
         </div>
       </div>
+
+      }
 
       {/* パスワード変更 */}
       <div className="adm-settings-section">
@@ -305,44 +311,46 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
         </form>
       </div>
 
-      {/* データ管理 */}
-      <div className="adm-settings-section">
-        <h3 className="adm-section-title">データ管理</h3>
-        <div className="adm-settings-card">
-          {deleteMsg && (
-            <div className={deleteMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
-              {deleteMsg.text}
-            </div>
-          )}
-          {!deleteConfirm ? (
-            <button
-              className="adm-btn-danger"
-              onClick={() => setDeleteConfirm(true)}
-            >
-              全計測データを削除
-            </button>
-          ) : (
-            <div className="adm-settings-confirm">
-              <p className="adm-settings-warning">この操作は取り消せません。組織の全計測データが完全に削除されます。</p>
-              <div className="adm-settings-confirm-actions">
-                <button
-                  className="adm-btn-danger"
-                  onClick={handleDeleteAllMeasurements}
-                  disabled={deleteLoading}
-                >
-                  {deleteLoading ? '削除中...' : '本当に削除する'}
-                </button>
-                <button
-                  className="adm-btn-secondary"
-                  onClick={() => setDeleteConfirm(false)}
-                >
-                  キャンセル
-                </button>
+      {/* データ管理（管理者のみ） */}
+      {isAdmin && (
+        <div className="adm-settings-section">
+          <h3 className="adm-section-title">データ管理</h3>
+          <div className="adm-settings-card">
+            {deleteMsg && (
+              <div className={deleteMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+                {deleteMsg.text}
               </div>
-            </div>
-          )}
+            )}
+            {!deleteConfirm ? (
+              <button
+                className="adm-btn-danger"
+                onClick={() => setDeleteConfirm(true)}
+              >
+                全計測データを削除
+              </button>
+            ) : (
+              <div className="adm-settings-confirm">
+                <p className="adm-settings-warning">この操作は取り消せません。組織の全計測データが完全に削除されます。</p>
+                <div className="adm-settings-confirm-actions">
+                  <button
+                    className="adm-btn-danger"
+                    onClick={handleDeleteAllMeasurements}
+                    disabled={deleteLoading}
+                  >
+                    {deleteLoading ? '削除中...' : '本当に削除する'}
+                  </button>
+                  <button
+                    className="adm-btn-secondary"
+                    onClick={() => setDeleteConfirm(false)}
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* アカウント */}
       <div className="adm-settings-section">

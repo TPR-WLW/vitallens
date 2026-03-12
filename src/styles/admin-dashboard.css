@@ -2132,3 +2132,147 @@
 .adm-widget-toggle label {
   cursor: pointer;
 }
+
+/* 組織リスト */
+.adm-org-list {
+  margin: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.adm-org-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b7280);
+  text-align: left;
+  transition: all 0.15s;
+}
+.adm-org-list-item:hover {
+  background: rgba(79, 140, 255, 0.08);
+  border-color: var(--color-border, #e5e7eb);
+  color: var(--color-text, #333);
+}
+.adm-org-list-icon {
+  font-size: 0.9rem;
+}
+.adm-org-list-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adm-org-list-arrow {
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.adm-org-list-item:hover .adm-org-list-arrow {
+  opacity: 1;
+}
+
+/* ウィジェット並び替えボタン */
+.adm-widget-order-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.adm-widget-move-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 0.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b7280);
+  transition: color 0.15s;
+}
+.adm-widget-move-btn:hover:not(:disabled) {
+  color: var(--color-primary, #4f8cff);
+}
+.adm-widget-move-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ===== 部署間比較ビュー ===== */
+
+.adm-compare-selectors {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.adm-compare-selectors .adm-export-field {
+  flex: 1;
+  min-width: 140px;
+}
+.adm-compare-vs {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-muted, #9ca3af);
+  padding-bottom: 6px;
+}
+.adm-compare-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+.adm-compare-bars {
+  margin-top: 16px;
+}
+.adm-compare-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.adm-compare-bar-label {
+  width: 90px;
+  font-size: 0.82rem;
+  text-align: right;
+  color: var(--color-text, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adm-compare-bar-track {
+  flex: 1;
+  height: 22px;
+  background: var(--color-bg, #f1f3f8);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.adm-compare-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.adm-compare-bar-value {
+  width: 36px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text, #333);
+}
+
+/* ===== パーソナルビュー ===== */
+
+.adm-personal-trend {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.adm-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--color-text-muted, #9ca3af);
+}
+.adm-empty-state p {
+  margin-bottom: 8px;
+}

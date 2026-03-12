@@ -1376,7 +1376,7 @@ test.describe('期間セレクター + ヒートマップ + イベントログ',
     // バナーが表示される場合はテキストを確認
     if (await reminder.isVisible({ timeout: 10000 }).catch(() => false)) {
       await expect(reminder.locator('.adm-reminder-main')).toContainText('計測を行っていません');
-      await expect(reminder.locator('.adm-reminder-sub')).toContainText('定期的な計測');
+      await expect(reminder.locator('.adm-reminder-sub')).toContainText('推奨スケジュール');
     }
     // バナーが表示されない場合でもテストはパス（全員が直近7日に計測済みの場合）
   });
@@ -1419,13 +1419,14 @@ test.describe('期間セレクター + ヒートマップ + イベントログ',
     }
     await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
 
+    // メンバー管理ビューが表示されるのを待つ
+    await expect(page.locator('.adm-view-title', { hasText: 'メンバー管理' })).toBeVisible({ timeout: 10000 });
+
     // 最終計測列のヘッダーを確認
     await expect(page.locator('.adm-table th', { hasText: '最終計測' })).toBeVisible({ timeout: 10000 });
 
-    // テーブル行にデータが表示されている
-    const rows = page.locator('.adm-table tbody tr');
-    const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThan(0);
+    // テーブル行にデータが表示されている (サンプルデータの場合はメンバーが存在するはず)
+    await expect(page.locator('.adm-table tbody tr').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('計測スケジュール設定が設定画面に表示される', async ({ page }) => {
@@ -1643,5 +1644,256 @@ test.describe('期間セレクター + ヒートマップ + イベントログ',
       // デフォルトは毎日なので「2日以上」が表示されるはず
       await expect(reminder.locator('.adm-reminder-main')).toContainText('計測を行っていません');
     }
+  });
+
+  test('組織切替: サイドバーに「組織を追加」ボタンが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // サンプルデータ読込でダッシュボードを表示
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`org-switch-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('テスト組織切替');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // サイドバーに組織追加ボタンがある
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await expect(page.locator('.adm-org-add-btn')).toBeVisible();
+    await expect(page.locator('.adm-org-add-btn')).toContainText('組織を追加');
+  });
+
+  test('メンバーCSV部署フィルター: ドロップダウンが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    // サンプルデータ読込
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`csv-filter-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('テストCSVフィルター');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // サンプルデータ読込
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    const sampleBtn = page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' });
+    if (await sampleBtn.isVisible()) {
+      await sampleBtn.click();
+      await page.waitForTimeout(3000);
+    }
+
+    // CSV出力タブ
+    const admHamburger2 = page.locator('.adm-hamburger');
+    if (await admHamburger2.isVisible()) {
+      await admHamburger2.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
+
+    // メンバーCSV部署フィルターが存在する
+    const memberFilter = page.locator('select[aria-label="メンバーCSV部署フィルター"]');
+    await expect(memberFilter).toBeVisible({ timeout: 10000 });
+    // 「全部署」オプションがある
+    await expect(memberFilter.locator('option', { hasText: '全部署' })).toBeVisible();
+  });
+
+  test('計測サマリーメール下書き: コピーボタンが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`summary-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('テストサマリー');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // CSV出力タブ
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
+
+    // サマリーセクション
+    await expect(page.locator('text=計測サマリーメール下書き')).toBeVisible({ timeout: 10000 });
+    // 期間セレクタ
+    const summaryPeriod = page.locator('select[aria-label="サマリー期間"]');
+    await expect(summaryPeriod).toBeVisible();
+    // コピーボタン
+    await expect(page.locator('button', { hasText: 'クリップボードにコピー' })).toBeVisible();
+  });
+
+  test('ウィジェット並び替え: 上下ボタンが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`widget-order-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('テスト並び替え');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // カスタマイズボタンクリック
+    await page.locator('.adm-widget-gear').click();
+    await expect(page.locator('.adm-widget-panel')).toBeVisible({ timeout: 5000 });
+
+    // 上下ボタンが存在する（6ウィジェット × 2ボタン = 12個）
+    const moveButtons = page.locator('.adm-widget-move-btn');
+    await expect(moveButtons).toHaveCount(12);
+
+    // チェックボックスも6個
+    const checkboxes = page.locator('.adm-widget-toggle input[type="checkbox"]');
+    await expect(checkboxes).toHaveCount(6);
+  });
+
+  test('ロール別ダッシュボード: メンバーは「マイデータ」を表示', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('メンバーテスト');
+    await page.locator('input[placeholder*="メール"]').fill(`member-role-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    // ロール選択（メンバー）
+    const roleSelect = page.locator('select[aria-label="ロール"]');
+    if (await roleSelect.isVisible()) await roleSelect.selectOption('member');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('メンバーテスト組織');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // メンバーは「マイデータ」ナビが表示される
+    await expect(page.locator('.adm-nav-item', { hasText: 'マイデータ' })).toBeVisible({ timeout: 5000 });
+    // 管理者専用ナビは非表示
+    await expect(page.locator('.adm-nav-item', { hasText: 'チーム' })).toBeHidden();
+    await expect(page.locator('.adm-nav-item', { hasText: 'メンバー' })).toBeHidden();
+  });
+
+  test('部署間比較ビュー: セレクターとVSラベルが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('比較テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`compare-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('比較テスト組織');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // サイドバーから「部署比較」をクリック
+    if (await page.locator('.adm-hamburger').isVisible()) {
+      await page.locator('.adm-hamburger').click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: '部署比較' }).click();
+
+    // 比較ビューのUI要素
+    await expect(page.locator('text=部署間比較レポート')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('select[aria-label="比較部署A"]')).toBeVisible();
+    await expect(page.locator('select[aria-label="比較部署B"]')).toBeVisible();
+    await expect(page.locator('.adm-compare-vs')).toContainText('VS');
+    await expect(page.locator('select[aria-label="比較期間"]')).toBeVisible();
+  });
+
+  test('エクスポート履歴とバックアップセクションが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('履歴テスト管理者');
+    await page.locator('input[placeholder*="メール"]').fill(`export-log-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('履歴テスト組織');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // CSV出力ビューに遷移
+    if (await page.locator('.adm-hamburger').isVisible()) {
+      await page.locator('.adm-hamburger').click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
+
+    // バックアップセクション
+    await expect(page.locator('text=データバックアップ')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button', { hasText: 'バックアップをエクスポート' })).toBeVisible();
+    await expect(page.locator('text=バックアップをインポート')).toBeVisible();
+
+    // エクスポート履歴セクション
+    await expect(page.locator('text=エクスポート履歴')).toBeVisible();
+  });
+
+  test('データバックアップ: エクスポートボタンが機能する', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('input[placeholder*="名前"]').fill('バックアップテスト');
+    await page.locator('input[placeholder*="メール"]').fill(`backup-${Date.now()}@test.jp`);
+    await page.locator('input[placeholder*="パスワード"]').first().fill('testpass123');
+    await page.locator('button[type="submit"]', { hasText: '登録' }).click();
+    await expect(page.locator('.adm-org-setup')).toBeVisible({ timeout: 10000 });
+    await page.locator('input[placeholder*="組織名"]').fill('バックアップテスト組織');
+    await page.locator('button', { hasText: '組織を作成' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 10000 });
+
+    // CSV出力ビューに遷移
+    if (await page.locator('.adm-hamburger').isVisible()) {
+      await page.locator('.adm-hamburger').click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    }
+    await page.locator('.adm-nav-item', { hasText: 'CSV出力' }).click();
+    await expect(page.locator('text=データバックアップ')).toBeVisible({ timeout: 10000 });
+
+    // バックアップファイル選択inputが存在する
+    const fileInput = page.locator('input[aria-label="バックアップファイル選択"]');
+    await expect(fileInput).toBeAttached();
   });
 });

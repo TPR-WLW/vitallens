@@ -442,7 +442,7 @@ export class LocalDataService {
 
   // === メンバー別CSV出力（最終計測日付き） ===
 
-  async exportMemberCSV(orgId) {
+  async exportMemberCSV(orgId, { teamId = null } = {}) {
     const users = await getUsersByOrg(orgId);
     const lastDates = await this.getLastMeasurementDates(orgId);
     const memberships = await getAll('teamMemberships');
@@ -452,8 +452,12 @@ export class LocalDataService {
     const rows = ['表示名,ロール,部署,参加日,最終計測日'];
     for (const u of users) {
       const userMemberships = memberships.filter(m => m.userId === u.id);
-      const teamName = userMemberships.length > 0 && teamMap[userMemberships[0].teamId]
-        ? teamMap[userMemberships[0].teamId] : '未配属';
+      const userTeamId = userMemberships.length > 0 ? userMemberships[0].teamId : null;
+      const teamName = userTeamId && teamMap[userTeamId] ? teamMap[userTeamId] : '未配属';
+
+      // 部署フィルター: 指定時はその部署のメンバーのみ
+      if (teamId && userTeamId !== teamId) continue;
+
       const role = u.role === 'admin' ? '管理者' : 'メンバー';
       const joinDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('ja-JP') : '';
       const lastDate = lastDates[u.id]
@@ -461,6 +465,77 @@ export class LocalDataService {
       rows.push(`${u.name || ''},${role},${teamName},${joinDate},${lastDate}`);
     }
     return rows.join('\n') + '\n';
+  }
+
+  // === 計測サマリー生成（メール下書き用） ===
+
+  async generateMeasurementSummary(orgId, { period = 'weekly' } = {}) {
+    const now = new Date();
+    const days = period === 'monthly' ? 30 : 7;
+    const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const periodLabel = period === 'monthly' ? '月次' : '週次';
+    const fromLabel = `${periodStart.getFullYear()}/${periodStart.getMonth() + 1}/${periodStart.getDate()}`;
+    const toLabel = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+
+    const measurements = await this.getMeasurements({
+      orgId,
+      from: periodStart.toISOString(),
+      to: now.toISOString(),
+    });
+    const users = await getUsersByOrg(orgId);
+    const teams = await getByIndex('teams', 'orgId', orgId);
+
+    const uniqueUsers = new Set(measurements.map(m => m.userId));
+    const totalCount = measurements.length;
+    const avgStress = totalCount > 0
+      ? Math.round(measurements.reduce((s, m) => s + (m.stressScore || 0), 0) / totalCount)
+      : null;
+    const avgHr = totalCount > 0
+      ? Math.round(measurements.reduce((s, m) => s + (m.hr || 0), 0) / totalCount)
+      : null;
+    const participationRate = users.length > 0
+      ? Math.round((uniqueUsers.size / users.length) * 100)
+      : 0;
+
+    // 部署別集計
+    const teamStats = {};
+    for (const m of measurements) {
+      const tid = m.teamId || 'unassigned';
+      if (!teamStats[tid]) teamStats[tid] = { count: 0, stress: 0, users: new Set() };
+      teamStats[tid].count++;
+      teamStats[tid].stress += m.stressScore || 0;
+      teamStats[tid].users.add(m.userId);
+    }
+    const teamMap = Object.fromEntries(teams.map(t => [t.id, t.name]));
+
+    let lines = [];
+    lines.push(`【${periodLabel}計測サマリー】`);
+    lines.push(`期間: ${fromLabel} 〜 ${toLabel}`);
+    lines.push('');
+    lines.push('■ 全体サマリー');
+    lines.push(`  計測回数: ${totalCount}件`);
+    lines.push(`  参加者数: ${uniqueUsers.size}名 / ${users.length}名（${participationRate}%）`);
+    if (avgStress != null) lines.push(`  平均ストレス: ${avgStress}`);
+    if (avgHr != null) lines.push(`  平均心拍数: ${avgHr} bpm`);
+    lines.push('');
+
+    const teamEntries = Object.entries(teamStats).filter(([, v]) => v.users.size >= MIN_TEAM_SIZE);
+    if (teamEntries.length > 0) {
+      lines.push('■ 部署別');
+      for (const [tid, stats] of teamEntries) {
+        const name = teamMap[tid] || '未配属';
+        const avg = Math.round(stats.stress / stats.count);
+        lines.push(`  ${name}: 計測${stats.count}件 / ${stats.users.size}名参加 / 平均ストレス${avg}`);
+      }
+      lines.push('');
+    }
+
+    lines.push('※ 本データはウェルネス参考値です。医療診断結果ではありません。');
+    lines.push('※ 5名未満の部署は表示されません。');
+    lines.push('');
+    lines.push('— ミルケア（MiruCare）');
+
+    return lines.join('\n');
   }
 
   async getLastMeasurementDates(orgId) {
@@ -473,6 +548,94 @@ export class LocalDataService {
       }
     }
     return lastDates;
+  }
+
+  // === エクスポート履歴（監査証跡） ===
+
+  logExport({ userId, userName, orgId, type, details = '' }) {
+    const key = 'mirucare_export_log';
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    logs.unshift({
+      id: generateId(),
+      timestamp: new Date().toISOString(),
+      userId,
+      userName,
+      orgId,
+      type,
+      details,
+    });
+    // 最大200件保持
+    if (logs.length > 200) logs.length = 200;
+    localStorage.setItem(key, JSON.stringify(logs));
+  }
+
+  getExportLogs(orgId) {
+    const key = 'mirucare_export_log';
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    return orgId ? logs.filter(l => l.orgId === orgId) : logs;
+  }
+
+  // === データバックアップ（IndexedDB全データJSON） ===
+
+  async exportBackup(orgId) {
+    const org = await this.getOrg(orgId);
+    const users = await getUsersByOrg(orgId);
+    const measurements = await getByIndex('measurements', 'orgId', orgId);
+    const teams = await getByIndex('teams', 'orgId', orgId);
+    const allMemberships = await getAll('teamMemberships');
+    // orgに所属するチームのメンバーシップのみ
+    const teamIds = new Set(teams.map(t => t.id));
+    const memberships = allMemberships.filter(m => teamIds.has(m.teamId));
+
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      orgId,
+      org,
+      users,
+      teams,
+      teamMemberships: memberships,
+      measurements,
+    };
+  }
+
+  async importBackup(data) {
+    if (!data || data.version !== 1) throw new Error('無効なバックアップファイルです');
+
+    let imported = { orgs: 0, users: 0, teams: 0, memberships: 0, measurements: 0 };
+
+    if (data.org) {
+      await put('organizations', data.org);
+      imported.orgs = 1;
+    }
+
+    // ユーザーは認証情報がないため読み取り専用（パスワードなし）
+    // バックアップにはsafeUserのみ含まれるので、既存ユーザーはスキップ
+    for (const u of (data.users || [])) {
+      const existing = await get('users', u.id);
+      if (!existing) {
+        // パスワードなしで保存（再登録が必要）
+        await put('users', { ...u, passwordHash: '', salt: '', role: u.role || 'member' });
+        imported.users++;
+      }
+    }
+
+    for (const t of (data.teams || [])) {
+      await put('teams', t);
+      imported.teams++;
+    }
+
+    for (const m of (data.teamMemberships || [])) {
+      await put('teamMemberships', m);
+      imported.memberships++;
+    }
+
+    for (const m of (data.measurements || [])) {
+      await put('measurements', m);
+      imported.measurements++;
+    }
+
+    return imported;
   }
 
   async deleteAllData() {

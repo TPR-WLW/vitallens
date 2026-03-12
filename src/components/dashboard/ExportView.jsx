@@ -44,6 +44,10 @@ export default function ExportView({ session, teams }) {
     a.download = `${prefix}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    dataService.logExport({
+      userId: session.userId, userName: session.userName, orgId: session.orgId,
+      type: 'CSV（組織）', details: `期間: ${startDate}〜${endDate}${teamId ? ' 部署フィルター有' : ''}`,
+    });
   };
 
   const setQuickRange = (days) => {
@@ -124,7 +128,13 @@ export default function ExportView({ session, teams }) {
 
       <h2 className="adm-view-title" style={{ marginTop: 24 }}>メンバー別CSV出力</h2>
       <p className="adm-view-desc">メンバー一覧と最終計測日をCSV形式でエクスポートします。計測未実施メンバーの把握にご利用ください。</p>
-      <MemberCsvExport session={session} />
+      <MemberCsvExport session={session} teams={teams} />
+
+      <hr className="adm-divider" />
+
+      <h2 className="adm-view-title" style={{ marginTop: 24 }}>計測サマリーメール下書き</h2>
+      <p className="adm-view-desc">週次・月次の計測サマリーをテキストとしてクリップボードにコピーします。メール本文としてご利用ください。</p>
+      <MeasurementSummary session={session} />
 
       <hr className="adm-divider" />
 
@@ -132,30 +142,160 @@ export default function ExportView({ session, teams }) {
       <p className="adm-view-desc">期間比較・部署間ベンチマーク・チーム推移を含むA4レポートをPDFとして出力します。</p>
       <button
         className="adm-btn-primary"
-        onClick={() => generateOrgReportPDF(session, teams)}
+        onClick={() => {
+          generateOrgReportPDF(session, teams);
+          dataService.logExport({
+            userId: session.userId, userName: session.userName, orgId: session.orgId,
+            type: 'PDF（組織レポート）', details: '期間比較・部署間ベンチマーク',
+          });
+        }}
       >
         組織レポートをPDF出力
       </button>
+
+      <hr className="adm-divider" />
+
+      <h2 className="adm-view-title" style={{ marginTop: 24 }}>データバックアップ</h2>
+      <p className="adm-view-desc">IndexedDBの全データをJSON形式でエクスポート/インポートします。デバイス移行やバックアップにご利用ください。</p>
+      <BackupSection session={session} />
+
+      <hr className="adm-divider" />
+
+      <h2 className="adm-view-title" style={{ marginTop: 24 }}>エクスポート履歴</h2>
+      <p className="adm-view-desc">いつ誰がCSV/PDFを出力したかのログです（監査証跡）。</p>
+      <ExportHistory orgId={session.orgId} />
     </div>
   );
 }
 
-function MemberCsvExport({ session }) {
+function ExportHistory({ orgId }) {
+  const logs = dataService.getExportLogs(orgId);
+  if (logs.length === 0) {
+    return <p style={{ color: '#888', fontSize: 13 }}>エクスポート履歴はまだありません。</p>;
+  }
+  return (
+    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+      <table className="adm-table">
+        <thead>
+          <tr>
+            <th>日時</th>
+            <th>実行者</th>
+            <th>種別</th>
+            <th>詳細</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs.slice(0, 50).map((l) => (
+            <tr key={l.id}>
+              <td>{new Date(l.timestamp).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+              <td>{l.userName || '---'}</td>
+              <td>{l.type}</td>
+              <td style={{ fontSize: 12, color: '#666' }}>{l.details}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BackupSection({ session }) {
+  const [importing, setImporting] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const handleExportBackup = async () => {
+    try {
+      const data = await dataService.exportBackup(session.orgId);
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mirucare-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      dataService.logExport({
+        userId: session.userId, userName: session.userName, orgId: session.orgId,
+        type: 'バックアップ（JSON）', details: 'IndexedDB全データエクスポート',
+      });
+      setMsg({ type: 'success', text: 'バックアップをダウンロードしました' });
+    } catch (err) {
+      setMsg({ type: 'error', text: 'エクスポートに失敗しました: ' + err.message });
+    }
+  };
+
+  const handleImportBackup = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setMsg(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const result = await dataService.importBackup(data);
+      setMsg({
+        type: 'success',
+        text: `インポート完了: 組織${result.orgs}件, ユーザー${result.users}件, チーム${result.teams}件, 計測${result.measurements}件`,
+      });
+      dataService.logExport({
+        userId: session.userId, userName: session.userName, orgId: session.orgId,
+        type: 'バックアップインポート', details: `計測${result.measurements}件復元`,
+      });
+    } catch (err) {
+      setMsg({ type: 'error', text: '無効なバックアップファイルです: ' + err.message });
+    }
+    setImporting(false);
+    e.target.value = '';
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="adm-btn-primary" onClick={handleExportBackup}>
+          バックアップをエクスポート
+        </button>
+        <label className="adm-btn-secondary" style={{ cursor: 'pointer' }}>
+          {importing ? 'インポート中...' : 'バックアップをインポート'}
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImportBackup}
+            style={{ display: 'none' }}
+            disabled={importing}
+            aria-label="バックアップファイル選択"
+          />
+        </label>
+      </div>
+      {msg && (
+        <div className={msg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'} style={{ marginTop: 8 }}>
+          {msg.text}
+        </div>
+      )}
+      <p className="adm-privacy-note" style={{ marginTop: 8 }}>
+        ※ バックアップには組織・チーム・計測データが含まれます。パスワードは含まれません。
+      </p>
+    </div>
+  );
+}
+
+function MemberCsvExport({ session, teams }) {
   const [preview, setPreview] = useState('');
   const [loading, setLoading] = useState(false);
+  const [memberTeamId, setMemberTeamId] = useState('');
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const csv = await dataService.exportMemberCSV(session.orgId);
+        const opts = memberTeamId ? { teamId: memberTeamId } : {};
+        const csv = await dataService.exportMemberCSV(session.orgId, opts);
         setPreview(csv);
       } catch {
         setPreview('エラーが発生しました');
       }
       setLoading(false);
     })();
-  }, [session.orgId]);
+  }, [session.orgId, memberTeamId]);
 
   const handleDownload = () => {
     const bom = '\uFEFF';
@@ -166,17 +306,107 @@ function MemberCsvExport({ session }) {
     a.download = `mirucare-members-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    dataService.logExport({
+      userId: session.userId, userName: session.userName, orgId: session.orgId,
+      type: 'CSV（メンバー一覧）', details: memberTeamId ? '部署フィルター有' : '全部署',
+    });
   };
 
   return (
     <div>
-      <button className="adm-btn-primary" onClick={handleDownload} disabled={!preview || loading}>
+      <div className="adm-export-field">
+        <label className="adm-export-label">部署フィルター</label>
+        <select
+          className="adm-export-select"
+          value={memberTeamId}
+          onChange={(e) => setMemberTeamId(e.target.value)}
+          aria-label="メンバーCSV部署フィルター"
+        >
+          <option value="">全部署</option>
+          {(teams || []).map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+      <button className="adm-btn-primary" onClick={handleDownload} disabled={!preview || loading} style={{ marginTop: 8 }}>
         メンバーCSVをダウンロード
       </button>
       {preview && (
         <>
           <h3 className="adm-section-title" style={{ marginTop: 16 }}>プレビュー</h3>
           <pre className="adm-csv-preview">{preview.split('\n').slice(0, 11).join('\n')}</pre>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MeasurementSummary({ session }) {
+  const [period, setPeriod] = useState('weekly');
+  const [summaryText, setSummaryText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const generateSummary = async () => {
+    setLoading(true);
+    setCopied(false);
+    try {
+      const text = await dataService.generateMeasurementSummary(session.orgId, { period });
+      setSummaryText(text);
+    } catch {
+      setSummaryText('エラーが発生しました');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    generateSummary();
+  }, [session.orgId, period]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = summaryText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div>
+      <div className="adm-export-field">
+        <label className="adm-export-label">期間</label>
+        <select
+          className="adm-export-select"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          aria-label="サマリー期間"
+        >
+          <option value="weekly">週次（直近7日間）</option>
+          <option value="monthly">月次（直近30日間）</option>
+        </select>
+      </div>
+      <button
+        className="adm-btn-primary"
+        onClick={handleCopy}
+        disabled={!summaryText || loading}
+        style={{ marginTop: 8 }}
+      >
+        {copied ? 'コピーしました' : 'クリップボードにコピー'}
+      </button>
+      {summaryText && (
+        <>
+          <h3 className="adm-section-title" style={{ marginTop: 16 }}>プレビュー</h3>
+          <pre className="adm-csv-preview">{summaryText}</pre>
         </>
       )}
     </div>
