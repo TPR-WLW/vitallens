@@ -50,6 +50,28 @@ export default function PersonalView({ session }) {
     return { text: '横ばい', color: '#9ca3af' };
   })();
 
+  // Quality grade trend
+  const qualityGradeValue = (g) => g === 'A' ? 3 : g === 'B' ? 2 : g === 'C' ? 1 : 0;
+  const qualityTrend = (() => {
+    const graded = measurements.filter(m => m.qualityGrade);
+    if (graded.length < 4) return null;
+    const h = Math.floor(graded.length / 2);
+    const recentAvg = graded.slice(0, h).reduce((s, m) => s + qualityGradeValue(m.qualityGrade), 0) / h;
+    const olderAvg = graded.slice(h).reduce((s, m) => s + qualityGradeValue(m.qualityGrade), 0) / (graded.length - h);
+    const diff = recentAvg - olderAvg;
+    if (diff > 0.3) return { text: '改善傾向', color: '#22c55e' };
+    if (diff < -0.3) return { text: '低下傾向', color: '#ef4444' };
+    return { text: '安定', color: '#9ca3af' };
+  })();
+  const qualityDist = (() => {
+    const graded = measurements.filter(m => m.qualityGrade);
+    if (graded.length === 0) return null;
+    const counts = { A: 0, B: 0, C: 0 };
+    graded.forEach(m => { if (counts[m.qualityGrade] != null) counts[m.qualityGrade]++; });
+    const total = graded.length;
+    return { A: counts.A, B: counts.B, C: counts.C, total };
+  })();
+
   const handleExportPersonal = async () => {
     try {
       const csv = await dataService.exportUserCSV({ userId: session.userId });
@@ -64,6 +86,38 @@ export default function PersonalView({ session }) {
     } catch (err) {
       console.error('Export error:', err);
     }
+  };
+
+  const handleExportSummary = () => {
+    const lines = [];
+    lines.push('【計測サマリー（メモ付き）】');
+    lines.push(`期間: 直近${period}日間`);
+    lines.push(`出力日: ${new Date().toLocaleDateString('ja-JP')}`);
+    lines.push('');
+    if (avgStress != null) lines.push(`平均ストレス: ${avgStress}`);
+    if (avgHr != null) lines.push(`平均心拍数: ${avgHr} bpm`);
+    if (avgRmssd != null) lines.push(`平均RMSSD: ${avgRmssd} ms`);
+    lines.push(`計測回数: ${measurements.length}`);
+    if (trendLabel) lines.push(`ストレス傾向: ${trendLabel.text}`);
+    if (qualityTrend) lines.push(`計測品質傾向: ${qualityTrend.text}`);
+    lines.push('');
+    lines.push('■ 計測詳細');
+    for (const m of measurements) {
+      const ts = new Date(m.timestamp).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      lines.push(`${ts} | ストレス: ${m.stressScore ?? '---'} | HR: ${m.hr ?? '---'} | 品質: ${m.qualityGrade || '---'}`);
+      if (m.memo) lines.push(`  メモ: ${m.memo}`);
+    }
+    lines.push('');
+    lines.push('※ 本データはウェルネス参考値です。医療機器による診断結果ではありません。');
+    lines.push('— ミルケア（MiruCare）');
+    const text = lines.join('\n');
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mirucare-summary-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleMemoClick = (m) => {
@@ -139,6 +193,34 @@ export default function PersonalView({ session }) {
         </div>
       )}
 
+      {qualityDist && (
+        <div className="adm-quality-trend-section">
+          <h3 className="adm-section-title" style={{ marginTop: 16, marginBottom: 8 }}>計測品質トレンド</h3>
+          <div className="adm-quality-bar">
+            {qualityDist.A > 0 && (
+              <div className="adm-quality-seg adm-quality-a" style={{ width: `${(qualityDist.A / qualityDist.total) * 100}%` }} title={`A: ${qualityDist.A}件`}>
+                A: {qualityDist.A}
+              </div>
+            )}
+            {qualityDist.B > 0 && (
+              <div className="adm-quality-seg adm-quality-b" style={{ width: `${(qualityDist.B / qualityDist.total) * 100}%` }} title={`B: ${qualityDist.B}件`}>
+                B: {qualityDist.B}
+              </div>
+            )}
+            {qualityDist.C > 0 && (
+              <div className="adm-quality-seg adm-quality-c" style={{ width: `${(qualityDist.C / qualityDist.total) * 100}%` }} title={`C: ${qualityDist.C}件`}>
+                C: {qualityDist.C}
+              </div>
+            )}
+          </div>
+          {qualityTrend && (
+            <div className="adm-personal-trend" style={{ color: qualityTrend.color, marginTop: 4 }}>
+              品質傾向: {qualityTrend.text}
+            </div>
+          )}
+        </div>
+      )}
+
       {recentFive.length > 0 && (
         <>
           <h3 className="adm-section-title" style={{ marginTop: 24 }}>直近の計測</h3>
@@ -203,9 +285,12 @@ export default function PersonalView({ session }) {
         </div>
       )}
 
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button className="adm-btn-secondary" onClick={handleExportPersonal} disabled={measurements.length === 0}>
           個人データをCSV出力
+        </button>
+        <button className="adm-btn-secondary" onClick={handleExportSummary} disabled={measurements.length === 0}>
+          メモ付きサマリー出力
         </button>
       </div>
 

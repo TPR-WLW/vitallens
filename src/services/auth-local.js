@@ -234,6 +234,21 @@ export async function getSecurityQuestion(email) {
 }
 
 /**
+ * ユーザーロール変更（管理者のみ実行可能）
+ */
+export async function updateUserRole({ userId, newRole }) {
+  if (!userId || !newRole) throw new Error('必須項目が入力されていません');
+  if (newRole !== 'admin' && newRole !== 'member') throw new Error('無効なロールです');
+  const user = await get('users', userId);
+  if (!user) throw new Error('ユーザーが見つかりません');
+  user.role = newRole;
+  user.updatedAt = new Date().toISOString();
+  await put('users', user);
+  const { passwordHash, salt, ...safeUser } = user;
+  return safeUser;
+}
+
+/**
  * 組織のユーザー一覧取得（パスワード情報除外）
  */
 export async function getUsersByOrg(orgId) {

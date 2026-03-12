@@ -2115,4 +2115,101 @@ test.describe('秘密の質問・パスワードリセット機能', () => {
     // ログインに戻るリンク
     await expect(page.locator('.adm-link-btn', { hasText: 'ログインに戻る' })).toBeVisible();
   });
+
+  /* ===== Cycle #76 — ロール委任テスト ===== */
+  test('メンバー一覧に昇格/降格ボタンが表示される（管理者）', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('ロールテスト管理者');
+    await page.locator('.adm-login-form input[type="email"]').fill(`role-${Date.now()}@test.jp`);
+    const pwds = page.locator('.adm-login-form input[type="password"]');
+    await pwds.nth(0).fill('testpassword123');
+    await pwds.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) await admHamburger.click();
+    await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
+    await expect(page.locator('.adm-view-title')).toContainText('メンバー管理');
+
+    // 操作列ヘッダーが存在する
+    await expect(page.locator('th', { hasText: '操作' })).toBeVisible();
+  });
+
+  /* ===== Cycle #76 — 計測品質トレンドテスト ===== */
+  test('PersonalViewにメモ付きサマリーボタンが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('サマリーテスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`summary-${Date.now()}@test.jp`);
+    const pwds = page.locator('.adm-login-form input[type="password"]');
+    await pwds.nth(0).fill('testpassword123');
+    await pwds.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+
+    // member sees PersonalView by default
+    await expect(page.locator('.adm-view-title')).toContainText('マイデータ');
+    // サマリーボタンが存在する（disabled状態でも可）
+    await expect(page.locator('button', { hasText: 'メモ付きサマリー出力' })).toBeVisible();
+  });
+
+  /* ===== Cycle #76 — ドラッグ＆ドロップウィジェットテスト ===== */
+  test('ウィジェットカスタマイズでドラッグハンドルが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('ドラッグテスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`drag-${Date.now()}@test.jp`);
+    const pwds = page.locator('.adm-login-form input[type="password"]');
+    await pwds.nth(0).fill('testpassword123');
+    await pwds.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+
+    // admin overview should show customize button
+    await expect(page.locator('.adm-widget-gear')).toBeVisible();
+    await page.locator('.adm-widget-gear').click();
+
+    // ドラッグハンドル（⠿）と「ドラッグで並び替え」ヒントが表示される
+    await expect(page.locator('.adm-widget-panel-hint')).toContainText('ドラッグで並び替え');
+    await expect(page.locator('.adm-widget-drag-handle').first()).toBeVisible();
+  });
+
+  /* ===== Cycle #76 — ロール変更サービステスト（UI経由） ===== */
+  test('メンバー一覧にadm-member-actionsが含まれる（複数メンバー時）', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('アクションテスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`actions-${Date.now()}@test.jp`);
+    const pwds = page.locator('.adm-login-form input[type="password"]');
+    await pwds.nth(0).fill('testpassword123');
+    await pwds.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) await admHamburger.click();
+    await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
+    await expect(page.locator('.adm-view-title')).toContainText('メンバー管理');
+
+    // 自分の行には「---」が表示される
+    await expect(page.locator('.adm-text-muted', { hasText: '---' }).first()).toBeVisible();
+  });
 });

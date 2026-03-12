@@ -2502,3 +2502,63 @@
   font-size: 0.9rem;
   margin-top: 4px;
 }
+
+/* ===== ロール委任 ===== */
+.adm-member-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.adm-btn-promote {
+  color: #3b82f6 !important;
+}
+.adm-btn-demote {
+  color: #f59e0b !important;
+}
+
+/* ===== 計測品質トレンド ===== */
+.adm-quality-trend-section {
+  margin-bottom: 16px;
+}
+.adm-quality-bar {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.adm-quality-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  color: #fff;
+  transition: width 0.3s;
+}
+.adm-quality-a { background: #22c55e; }
+.adm-quality-b { background: #f59e0b; }
+.adm-quality-c { background: #ef4444; }
+
+/* ===== ドラッグ＆ドロップウィジェット ===== */
+.adm-widget-panel-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9ca3af);
+  margin-left: 8px;
+  font-weight: 400;
+}
+.adm-widget-drag-handle {
+  cursor: grab;
+  user-select: none;
+  font-size: 1.1rem;
+  color: var(--color-text-muted, #9ca3af);
+  margin-right: 6px;
+  line-height: 1;
+}
+.adm-widget-dragging {
+  opacity: 0.5;
+  background: var(--color-surface);
+}
+.adm-widget-dragover {
+  border-top: 2px solid #4f8cff;
+}

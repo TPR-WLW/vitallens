@@ -4,7 +4,7 @@
  */
 
 import { put, get, getAll, getByIndex, del, clearAll } from './idb-helpers.js';
-import { register, login, logout, getSession, getUsersByOrg, changePassword, setSecurityQuestion, resetPasswordWithSecurityAnswer, getSecurityQuestion } from './auth-local.js';
+import { register, login, logout, getSession, getUsersByOrg, changePassword, setSecurityQuestion, resetPasswordWithSecurityAnswer, getSecurityQuestion, updateUserRole } from './auth-local.js';
 
 /** ID生成 */
 function generateId() {
@@ -84,6 +84,10 @@ export class LocalDataService {
 
   async getSecurityQuestion(email) {
     return getSecurityQuestion(email);
+  }
+
+  async updateUserRole({ userId, newRole }) {
+    return updateUserRole({ userId, newRole });
   }
 
   // === 計測データ ===

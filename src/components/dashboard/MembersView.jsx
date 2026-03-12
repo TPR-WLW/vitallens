@@ -11,6 +11,7 @@ export default function MembersView({ session, teams, onRefresh }) {
   const [lastMeasurementDates, setLastMeasurementDates] = useState({});
   const [removingMemberId, setRemovingMemberId] = useState(null);
   const [removeMsg, setRemoveMsg] = useState(null);
+  const [roleChanging, setRoleChanging] = useState(null);
 
   useEffect(() => {
     loadMembers();
@@ -70,6 +71,20 @@ export default function MembersView({ session, teams, onRefresh }) {
     } catch (err) {
       setRemoveMsg({ type: 'error', text: err.message });
     }
+  };
+
+  const handleRoleChange = async (memberId, newRole) => {
+    setRemoveMsg(null);
+    setRoleChanging(memberId);
+    try {
+      await dataService.updateUserRole({ userId: memberId, newRole });
+      setRemoveMsg({ type: 'success', text: newRole === 'admin' ? '管理者に昇格しました' : 'メンバーに降格しました' });
+      loadMembers();
+      onRefresh();
+    } catch (err) {
+      setRemoveMsg({ type: 'error', text: err.message });
+    }
+    setRoleChanging(null);
   };
 
   const filteredMembers = filter === 'all'
@@ -150,13 +165,23 @@ export default function MembersView({ session, teams, onRefresh }) {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            className="adm-btn-ghost adm-btn-sm adm-btn-remove"
-                            onClick={() => { setRemovingMemberId(m.id); setRemoveMsg(null); }}
-                            aria-label={`${m.name}を削除`}
-                          >
-                            削除
-                          </button>
+                          <div className="adm-member-actions">
+                            <button
+                              className={`adm-btn-ghost adm-btn-sm ${m.role === 'admin' ? 'adm-btn-demote' : 'adm-btn-promote'}`}
+                              onClick={() => handleRoleChange(m.id, m.role === 'admin' ? 'member' : 'admin')}
+                              disabled={roleChanging === m.id}
+                              aria-label={m.role === 'admin' ? `${m.name}をメンバーに降格` : `${m.name}を管理者に昇格`}
+                            >
+                              {roleChanging === m.id ? '...' : m.role === 'admin' ? '降格' : '昇格'}
+                            </button>
+                            <button
+                              className="adm-btn-ghost adm-btn-sm adm-btn-remove"
+                              onClick={() => { setRemovingMemberId(m.id); setRemoveMsg(null); }}
+                              aria-label={`${m.name}を削除`}
+                            >
+                              削除
+                            </button>
+                          </div>
                         )}
                       </td>
                     )}

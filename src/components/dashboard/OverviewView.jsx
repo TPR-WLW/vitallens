@@ -567,6 +567,28 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
     });
   };
 
+  // Drag & drop state
+  const [dragKey, setDragKey] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState(null);
+
+  const handleDragStart = (key) => { setDragKey(key); };
+  const handleDragOver = (e, key) => { e.preventDefault(); setDragOverKey(key); };
+  const handleDragEnd = () => { setDragKey(null); setDragOverKey(null); };
+  const handleDrop = (targetKey) => {
+    if (!dragKey || dragKey === targetKey) { handleDragEnd(); return; }
+    setWidgetOrder(prev => {
+      const next = [...prev];
+      const fromIdx = next.indexOf(dragKey);
+      const toIdx = next.indexOf(targetKey);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, dragKey);
+      localStorage.setItem(WIDGET_ORDER_KEY, JSON.stringify(next));
+      return next;
+    });
+    handleDragEnd();
+  };
+
   // 期間セレクター
   const [period, setPeriod] = useState(7);
 
@@ -644,25 +666,18 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
       </div>
       {showWidgetPanel && (
         <div className="adm-widget-panel">
-          <h4>表示ウィジェット</h4>
-          {widgetOrder.map((key, idx) => (
-            <div key={key} className="adm-widget-toggle">
-              <div className="adm-widget-order-btns">
-                <button
-                  className="adm-widget-move-btn"
-                  disabled={idx === 0}
-                  onClick={() => moveWidget(key, -1)}
-                  aria-label={`${WIDGET_LABELS[key]}を上に移動`}
-                  title="上に移動"
-                >▲</button>
-                <button
-                  className="adm-widget-move-btn"
-                  disabled={idx === widgetOrder.length - 1}
-                  onClick={() => moveWidget(key, 1)}
-                  aria-label={`${WIDGET_LABELS[key]}を下に移動`}
-                  title="下に移動"
-                >▼</button>
-              </div>
+          <h4>表示ウィジェット<span className="adm-widget-panel-hint">ドラッグで並び替え</span></h4>
+          {widgetOrder.map((key) => (
+            <div
+              key={key}
+              className={`adm-widget-toggle${dragKey === key ? ' adm-widget-dragging' : ''}${dragOverKey === key && dragKey !== key ? ' adm-widget-dragover' : ''}`}
+              draggable
+              onDragStart={() => handleDragStart(key)}
+              onDragOver={(e) => handleDragOver(e, key)}
+              onDrop={() => handleDrop(key)}
+              onDragEnd={handleDragEnd}
+            >
+              <span className="adm-widget-drag-handle" title="ドラッグして並び替え">⠿</span>
               <input
                 type="checkbox"
                 id={`widget-${key}`}
