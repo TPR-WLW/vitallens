@@ -2276,3 +2276,123 @@
 .adm-empty-state p {
   margin-bottom: 8px;
 }
+
+/* ===== メール招待 ===== */
+
+.adm-invite-sent-list {
+  margin-top: 8px;
+}
+.adm-invite-sent-emails {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+.adm-invite-sent-emails li {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6b7280);
+  padding: 2px 0;
+}
+
+/* ===== 印刷最適化（CompareView + PersonalView） ===== */
+
+@media print {
+  /* レイアウト */
+  .adm-sidebar,
+  .adm-mobile-header,
+  .adm-overlay,
+  .adm-toast,
+  .adm-sample-banner,
+  .adm-print-btn,
+  .adm-btn-secondary,
+  .adm-btn-primary,
+  .adm-btn-danger,
+  .adm-btn-ghost {
+    display: none !important;
+  }
+  .adm-layout {
+    display: block !important;
+  }
+  .adm-main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ページ設定 */
+  @page {
+    margin: 15mm;
+    size: A4;
+  }
+
+  /* CompareView 印刷対応 */
+  .adm-compare-selectors {
+    display: none !important;
+  }
+  .adm-compare-table {
+    break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .adm-compare-table th,
+  .adm-compare-table td {
+    border: 1px solid #d1d5db !important;
+    padding: 8px 12px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .adm-compare-bars {
+    break-inside: avoid;
+    margin-top: 16px;
+  }
+  .adm-compare-bar-track {
+    background: #e5e7eb !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .adm-compare-bar-fill {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* PersonalView 印刷対応 */
+  .adm-kpi-row {
+    break-inside: avoid;
+  }
+  .adm-kpi-card {
+    border: 1px solid #d1d5db !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .adm-personal-trend {
+    break-after: avoid;
+  }
+  .adm-table {
+    break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .adm-table th,
+  .adm-table td {
+    border: 1px solid #d1d5db !important;
+    padding: 6px 10px;
+  }
+  .adm-view-title {
+    break-after: avoid;
+  }
+  .adm-view-desc {
+    break-after: avoid;
+  }
+  .adm-export-field {
+    display: none !important;
+  }
+  .adm-privacy-note {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  /* バッジの色を印刷で保持 */
+  .adm-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border: 1px solid #d1d5db;
+  }
+}

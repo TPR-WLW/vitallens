@@ -75,6 +75,9 @@ export default function MembersView({ session, teams, onRefresh }) {
         <p className="adm-privacy-note">※ このリンクを共有してメンバーを招待してください</p>
       </div>
 
+      {/* メール招待 */}
+      <EmailInvite inviteLink={inviteLink} orgName={session.orgId} />
+
       {/* メンバー一覧 */}
       <h3 className="adm-section-title">メンバー一覧（{members.length}名）</h3>
       <div className="adm-table-wrap">
@@ -154,6 +157,79 @@ export default function MembersView({ session, teams, onRefresh }) {
       <p className="adm-privacy-note">
         ※ メンバーの計測データは匿名集計のみ閲覧可能です。個人の計測結果を管理者が閲覧することはできません。
         自分自身のスコア推移のみ確認できます。
+      </p>
+    </div>
+  );
+}
+
+/* ===== Email Invite ===== */
+
+function EmailInvite({ inviteLink, orgName }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState([]);
+  const [error, setError] = useState('');
+
+  const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+  const handleInvite = () => {
+    setError('');
+    if (!isValidEmail(email)) {
+      setError('有効なメールアドレスを入力してください');
+      return;
+    }
+    if (sent.includes(email)) {
+      setError('このメールアドレスは既に招待済みです');
+      return;
+    }
+
+    // メール本文を生成してクリップボードにコピー
+    const subject = `ミルケア（MiruCare）への招待`;
+    const body = [
+      `ミルケアへ招待されました。`,
+      ``,
+      `以下のリンクからアクセスし、新規登録してください:`,
+      inviteLink,
+      ``,
+      `※ このリンクを開いて「新規登録」タブから登録を行ってください。`,
+      `※ 本メールに心当たりがない場合は無視してください。`,
+    ].join('\n');
+
+    const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // メーラーを起動
+    window.open(mailtoUrl, '_blank');
+    setSent((prev) => [...prev, email]);
+    setEmail('');
+  };
+
+  return (
+    <div className="adm-invite-section" style={{ marginTop: 16 }}>
+      <h3 className="adm-section-title">メール招待</h3>
+      <div className="adm-invite-row">
+        <input
+          type="email"
+          className="adm-invite-input"
+          placeholder="メールアドレスを入力"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+          aria-label="招待メールアドレス"
+        />
+        <button className="adm-btn-primary" onClick={handleInvite} disabled={!email.trim()}>
+          招待メールを送信
+        </button>
+      </div>
+      {error && <p className="adm-csv-error">{error}</p>}
+      {sent.length > 0 && (
+        <div className="adm-invite-sent-list">
+          <p className="adm-privacy-note">送信済み（{sent.length}件）:</p>
+          <ul className="adm-invite-sent-emails">
+            {sent.map((e) => <li key={e}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+      <p className="adm-privacy-note">
+        ※ お使いのメールアプリが起動します。招待リンクが本文に含まれます。
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
+import { ReminderService } from '../../services/reminder-service.js';
 
 export default function SettingsView({ session, orgName, orgStats, onLogout, isAdmin = true, onSettingsChange }) {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -23,6 +24,16 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
   // 計測スケジュール設定
   const [measureSchedule, setMeasureSchedule] = useState('daily');
   const [scheduleMsg, setScheduleMsg] = useState(null);
+
+  // 通知リマインダー設定
+  const [notifEnabled, setNotifEnabled] = useState(ReminderService.isEnabled());
+  const [notifPermission, setNotifPermission] = useState(ReminderService.getPermissionState());
+  const [notifMsg, setNotifMsg] = useState(null);
+
+  // 個人データ削除リクエスト
+  const [deleteMyDataConfirm, setDeleteMyDataConfirm] = useState(false);
+  const [deleteMyDataLoading, setDeleteMyDataLoading] = useState(false);
+  const [deleteMyDataMsg, setDeleteMyDataMsg] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -98,6 +109,43 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
     } catch (err) {
       setAlertMsg({ type: 'error', text: err.message });
     }
+  };
+
+  const handleToggleNotification = async () => {
+    setNotifMsg(null);
+    if (!notifEnabled) {
+      // 有効化
+      const result = await ReminderService.requestPermission();
+      setNotifPermission(result);
+      if (result === 'granted') {
+        setNotifEnabled(true);
+        ReminderService.startTimer(measureSchedule);
+        setNotifMsg({ type: 'success', text: '計測リマインダー通知を有効にしました' });
+      } else if (result === 'denied') {
+        setNotifMsg({ type: 'error', text: 'ブラウザの通知がブロックされています。ブラウザの設定から通知を許可してください。' });
+      } else {
+        setNotifMsg({ type: 'error', text: 'このブラウザは通知に対応していません' });
+      }
+    } else {
+      // 無効化
+      ReminderService.setEnabled(false);
+      ReminderService.clearTimer();
+      setNotifEnabled(false);
+      setNotifMsg({ type: 'success', text: '計測リマインダー通知を無効にしました' });
+    }
+  };
+
+  const handleDeleteMyData = async () => {
+    setDeleteMyDataLoading(true);
+    setDeleteMyDataMsg(null);
+    try {
+      await dataService.deleteUserData(session.userId);
+      setDeleteMyDataMsg({ type: 'success', text: '個人の計測データをすべて削除しました。' });
+      setDeleteMyDataConfirm(false);
+    } catch (err) {
+      setDeleteMyDataMsg({ type: 'error', text: err.message });
+    }
+    setDeleteMyDataLoading(false);
   };
 
   const handleDeleteAllMeasurements = async () => {
@@ -268,6 +316,39 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
 
       }
 
+      {/* 計測リマインダー通知 */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">計測リマインダー通知</h3>
+        <div className="adm-settings-card">
+          {notifMsg && (
+            <div className={notifMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+              {notifMsg.text}
+            </div>
+          )}
+          <div className="adm-settings-row">
+            <span className="adm-settings-label">ブラウザ通知</span>
+            <button
+              className={notifEnabled ? 'adm-btn-secondary' : 'adm-btn-primary'}
+              onClick={handleToggleNotification}
+              aria-label="計測リマインダー通知切替"
+            >
+              {notifEnabled ? '無効にする' : '有効にする'}
+            </button>
+          </div>
+          {notifPermission === 'denied' && (
+            <p className="adm-csv-error">
+              ブラウザの通知がブロックされています。ブラウザの設定から通知を許可してください。
+            </p>
+          )}
+          {notifPermission === 'unsupported' && (
+            <p className="adm-privacy-note">このブラウザは通知に対応していません。</p>
+          )}
+          <p className="adm-privacy-note">
+            計測スケジュール（{measureSchedule === 'daily' ? '毎日' : measureSchedule === 'thrice' ? '週3回' : '週1回'}）に基づき、計測が遅れている場合に通知でお知らせします。
+          </p>
+        </div>
+      </div>
+
       {/* パスワード変更 */}
       <div className="adm-settings-section">
         <h3 className="adm-section-title">パスワード変更</h3>
@@ -309,6 +390,52 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
             {pwLoading ? '変更中...' : 'パスワードを変更'}
           </button>
         </form>
+      </div>
+
+      {/* 個人データ削除リクエスト */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">個人データ削除</h3>
+        <div className="adm-settings-card">
+          {deleteMyDataMsg && (
+            <div className={deleteMyDataMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+              {deleteMyDataMsg.text}
+            </div>
+          )}
+          <p className="adm-privacy-note" style={{ marginBottom: 12 }}>
+            個人情報保護法に基づき、ご自身の計測データの削除を申請できます。
+            削除されたデータは復元できません。アカウント自体は残ります。
+          </p>
+          {!deleteMyDataConfirm ? (
+            <button
+              className="adm-btn-danger"
+              onClick={() => setDeleteMyDataConfirm(true)}
+              aria-label="個人データ削除リクエスト"
+            >
+              自分の計測データを削除
+            </button>
+          ) : (
+            <div className="adm-settings-confirm">
+              <p className="adm-settings-warning">
+                この操作は取り消せません。あなたの全計測データとチームメンバーシップが完全に削除されます。
+              </p>
+              <div className="adm-settings-confirm-actions">
+                <button
+                  className="adm-btn-danger"
+                  onClick={handleDeleteMyData}
+                  disabled={deleteMyDataLoading}
+                >
+                  {deleteMyDataLoading ? '削除中...' : '本当に削除する'}
+                </button>
+                <button
+                  className="adm-btn-secondary"
+                  onClick={() => setDeleteMyDataConfirm(false)}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* データ管理（管理者のみ） */}

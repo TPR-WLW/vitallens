@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { dataService } from '../../services/index.js';
+import { ReminderService } from '../../services/reminder-service.js';
 import { loadSampleData, isSampleDataLoaded, clearSampleData } from './sample-data.js';
 import '../../styles/admin-dashboard.css';
 
@@ -138,6 +139,14 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // リマインダー通知タイマー開始
+  useEffect(() => {
+    if (ReminderService.isEnabled()) {
+      ReminderService.startTimer(measureSchedule);
+    }
+    return () => ReminderService.clearTimer();
+  }, [measureSchedule]);
 
   // === リアルタイム更新: BroadcastChannel + visibilitychange ===
   const [toastVisible, setToastVisible] = useState(false);
