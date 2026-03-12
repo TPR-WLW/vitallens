@@ -53,6 +53,9 @@ export default function JoinScreen({ tenantSlug, onEnrolled, onBack }) {
           <button className="btn-primary" onClick={() => onEnrolled(tenantSlug)}>
             Start Your First Check-In
           </button>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '12px' }}>
+            Your 30-second wellness check is completely anonymous.
+          </p>
         </div>
       </div>
     );

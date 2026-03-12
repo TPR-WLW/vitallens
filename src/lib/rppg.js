@@ -91,7 +91,7 @@ export class RPPGProcessor {
 
   /**
    * Compute heart rate using POS algorithm.
-   * @returns {{ hr: number, confidence: number, signal: Float64Array } | null}
+   * @returns {{ hr: number, confidence: number, signal: Float64Array, timestamps: number[], fps: number } | null}
    */
   computeHeartRate() {
     const N = this.rBuffer.length;
@@ -127,6 +127,8 @@ export class RPPGProcessor {
       hr: Math.round(hr),
       confidence: result.confidence,
       signal: filtered,
+      timestamps: [...this.timestamps],
+      fps,
     };
   }
 

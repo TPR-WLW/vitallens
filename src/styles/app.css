@@ -1,4 +1,4 @@
-/* VitalLens — Clean, mobile-first styles */
+/* ミルケア（MiruCare）— Japanese wellness monitoring UI */
 
 :root {
   --color-primary: #4f8cff;
@@ -27,13 +27,12 @@ html, body, #root {
   width: 100%;
 }
 
-/* Lock overflow only for the demo measurement screen */
 body.measuring {
   overflow: hidden;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -118,7 +117,7 @@ body {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 4px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
 }
 
 .subtitle {
@@ -227,7 +226,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror for selfie mode */
+  transform: scaleX(-1);
 }
 
 .hidden-canvas {
@@ -333,6 +332,34 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Phase indicator */
+
+.phase-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.phase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.3s;
+}
+
+.phase-dot.active {
+  background: var(--color-primary);
+}
+
+.phase-label {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 4px;
+}
+
 .progress-container {
   width: 100%;
   max-width: 400px;
@@ -390,11 +417,82 @@ body {
   font-weight: 600;
 }
 
+/* Stress card (primary result) */
+
+.stress-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  border: 2px solid;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.stress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.stress-label {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.stress-badge {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+}
+
+.stress-score-bar {
+  width: 100%;
+}
+
+.stress-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: var(--color-surface-light);
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.stress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+
+.stress-marker {
+  position: absolute;
+  top: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--color-primary);
+  transform: translateX(-50%);
+  transition: left 0.5s ease-out;
+}
+
+.stress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+/* Heart rate display */
+
 .hr-display {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px;
+  padding: 24px;
   background: var(--color-surface);
   border-radius: var(--radius);
   border: 2px solid;
@@ -403,32 +501,138 @@ body {
 }
 
 .hr-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .hr-number {
-  font-size: 4rem;
+  font-size: 3.5rem;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .hr-label {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--color-text-muted);
   margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
+
+/* HRV Metrics Card */
+
+.hrv-metrics-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.hrv-metrics-card h3 {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.hrv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.hrv-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 4px;
+  background: var(--color-surface-light);
+  border-radius: var(--radius-sm);
+}
+
+.hrv-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hrv-unit {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.hrv-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 8px;
+}
+
+.hrv-desc {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.hrv-quality {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.quality-grade-a {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.quality-grade-b {
+  background: rgba(79, 140, 255, 0.15);
+  color: var(--color-primary);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.quality-grade-c {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.quality-grade-d {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Wellness card */
 
 .wellness-card {
   background: var(--color-surface);
@@ -448,6 +652,8 @@ body {
   color: var(--color-text-muted);
   line-height: 1.5;
 }
+
+/* Quality info */
 
 .quality-info {
   background: var(--color-surface);
@@ -494,6 +700,8 @@ body {
   color: var(--color-danger);
 }
 
+/* Tips card */
+
 .tips-card {
   background: var(--color-surface);
   border-radius: var(--radius);
@@ -527,24 +735,6 @@ body {
   color: var(--color-primary);
 }
 
-.submit-badge {
-  text-align: center;
-  font-size: 0.82rem;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 16px;
-}
-
-.submit-badge.sent {
-  background: rgba(34, 197, 94, 0.12);
-  color: var(--color-success);
-}
-
-.submit-badge.error {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--color-danger);
-}
-
 .result-actions {
   margin-top: 28px;
   margin-bottom: 16px;
@@ -558,11 +748,15 @@ body {
   }
 
   .hr-number {
-    font-size: 3rem;
+    font-size: 2.8rem;
   }
 
   .measure-overlay {
     padding: 16px 16px;
+  }
+
+  .hrv-value {
+    font-size: 1.3rem;
   }
 }
 

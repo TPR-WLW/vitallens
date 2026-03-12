@@ -126,22 +126,22 @@ export default function DashboardMock({ onBack }) {
           <div className="dash-kpi">
             <div className="dash-kpi-value green">{data.overall.wellness}%</div>
             <div className="dash-kpi-label">Team Wellness</div>
-            <div className="dash-kpi-change up">+3% vs last week</div>
+            {!isLive && <div className="dash-kpi-change up">+3% vs last week</div>}
           </div>
           <div className="dash-kpi">
             <div className="dash-kpi-value">{data.overall.checkIns}</div>
             <div className="dash-kpi-label">Check-Ins Today</div>
-            <div className="dash-kpi-change up">74% participation</div>
+            {!isLive && <div className="dash-kpi-change up">74% participation</div>}
           </div>
           <div className="dash-kpi">
             <div className="dash-kpi-value amber">{data.overall.alerts}</div>
             <div className="dash-kpi-label">Active Alerts</div>
-            <div className="dash-kpi-change down">+1 vs yesterday</div>
+            {!isLive && <div className="dash-kpi-change down">+1 vs yesterday</div>}
           </div>
           <div className="dash-kpi">
             <div className="dash-kpi-value">{data.overall.avgHR}</div>
             <div className="dash-kpi-label">Avg HR (BPM)</div>
-            <div className="dash-kpi-change">Normal range</div>
+            {!isLive && <div className="dash-kpi-change">Normal range</div>}
           </div>
         </div>
 
@@ -163,7 +163,7 @@ export default function DashboardMock({ onBack }) {
                 </div>
               ))}
             </div>
-            <p className="trend-note">Wed-Thu spike: product launch support queue. Extra breaks scheduled.</p>
+            {!isLive && <p className="trend-note">Wed-Thu spike: product launch support queue. Extra breaks scheduled.</p>}
           </div>
 
           {/* Distribution */}
@@ -184,7 +184,10 @@ export default function DashboardMock({ onBack }) {
               ))}
             </div>
             <p className="trend-note">
-              {data.distribution[0].pct + (data.distribution[1]?.pct || 0)}% of check-ins in Relaxed or Normal range.
+              {isLive
+                ? `${data.distribution[0].pct}% of check-ins in Relaxed range.`
+                : `${data.distribution[0].pct + (data.distribution[1]?.pct || 0)}% of check-ins in Relaxed or Normal range.`
+              }
             </p>
           </div>
         </div>

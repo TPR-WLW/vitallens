@@ -2,24 +2,29 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import CameraView from './CameraView.jsx';
 import { startCamera, stopCamera, extractROI } from '../lib/camera.js';
 import { RPPGProcessor } from '../lib/rppg.js';
+import { analyzeHRV } from '../lib/hrv.js';
 
-const MEASUREMENT_DURATION = 30; // seconds
+const MEASUREMENT_DURATION = 180; // 3 minutes for reliable HRV
+const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
+const HRV_MIN_DURATION = 45;      // Minimum seconds before attempting HRV
 
-export default function MeasureScreen({ onComplete, onCancel }) {
+export default function MeasureScreen({ onComplete, onCancel, quickMode = false }) {
   const cameraRef = useRef(null);
   const processorRef = useRef(new RPPGProcessor());
   const streamRef = useRef(null);
   const animFrameRef = useRef(null);
   const startTimeRef = useRef(null);
 
+  const duration = quickMode ? QUICK_CHECK_DURATION : MEASUREMENT_DURATION;
+
   const [stream, setStream] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [faceDetected, setFaceDetected] = useState(false);
   const [currentHR, setCurrentHR] = useState(null);
-  const [status, setStatus] = useState('Initializing camera...');
+  const [status, setStatus] = useState('カメラを起動中...');
   const [signalQuality, setSignalQuality] = useState(0);
+  const [phase, setPhase] = useState('init'); // init | calibrating | measuring | hrv
 
-  // Initialize camera
   useEffect(() => {
     let cancelled = false;
 
@@ -32,9 +37,9 @@ export default function MeasureScreen({ onComplete, onCancel }) {
         }
         streamRef.current = mediaStream;
         setStream(mediaStream);
-        setStatus('Position your face in the oval');
+        setStatus('顔をガイドの中に合わせてください');
       } catch (err) {
-        setStatus('Camera error: ' + err.message);
+        setStatus('カメラエラー: ' + err.message);
       }
     }
 
@@ -42,16 +47,11 @@ export default function MeasureScreen({ onComplete, onCancel }) {
 
     return () => {
       cancelled = true;
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
-      if (streamRef.current) {
-        stopCamera(streamRef.current);
-      }
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (streamRef.current) stopCamera(streamRef.current);
     };
   }, []);
 
-  // Processing loop
   const processFrame = useCallback(() => {
     if (!cameraRef.current) {
       animFrameRef.current = requestAnimationFrame(processFrame);
@@ -69,79 +69,93 @@ export default function MeasureScreen({ onComplete, onCancel }) {
 
     const now = performance.now();
 
-    // Start timing from first valid frame
     if (!startTimeRef.current) {
       startTimeRef.current = now;
     }
 
     const elapsedSec = (now - startTimeRef.current) / 1000;
-    setElapsed(Math.min(elapsedSec, MEASUREMENT_DURATION));
+    setElapsed(Math.min(elapsedSec, duration));
 
-    // Extract RGB from face ROI
     const roi = extractROI(canvas, ctx, video);
     setFaceDetected(roi.valid);
 
     if (roi.valid) {
       processorRef.current.addSample(roi.r, roi.g, roi.b, now);
 
-      // Attempt HR calculation after enough samples
       if (processorRef.current.isReady) {
         const result = processorRef.current.computeHeartRate();
         if (result && result.hr > 0) {
           setCurrentHR(result.hr);
           setSignalQuality(result.confidence);
 
-          if (elapsedSec < 10) {
-            setStatus('Calibrating...');
-          } else if (result.confidence < 0.25) {
-            setStatus('Measuring — hold still...');
+          if (elapsedSec < 15) {
+            setPhase('calibrating');
+            setStatus('キャリブレーション中...');
+          } else if (elapsedSec < HRV_MIN_DURATION) {
+            setPhase('measuring');
+            setStatus(result.confidence < 0.25
+              ? '計測中 — 動かないでください...'
+              : '心拍を読み取っています...');
           } else {
-            setStatus('Reading heart rate...');
+            setPhase('hrv');
+            setStatus('HRV分析中 — そのままお待ちください...');
           }
         }
       } else {
-        setStatus('Collecting data — hold still...');
+        setStatus('データ収集中 — じっとしていてください...');
       }
     } else {
-      setStatus('Position your face in the oval');
+      setStatus('顔をガイドの中に合わせてください');
     }
 
-    // Check if measurement is complete
-    if (elapsedSec >= MEASUREMENT_DURATION) {
+    if (elapsedSec >= duration) {
       const finalResult = processorRef.current.computeHeartRate();
+      const hr = finalResult?.hr || currentHR || 0;
+      const confidence = finalResult?.confidence || signalQuality;
+
+      // Run HRV analysis
+      let hrvResult = null;
+      if (finalResult?.signal && finalResult?.timestamps) {
+        hrvResult = analyzeHRV(finalResult.signal, finalResult.timestamps, finalResult.fps);
+      }
+
       onComplete({
-        hr: finalResult?.hr || currentHR || 0,
-        confidence: finalResult?.confidence || signalQuality,
-        duration: MEASUREMENT_DURATION,
+        hr,
+        confidence,
+        duration,
         samples: processorRef.current.sampleCount,
+        hrv: hrvResult,
       });
       return;
     }
 
     animFrameRef.current = requestAnimationFrame(processFrame);
-  }, [onComplete, currentHR, signalQuality]);
+  }, [onComplete, currentHR, signalQuality, duration]);
 
-  // Start processing loop when stream is ready
   useEffect(() => {
     if (stream) {
       animFrameRef.current = requestAnimationFrame(processFrame);
     }
     return () => {
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, [stream, processFrame]);
 
-  const progress = Math.min((elapsed / MEASUREMENT_DURATION) * 100, 100);
-  const remainingSec = Math.max(0, Math.ceil(MEASUREMENT_DURATION - elapsed));
+  const progress = Math.min((elapsed / duration) * 100, 100);
+  const remainingSec = Math.max(0, Math.ceil(duration - elapsed));
+  const minutes = Math.floor(remainingSec / 60);
+  const seconds = remainingSec % 60;
+  const timeDisplay = minutes > 0
+    ? `${minutes}:${String(seconds).padStart(2, '0')}`
+    : `${seconds}秒`;
+
+  const qualityLabel = signalQuality > 0.4 ? '良好' : signalQuality > 0.2 ? '普通' : '低い';
 
   return (
     <div className="measure-screen">
       <CameraView ref={cameraRef} stream={stream} faceDetected={faceDetected} />
 
       <div className="measure-overlay">
-        {/* Status bar */}
         <div className="measure-status">
           <span className="status-text">{status}</span>
           {currentHR > 0 && (
@@ -152,25 +166,31 @@ export default function MeasureScreen({ onComplete, onCancel }) {
           )}
         </div>
 
-        {/* Progress bar */}
+        {/* Phase indicator */}
+        <div className="phase-indicator">
+          <span className={`phase-dot ${phase === 'calibrating' || phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} />
+          <span className={`phase-dot ${phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} />
+          <span className={`phase-dot ${phase === 'hrv' ? 'active' : ''}`} />
+          <span className="phase-label">
+            {phase === 'init' && '準備中'}
+            {phase === 'calibrating' && 'キャリブレーション'}
+            {phase === 'measuring' && '心拍計測'}
+            {phase === 'hrv' && 'HRV分析'}
+          </span>
+        </div>
+
         <div className="progress-container">
           <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <div className="progress-info">
-            <span className="time-remaining">{remainingSec}s remaining</span>
-            <span className="signal-quality">
-              Signal: {signalQuality > 0.4 ? 'Good' : signalQuality > 0.2 ? 'Fair' : 'Low'}
-            </span>
+            <span className="time-remaining">残り {timeDisplay}</span>
+            <span className="signal-quality">信号: {qualityLabel}</span>
           </div>
         </div>
 
-        {/* Cancel button */}
         <button className="btn-cancel" onClick={onCancel}>
-          Cancel
+          中止
         </button>
       </div>
     </div>
