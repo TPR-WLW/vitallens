@@ -53,6 +53,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             <a href="#problems" onClick={handleNavClick}>課題</a>
             <a href="#solution" onClick={handleNavClick}>ソリューション</a>
             <a href="#pricing" onClick={handleNavClick}>料金</a>
+            <a href="#trust" onClick={handleNavClick}>信頼性</a>
             <a href="#faq" onClick={handleNavClick}>FAQ</a>
             <a href="#contact" onClick={handleNavClick}>お問い合わせ</a>
             <button className="btn-nav-secondary" onClick={() => { setMenuOpen(false); onShowDashboard(); }}>管理者デモ</button>
