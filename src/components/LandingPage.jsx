@@ -457,6 +457,10 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             <a href="/vitallens/guides/rppg-stress-monitoring/">rPPG技術ガイド</a>
             <span className="footer-sep">|</span>
             <a href="/vitallens/guides/rppg-accuracy/">精度検証</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/employee-mental-health/">メンタルヘルス対策</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/stress-measurement-methods/">測定方法比較</a>
           </div>
           <p className="footer-disclaimer">
             本サービスは一般的なウェルネス指標の参考値を提供するものであり、医療機器ではありません。
