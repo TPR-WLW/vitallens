@@ -1,13 +1,15 @@
 /**
- * rPPG heart rate extraction using POS (Plane-Orthogonal-to-Skin) algorithm.
+ * rPPG heart rate extraction using POS + CHROM algorithms with SQI-based auto-switching.
  *
- * Reference: Wang, W., den Brinker, A. C., Stuijk, S., & de Haan, G. (2017).
+ * POS Reference: Wang, W., den Brinker, A. C., Stuijk, S., & de Haan, G. (2017).
  * "Algorithmic Principles of Remote PPG."
  * IEEE Transactions on Biomedical Engineering, 64(7), 1479-1491.
  *
- * The POS algorithm projects normalized RGB signals onto a plane orthogonal
- * to the skin tone direction, then combines components using an adaptive
- * alpha tuning based on signal statistics.
+ * CHROM Reference: de Haan, G. & Jeanne, V. (2013).
+ * "Robust Pulse Rate From Chrominance-Based rPPG."
+ * IEEE Transactions on Biomedical Engineering, 60(10), 2878-2886.
+ *
+ * Both algorithms are run in parallel; the one with higher SQI is selected.
  */
 
 import { bandpassFilter, detrend, hammingWindow, findDominantFrequency, std, notchFilter, computeAliasFrequency } from './signal.js';
@@ -99,8 +101,23 @@ export class RPPGProcessor {
   }
 
   /**
-   * Compute heart rate using POS algorithm.
-   * @returns {{ hr: number, confidence: number, signal: Float64Array, timestamps: number[], fps: number } | null}
+   * Process a pulse signal through the standard post-extraction pipeline.
+   * Shared by both POS and CHROM paths.
+   * @returns {{ filtered: Float64Array, result: object }|null}
+   */
+  _processSignal(pulseSignal, fps) {
+    if (!pulseSignal) return null;
+    const detrended = detrend(pulseSignal);
+    const filtered = bandpassFilter(detrended, fps, 0.7, 3.5);
+    const windowed = hammingWindow(filtered);
+    const result = findDominantFrequency(windowed, fps, 0.7, 3.5);
+    return { filtered, result };
+  }
+
+  /**
+   * Compute heart rate using POS + CHROM with SQI-based auto-switching.
+   * Both algorithms run in parallel; the one with higher composite SQI wins.
+   * @returns {{ hr: number, confidence: number, signal: Float64Array, timestamps: number[], fps: number, algorithm: string } | null}
    */
   computeHeartRate() {
     const N = this.rBuffer.length;
@@ -114,7 +131,6 @@ export class RPPGProcessor {
     let B = new Float64Array(this.bBuffer);
 
     // Step 1.5: Apply notch filter for fluorescent light flicker (50/60Hz)
-    // Compute aliased frequencies at current fps and filter if they fall in HR band
     for (const flickerHz of FLICKER_FREQUENCIES) {
       const aliasHz = computeAliasFrequency(flickerHz, fps);
       if (aliasHz >= FLICKER_ALIAS_MIN_HZ && aliasHz <= FLICKER_ALIAS_MAX_HZ) {
@@ -124,37 +140,68 @@ export class RPPGProcessor {
       }
     }
 
-    // Step 2: Apply POS algorithm with temporal windowing (also computes per-window SQI)
+    // Step 2: Run both POS and CHROM in parallel, pick higher SQI
+    // --- POS path ---
     this.windowSQIs = [];
-    const pulseSignal = this.posAlgorithm(R, G, B, fps);
-    if (!pulseSignal) return null;
+    const posPulse = this.posAlgorithm(R, G, B, fps);
+    const posProcessed = this._processSignal(posPulse, fps);
+    const posSQIs = [...this.windowSQIs];
 
-    // Step 3: Detrend the pulse signal
-    const detrended = detrend(pulseSignal);
+    // --- CHROM path ---
+    this.windowSQIs = [];
+    const chromPulse = this.chromAlgorithm(R, G, B, fps);
+    const chromProcessed = this._processSignal(chromPulse, fps);
+    const chromSQIs = [...this.windowSQIs];
 
-    // Step 4: Bandpass filter (0.7 - 3.5 Hz = 42 - 210 BPM)
-    const filtered = bandpassFilter(detrended, fps, 0.7, 3.5);
+    // Compute composite SQI for each
+    const posScore = posProcessed ? this._compositeScore(posSQIs, posProcessed.result.confidence) : -1;
+    const chromScore = chromProcessed ? this._compositeScore(chromSQIs, chromProcessed.result.confidence) : -1;
 
-    // Step 5: Apply window function for cleaner FFT
-    const windowed = hammingWindow(filtered);
+    // Pick the winner
+    let chosen, chosenSQIs, algorithm;
+    if (chromScore > posScore && chromProcessed) {
+      chosen = chromProcessed;
+      chosenSQIs = chromSQIs;
+      algorithm = 'CHROM';
+    } else if (posProcessed) {
+      chosen = posProcessed;
+      chosenSQIs = posSQIs;
+      algorithm = 'POS';
+    } else {
+      return null;
+    }
 
-    // Step 6: Find dominant frequency via FFT
-    const result = findDominantFrequency(windowed, fps, 0.7, 3.5);
+    // Restore windowSQIs for aggregate SQI computation
+    this.windowSQIs = chosenSQIs;
 
-    // Step 7: Temporal smoothing — reject outliers, smooth HR
-    const hr = this.smoothHR(result.bpm, result.confidence);
-
-    // Compute aggregate SQI from per-window quality scores (25th percentile — conservative)
-    const sqi = this.computeAggregateSQI(result.confidence);
+    // Step 7: Temporal smoothing
+    const hr = this.smoothHR(chosen.result.bpm, chosen.result.confidence);
+    const sqi = this.computeAggregateSQI(chosen.result.confidence);
 
     return {
       hr: Math.round(hr),
-      confidence: result.confidence,
+      confidence: chosen.result.confidence,
       sqi,
-      signal: filtered,
+      signal: chosen.filtered,
       timestamps: [...this.timestamps],
       fps,
+      algorithm,
     };
+  }
+
+  /**
+   * Compute raw composite score for algorithm comparison.
+   * @param {number[]} sqis - Per-window channel stability scores
+   * @param {number} spectralConfidence - FFT spectral confidence
+   * @returns {number} Composite score (0-1)
+   */
+  _compositeScore(sqis, spectralConfidence) {
+    let stability = 1;
+    if (sqis.length > 0) {
+      const sorted = [...sqis].sort((a, b) => a - b);
+      stability = sorted[Math.floor(sorted.length * 0.25)];
+    }
+    return spectralConfidence * 0.5 + stability * 0.5;
   }
 
   /**
@@ -263,6 +310,106 @@ export class RPPGProcessor {
 
     // Channel stability: motion artifact proxy
     // High variance in normalized channels = motion artifact
+    const maxVar = Math.max(std(Rn), std(Gn), std(Bn));
+    const channelStability = Math.max(0, 1 - Math.min(1, maxVar / CHANNEL_VARIANCE_THRESHOLD));
+
+    return { signal: h, channelStability };
+  }
+
+  /**
+   * CHROM (Chrominance-based) algorithm.
+   * Processes RGB signals in overlapping temporal windows using chrominance projection.
+   *
+   * @param {Float64Array} R - Red channel time series
+   * @param {Float64Array} G - Green channel time series
+   * @param {Float64Array} B - Blue channel time series
+   * @param {number} fps - Frames per second
+   * @returns {Float64Array|null} Extracted pulse signal
+   */
+  chromAlgorithm(R, G, B, fps) {
+    const N = R.length;
+    const windowLen = Math.round(OVERLAP_SEGMENT_SECONDS * fps);
+
+    if (windowLen < 4 || N < windowLen) {
+      const result = this.chromWindow(R, G, B);
+      if (result) {
+        this.windowSQIs.push(result.channelStability);
+        return result.signal;
+      }
+      return null;
+    }
+
+    const H = new Float64Array(N);
+
+    for (let start = 0; start <= N - windowLen; start++) {
+      const rWin = R.slice(start, start + windowLen);
+      const gWin = G.slice(start, start + windowLen);
+      const bWin = B.slice(start, start + windowLen);
+
+      const winResult = this.chromWindow(rWin, gWin, bWin);
+      if (!winResult) continue;
+      const { signal: hWin, channelStability } = winResult;
+      this.windowSQIs.push(channelStability);
+
+      for (let i = 0; i < windowLen && start + i < N; i++) {
+        H[start + i] += hWin[i];
+      }
+    }
+
+    return H;
+  }
+
+  /**
+   * CHROM algorithm for a single temporal window.
+   *
+   * Core math (de Haan & Jeanne 2013):
+   *   Cn = [R/mean(R); G/mean(G); B/mean(B)]
+   *   Xs = 3*Rn - 2*Gn
+   *   Ys = 1.5*Rn + Gn - 1.5*Bn
+   *   h = Xs - (std(Xs)/std(Ys)) * Ys
+   */
+  chromWindow(R, G, B) {
+    const N = R.length;
+    if (N < 4) return null;
+
+    let meanR = 0, meanG = 0, meanB = 0;
+    for (let i = 0; i < N; i++) {
+      meanR += R[i];
+      meanG += G[i];
+      meanB += B[i];
+    }
+    meanR /= N;
+    meanG /= N;
+    meanB /= N;
+
+    if (meanR < 1 || meanG < 1 || meanB < 1) return null;
+
+    const Rn = new Float64Array(N);
+    const Gn = new Float64Array(N);
+    const Bn = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      Rn[i] = R[i] / meanR;
+      Gn[i] = G[i] / meanG;
+      Bn[i] = B[i] / meanB;
+    }
+
+    // CHROM projection
+    const Xs = new Float64Array(N);
+    const Ys = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      Xs[i] = 3 * Rn[i] - 2 * Gn[i];
+      Ys[i] = 1.5 * Rn[i] + Gn[i] - 1.5 * Bn[i];
+    }
+
+    const stdXs = std(Xs);
+    const stdYs = std(Ys);
+    const alpha = stdYs > 1e-10 ? stdXs / stdYs : 0;
+
+    const h = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      h[i] = Xs[i] - alpha * Ys[i];
+    }
+
     const maxVar = Math.max(std(Rn), std(Gn), std(Bn));
     const channelStability = Math.max(0, 1 - Math.min(1, maxVar / CHANNEL_VARIANCE_THRESHOLD));
 

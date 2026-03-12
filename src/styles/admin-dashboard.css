@@ -992,6 +992,184 @@
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
+/* ===== アラートバナー ===== */
+
+.adm-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-left: 4px solid #ef4444;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.adm-alert-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.adm-alert-content {
+  color: var(--color-text);
+}
+
+.adm-alert-content strong {
+  color: #ef4444;
+}
+
+/* ===== 印刷ボタン ===== */
+
+.adm-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adm-print-btn {
+  font-size: 0.8rem;
+  padding: 6px 14px;
+}
+
+/* ===== 印刷用スタイル ===== */
+
+@media print {
+  /* レイアウトリセット */
+  .adm-layout {
+    display: block;
+  }
+
+  .adm-sidebar,
+  .adm-mobile-header,
+  .adm-overlay,
+  .adm-sample-banner,
+  .adm-print-btn,
+  .adm-sidebar-actions,
+  .adm-sidebar-footer,
+  .adm-btn-primary,
+  .adm-btn-secondary,
+  .adm-btn-ghost,
+  .adm-btn-danger,
+  .adm-link-btn {
+    display: none !important;
+  }
+
+  .adm-main {
+    padding: 0;
+    margin: 0;
+  }
+
+  .adm-view {
+    max-width: 100%;
+  }
+
+  /* 色を印刷向けに */
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  .adm-main-header h1 {
+    font-size: 16pt;
+    color: #000;
+    border-bottom: 2pt solid #333;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .adm-main-header::after {
+    content: '出力日: ' attr(data-date);
+    font-size: 9pt;
+    color: #666;
+  }
+
+  .adm-kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .adm-kpi-card {
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    padding: 12px;
+    break-inside: avoid;
+  }
+
+  .adm-kpi-value {
+    color: #333;
+    font-size: 14pt;
+  }
+
+  .adm-kpi-label,
+  .adm-kpi-sub {
+    color: #666;
+  }
+
+  .adm-table {
+    border: 1px solid #ccc;
+  }
+
+  .adm-table th,
+  .adm-table td {
+    border: 1px solid #ddd;
+    color: #000;
+    padding: 6px 10px;
+    font-size: 9pt;
+  }
+
+  .adm-table th {
+    background: #f0f0f0;
+    color: #333;
+  }
+
+  .adm-section-title {
+    color: #000;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
+  }
+
+  .adm-privacy-note {
+    color: #999;
+    font-size: 8pt;
+  }
+
+  .adm-alert-banner {
+    border: 1px solid #ef4444;
+    background: #fff5f5;
+    break-inside: avoid;
+  }
+
+  .adm-chart-container {
+    border: 1px solid #ccc;
+    background: #fff;
+    break-inside: avoid;
+  }
+
+  .adm-status-item {
+    break-inside: avoid;
+  }
+
+  .adm-badge-good { color: #16a34a; }
+  .adm-badge-watch { color: #d97706; }
+  .adm-badge-alert { color: #dc2626; }
+
+  /* ページ設定 */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* 改ページ制御 */
+  .adm-section-title {
+    break-after: avoid;
+  }
+}
+
 /* ===== モバイル対応 ===== */
 
 @media (max-width: 1023px) {

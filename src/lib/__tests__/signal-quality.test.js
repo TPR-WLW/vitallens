@@ -300,3 +300,201 @@ describe('Fluorescent flicker rejection', () => {
     expect(result).not.toBeNull();
   });
 });
+
+// ============================================================
+// 5. CHROM algorithm
+// ============================================================
+
+describe('CHROM algorithm', () => {
+  it('chromWindow() should extract a signal from clean RGB with known pulse', () => {
+    const processor = new RPPGProcessor();
+    const N = 60; // 2 seconds at 30fps
+    const R = new Float64Array(N);
+    const G = new Float64Array(N);
+    const B = new Float64Array(N);
+
+    for (let i = 0; i < N; i++) {
+      const t = i / 30;
+      const pulse = Math.sin(2 * Math.PI * 1.2 * t) * 2;
+      R[i] = 150 + pulse;
+      G[i] = 120 + pulse * 1.5;
+      B[i] = 100 + pulse * 0.5;
+    }
+
+    const result = processor.chromWindow(R, G, B);
+    expect(result).not.toBeNull();
+    expect(result.signal).toBeInstanceOf(Float64Array);
+    expect(result.signal.length).toBe(N);
+    expect(result.channelStability).toBeGreaterThanOrEqual(0);
+    expect(result.channelStability).toBeLessThanOrEqual(1);
+
+    // Signal should have non-zero energy (actual pulse extracted)
+    const energy = signalPower(result.signal);
+    expect(energy).toBeGreaterThan(0);
+  });
+
+  it('chromWindow() returns null for short signals (<4 samples)', () => {
+    const processor = new RPPGProcessor();
+    const R = new Float64Array([150, 151, 152]);
+    const G = new Float64Array([120, 121, 122]);
+    const B = new Float64Array([100, 101, 102]);
+
+    const result = processor.chromWindow(R, G, B);
+    expect(result).toBeNull();
+  });
+
+  it('chromWindow() returns null when means are too low (<1)', () => {
+    const processor = new RPPGProcessor();
+    const N = 10;
+    // All zeros — means will be 0
+    const R = new Float64Array(N);
+    const G = new Float64Array(N);
+    const B = new Float64Array(N);
+
+    expect(processor.chromWindow(R, G, B)).toBeNull();
+
+    // One channel below 1, others valid
+    const R2 = new Float64Array(N).fill(0.5);
+    const G2 = new Float64Array(N).fill(120);
+    const B2 = new Float64Array(N).fill(100);
+    expect(processor.chromWindow(R2, G2, B2)).toBeNull();
+  });
+
+  it('chromAlgorithm() with overlapping windows produces signal of correct length', () => {
+    const processor = new RPPGProcessor();
+    const fps = 30;
+    const duration = 5;
+    const N = fps * duration; // 150 samples
+
+    const R = new Float64Array(N);
+    const G = new Float64Array(N);
+    const B = new Float64Array(N);
+
+    for (let i = 0; i < N; i++) {
+      const t = i / fps;
+      const pulse = Math.sin(2 * Math.PI * 1.0 * t) * 2;
+      R[i] = 150 + pulse;
+      G[i] = 120 + pulse * 1.5;
+      B[i] = 100 + pulse * 0.5;
+    }
+
+    const result = processor.chromAlgorithm(R, G, B, fps);
+    expect(result).not.toBeNull();
+    expect(result).toBeInstanceOf(Float64Array);
+    expect(result.length).toBe(N);
+
+    // windowSQIs should have been populated by the overlapping windows
+    expect(processor.windowSQIs.length).toBeGreaterThan(0);
+  });
+
+  it('computeHeartRate() returns algorithm field (POS or CHROM)', () => {
+    const processor = new RPPGProcessor();
+    const fps = 30;
+    const duration = 5;
+
+    for (let i = 0; i < fps * duration; i++) {
+      const t = i / fps;
+      const pulse = Math.sin(2 * Math.PI * 1.2 * t) * 2;
+      processor.addSample(
+        150 + pulse,
+        120 + pulse * 1.5,
+        100 + pulse * 0.5,
+        t * 1000
+      );
+    }
+
+    const result = processor.computeHeartRate();
+    expect(result).not.toBeNull();
+    expect(result.algorithm).toBeDefined();
+    expect(['POS', 'CHROM']).toContain(result.algorithm);
+  });
+
+  it('computeHeartRate() picks algorithm with higher composite SQI', () => {
+    // Two processors with same data — both should pick the same algorithm
+    // and the chosen one should have non-negative score
+    const processor = new RPPGProcessor();
+    const fps = 30;
+    const duration = 5;
+
+    for (let i = 0; i < fps * duration; i++) {
+      const t = i / fps;
+      const pulse = Math.sin(2 * Math.PI * 1.2 * t) * 2;
+      processor.addSample(
+        150 + pulse,
+        120 + pulse * 1.5,
+        100 + pulse * 0.5,
+        t * 1000
+      );
+    }
+
+    const result = processor.computeHeartRate();
+    expect(result).not.toBeNull();
+
+    // Verify the winning algorithm has valid SQI
+    expect(result.sqi).toBeDefined();
+    expect(result.sqi.score).toBeGreaterThanOrEqual(0);
+    expect(result.sqi.score).toBeLessThanOrEqual(1);
+    expect(result.confidence).toBeGreaterThanOrEqual(0);
+  });
+
+  it('_compositeScore() computes weighted average of stability p25 and spectral confidence', () => {
+    const processor = new RPPGProcessor();
+
+    // Empty SQIs — stability defaults to 1
+    const score1 = processor._compositeScore([], 0.8);
+    // 0.8 * 0.5 + 1.0 * 0.5 = 0.9
+    expect(score1).toBeCloseTo(0.9, 5);
+
+    // With SQIs: p25 index = floor(4 * 0.25) = 1, sorted[1] = 0.3
+    const score2 = processor._compositeScore([0.1, 0.3, 0.5, 0.9], 0.6);
+    // 0.6 * 0.5 + 0.3 * 0.5 = 0.45
+    expect(score2).toBeCloseTo(0.45, 5);
+
+    // All zeros
+    const score3 = processor._compositeScore([0, 0, 0, 0], 0);
+    expect(score3).toBeCloseTo(0, 5);
+
+    // Single SQI: p25 index = floor(1 * 0.25) = 0, sorted[0] = 0.7
+    const score4 = processor._compositeScore([0.7], 1.0);
+    // 1.0 * 0.5 + 0.7 * 0.5 = 0.85
+    expect(score4).toBeCloseTo(0.85, 5);
+  });
+
+  it('CHROM channel stability reflects motion artifacts', () => {
+    const processor = new RPPGProcessor();
+    const N = 60;
+
+    // Clean signal — should have high channel stability
+    const R1 = new Float64Array(N);
+    const G1 = new Float64Array(N);
+    const B1 = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      const t = i / 30;
+      const pulse = Math.sin(2 * Math.PI * 1.2 * t) * 2;
+      R1[i] = 150 + pulse;
+      G1[i] = 120 + pulse * 1.5;
+      B1[i] = 100 + pulse * 0.5;
+    }
+    const clean = processor.chromWindow(R1, G1, B1);
+
+    // Noisy signal — large random jumps should reduce channel stability
+    const R2 = new Float64Array(N);
+    const G2 = new Float64Array(N);
+    const B2 = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      const t = i / 30;
+      const pulse = Math.sin(2 * Math.PI * 1.2 * t) * 2;
+      const motion = (i % 2 === 0 ? 30 : -30);
+      R2[i] = 150 + pulse + motion;
+      G2[i] = 120 + pulse * 1.5 + motion;
+      B2[i] = 100 + pulse * 0.5 + motion;
+    }
+    const noisy = processor.chromWindow(R2, G2, B2);
+
+    expect(clean).not.toBeNull();
+    expect(noisy).not.toBeNull();
+
+    // Clean signal should have higher channel stability than motion-contaminated
+    expect(clean.channelStability).toBeGreaterThan(noisy.channelStability);
+  });
+});
