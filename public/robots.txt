@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tpr-wlw.github.io/vitallens/sitemap.xml
