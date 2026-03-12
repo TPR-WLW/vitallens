@@ -372,8 +372,21 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
           </div>
         )}
 
+        {/* Low SQI warning (above low-confidence threshold but still marginal) */}
+        {!result.isSample && !result.isDemo && confidence >= 0.3 && confidence < 0.5 && (
+          <div className="tips-card tips-card-moderate">
+            <h4>信号品質について</h4>
+            <p>今回の計測は信号品質がやや低めでした。より正確な結果を得るには、明るい環境で再度お試しください。</p>
+          </div>
+        )}
+
         {/* Enterprise CTA */}
-        <div className="result-cta-card">
+        <div className={`result-cta-card${result.isDemo ? ' result-cta-demo' : ''}`}>
+          {result.isDemo && (
+            <p className="result-cta-demo-lead">
+              実際のカメラ計測では、あなた自身のバイタルデータが表示されます。
+            </p>
+          )}
           <p className="result-cta-pitch">
             いま体験された測定は、貴社の全従業員に展開できます。<br />
             カメラだけで、ストレスチェック制度への対応と健康経営の推進を同時に実現します。
@@ -387,6 +400,11 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
           <p className="result-cta-note">
             無料パイロット（50名・3ヶ月）のご案内も可能です
           </p>
+          {result.isDemo && onRestart && (
+            <button className="btn-primary btn-try-real" onClick={onRestart}>
+              実際にカメラで計測してみる
+            </button>
+          )}
         </div>
 
         {/* PDF Export */}

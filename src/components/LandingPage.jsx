@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
 import '../styles/landing.css';
 
@@ -12,6 +12,20 @@ const LogoSvg = ({ size = 32 }) => (
 export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  const heroRef = useRef(null);
+
+  // Show sticky CTA bar after hero scrolls out of view
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyCta(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
 
   const handleNavClick = (e) => {
     setMenuOpen(false);
@@ -47,7 +61,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
       </nav>
 
       {/* Hero */}
-      <section className="hero">
+      <section className="hero" ref={heroRef}>
         <div className="hero-inner">
           <h1>2028年、すべての事業場に<br />ストレスチェックが義務化されます。</h1>
           <p className="hero-sub-accent">貴社の準備は、整っていますか。</p>
@@ -408,6 +422,11 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
           </div>
         </div>
       )}
+
+      {/* Sticky Mobile CTA */}
+      <div className={`sticky-cta-bar ${showStickyCta ? 'sticky-cta-visible' : ''}`}>
+        <button className="btn-hero sticky-cta-btn" onClick={onTryDemo}>無料デモを体験する</button>
+      </div>
 
       {/* Footer */}
       <footer className="landing-footer">

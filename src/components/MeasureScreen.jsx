@@ -10,6 +10,7 @@ import {
   getLandmarkerState,
   EmotionProcessor,
 } from '../lib/emotion.js';
+import { logMeasureEvent } from '../lib/error-monitor.js';
 
 const MEASUREMENT_DURATION = 180; // 3 minutes for reliable HRV
 const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
@@ -63,6 +64,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         setStream(mediaStream);
         displayRef.current.status = '顔をガイドの中に合わせてください';
       } catch (err) {
+        logMeasureEvent('camera_error', { message: err.message });
         displayRef.current.status = 'カメラエラー: ' + err.message;
         setDisplay({ ...displayRef.current });
       }
@@ -243,6 +245,13 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
           }
         : null;
 
+      const sqiFinal = finalSqi?.score ?? confidence;
+      logMeasureEvent(sqiFinal < 0.25 ? 'low_sqi_complete' : 'success', {
+        hr, confidence: Math.round(confidence * 100) / 100,
+        sqi: Math.round(sqiFinal * 100) / 100,
+        duration: dur,
+      });
+
       onCompleteRef.current({
         hr,
         confidence,
@@ -294,6 +303,9 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       sqiTipWarning = true;
     } else if (sqiScore < 0.35) {
       sqiTip = '信号が不安定です — 顔の位置とカメラの距離を調整してください';
+      sqiTipWarning = true;
+    } else if (sqiScore < 0.5 && phase === 'hrv') {
+      sqiTip = '信号品質がやや低めです — 照明と姿勢を確認してください';
       sqiTipWarning = true;
     } else if (sqiScore >= 0.6 && phase === 'measuring') {
       sqiTip = '信号品質が良好です — そのまま動かないでください';

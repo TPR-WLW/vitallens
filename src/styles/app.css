@@ -808,6 +808,16 @@ body {
   color: var(--color-primary);
 }
 
+.tips-card-moderate {
+  border-left: 3px solid var(--color-warning);
+}
+
+.tips-card-moderate p {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
 /* Enterprise CTA card */
 
 .result-cta-card {
@@ -838,6 +848,26 @@ body {
   font-size: 0.78rem;
   color: var(--color-text-muted);
   margin-top: 10px;
+}
+
+.result-cta-demo {
+  border-color: rgba(79, 140, 255, 0.4);
+  background: linear-gradient(135deg, rgba(79, 140, 255, 0.18), rgba(79, 140, 255, 0.06));
+}
+
+.result-cta-demo-lead {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.btn-try-real {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 20px;
+  font-size: 1rem;
 }
 
 /* HRV reference range */
