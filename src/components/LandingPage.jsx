@@ -53,6 +53,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             <a href="#problems" onClick={handleNavClick}>課題</a>
             <a href="#solution" onClick={handleNavClick}>ソリューション</a>
             <a href="#pricing" onClick={handleNavClick}>料金</a>
+            <a href="#faq" onClick={handleNavClick}>FAQ</a>
             <a href="#contact" onClick={handleNavClick}>お問い合わせ</a>
             <button className="btn-nav-secondary" onClick={() => { setMenuOpen(false); onShowDashboard(); }}>管理者デモ</button>
             <button className="btn-nav" onClick={() => { setMenuOpen(false); onTryDemo(); }}>無料デモ</button>
@@ -308,6 +309,51 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
               <li>導入サポート付き</li>
               <li>データエクスポート機能</li>
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section" id="faq">
+        <div className="section-inner">
+          <h2>よくあるご質問</h2>
+          <div className="faq-list">
+            <details className="faq-item">
+              <summary className="faq-question">ストレスチェック制度の法定義務に対応できますか？</summary>
+              <div className="faq-answer">
+                <p>ミルケアは、法定ストレスチェック（質問票）を補完する客観的モニタリングツールとしてご利用いただけます。HRVや表情分析による継続的なデータ収集で、年1回の質問票では把握しきれないストレス変化を可視化します。2028年の50人未満事業場への義務化拡大にも対応した設計です。</p>
+              </div>
+            </details>
+            <details className="faq-item">
+              <summary className="faq-question">カメラによる測定の精度はどの程度ですか？</summary>
+              <div className="faq-answer">
+                <p>ミルケアのrPPG技術は、合成信号テストで心拍数MAE（平均絶対誤差）0.00を達成しています。医療用パルスオキシメーターとの相関検証も進めており、日常的なコンディション把握には十分な精度を提供します。なお、本サービスは医療機器ではなく、参考値としてのご提供です。</p>
+              </div>
+            </details>
+            <details className="faq-item">
+              <summary className="faq-question">映像データやプライバシーは大丈夫ですか？</summary>
+              <div className="faq-answer">
+                <p>すべての映像処理はお使いのブラウザ上で完結します。顔画像・映像データが外部サーバーに送信・保存されることは一切ありません。管理者ダッシュボードでは5名以上の匿名集計データのみが表示され、個人の特定はできない設計です。個人情報保護法およびEU AI Actの要件に準拠しています。</p>
+              </div>
+            </details>
+            <details className="faq-item">
+              <summary className="faq-question">導入にはどのような準備が必要ですか？</summary>
+              <div className="faq-answer">
+                <p>専用機器やウェアラブルデバイスの購入は不要です。従業員のPC・スマートフォンのカメラとブラウザがあればすぐにご利用いただけます。ソフトウェアのインストールも不要で、URLを共有するだけで全社展開が可能です。</p>
+              </div>
+            </details>
+            <details className="faq-item">
+              <summary className="faq-question">健康経営優良法人の認定取得に活用できますか？</summary>
+              <div className="faq-answer">
+                <p>はい。客観的なストレスモニタリングの実施記録は、健康経営優良法人認定の評価項目に貢献します。ミルケアのレポート機能により、申請に必要なエビデンスをPDF形式で出力できます。</p>
+              </div>
+            </details>
+            <details className="faq-item">
+              <summary className="faq-question">料金体系と最低利用人数を教えてください。</summary>
+              <div className="faq-answer">
+                <p>月額500円/人（税別）のシンプルな料金体系です。初期費用は不要で、従業員数に応じた柔軟なプランをご用意しています。最低利用人数の制限はありませんので、小規模事業場から大企業まで幅広くご利用いただけます。</p>
+              </div>
+            </details>
           </div>
         </div>
       </section>

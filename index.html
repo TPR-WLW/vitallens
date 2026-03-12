@@ -35,43 +35,110 @@
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "ミルケア（MiruCare）",
-      "url": "https://tpr-wlw.github.io/vitallens/",
-      "description": "カメラだけで心拍数・HRV・ストレスレベルを計測。ウェアラブル不要、完全プライバシー保護の非接触バイタルモニタリングツール。2028年ストレスチェック制度義務化対応。",
-      "applicationCategory": "HealthApplication",
-      "operatingSystem": "Web Browser",
-      "offers": {
-        "@type": "Offer",
-        "price": "500",
-        "priceCurrency": "JPY",
-        "priceSpecification": {
-          "@type": "UnitPriceSpecification",
-          "price": "500",
-          "priceCurrency": "JPY",
-          "billingDuration": "P1M",
-          "unitText": "人"
-        }
-      },
-      "featureList": [
-        "非接触HRV（心拍変動）解析",
-        "表情分析による多モーダルコンディションスコア",
-        "ストレスチェック制度対応",
-        "健康経営優良法人認定支援",
-        "ブラウザ完結・映像データ送信なし",
-        "ウェアラブルデバイス不要",
-        "管理者ダッシュボード（匿名集計）",
-        "PDFレポートエクスポート"
-      ],
-      "inLanguage": "ja",
-      "provider": {
+    [
+      {
+        "@context": "https://schema.org",
         "@type": "Organization",
         "name": "ミルケア運営チーム",
-        "url": "https://tpr-wlw.github.io/vitallens/"
+        "alternateName": "MiruCare",
+        "url": "https://tpr-wlw.github.io/vitallens/",
+        "logo": "https://tpr-wlw.github.io/vitallens/icon-512x512.png",
+        "description": "カメラによる非接触バイタルモニタリングサービスの企画・開発・運営",
+        "foundingDate": "2026",
+        "sameAs": ["https://github.com/TPR-WLW/vitallens"]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ミルケア（MiruCare）",
+        "url": "https://tpr-wlw.github.io/vitallens/",
+        "description": "カメラだけで心拍数・HRV・ストレスレベルを計測。ウェアラブル不要、完全プライバシー保護の非接触バイタルモニタリングツール。2028年ストレスチェック制度義務化対応。",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "500",
+          "priceCurrency": "JPY",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "500",
+            "priceCurrency": "JPY",
+            "billingDuration": "P1M",
+            "unitText": "人"
+          }
+        },
+        "featureList": [
+          "非接触HRV（心拍変動）解析",
+          "表情分析による多モーダルコンディションスコア",
+          "ストレスチェック制度対応",
+          "健康経営優良法人認定支援",
+          "ブラウザ完結・映像データ送信なし",
+          "ウェアラブルデバイス不要",
+          "管理者ダッシュボード（匿名集計）",
+          "PDFレポートエクスポート"
+        ],
+        "inLanguage": "ja",
+        "provider": {
+          "@type": "Organization",
+          "name": "ミルケア運営チーム",
+          "url": "https://tpr-wlw.github.io/vitallens/"
+        }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "ストレスチェック制度の法定義務に対応できますか？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ミルケアは、法定ストレスチェック（質問票）を補完する客観的モニタリングツールとしてご利用いただけます。HRVや表情分析による継続的なデータ収集で、年1回の質問票では把握しきれないストレス変化を可視化します。2028年の50人未満事業場への義務化拡大にも対応した設計です。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "カメラによる測定の精度はどの程度ですか？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ミルケアのrPPG技術は、合成信号テストで心拍数MAE（平均絶対誤差）0.00を達成しています。医療用パルスオキシメーターとの相関検証も進めており、日常的なコンディション把握には十分な精度を提供します。なお、本サービスは医療機器ではなく、参考値としてのご提供です。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "映像データやプライバシーは大丈夫ですか？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "すべての映像処理はお使いのブラウザ上で完結します。顔画像・映像データが外部サーバーに送信・保存されることは一切ありません。管理者ダッシュボードでは5名以上の匿名集計データのみが表示され、個人の特定はできない設計です。個人情報保護法およびEU AI Actの要件に準拠しています。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "導入にはどのような準備が必要ですか？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "専用機器やウェアラブルデバイスの購入は不要です。従業員のPC・スマートフォンのカメラとブラウザがあればすぐにご利用いただけます。ソフトウェアのインストールも不要で、URLを共有するだけで全社展開が可能です。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "健康経営優良法人の認定取得に活用できますか？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "客観的なストレスモニタリングの実施記録は、健康経営優良法人認定の評価項目に貢献します。ミルケアのレポート機能により、申請に必要なエビデンスをPDF形式で出力できます。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "料金体系と最低利用人数を教えてください。",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "月額500円/人（税別）のシンプルな料金体系です。初期費用は不要で、従業員数に応じた柔軟なプランをご用意しています。最低利用人数の制限はありませんので、小規模事業場から大企業まで幅広くご利用いただけます。"
+            }
+          }
+        ]
       }
-    }
+    ]
     </script>
   </head>
   <body>

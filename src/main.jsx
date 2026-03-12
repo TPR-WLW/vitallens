@@ -4,8 +4,10 @@ import { registerSW } from 'virtual:pwa-register';
 
 import App from './App.jsx';
 import { installGlobalHandlers } from './lib/error-monitor.js';
+import { reportWebVitals } from './lib/web-vitals.js';
 
 installGlobalHandlers();
+reportWebVitals();
 
 registerSW({
   onNeedRefresh() { /* auto-update on next visit */ },

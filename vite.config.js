@@ -36,6 +36,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globIgnores: ['**/guides/*/og-image.png'],
         navigateFallback: '/vitallens/index.html',
         runtimeCaching: [
           {
