@@ -517,6 +517,8 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
           <div className="footer-links">
             <a href="#company">運営情報</a>
             <span className="footer-sep">|</span>
+            <a href="#trust">技術品質</a>
+            <span className="footer-sep">|</span>
             <a href="#" onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }}>プライバシーポリシー</a>
             <span className="footer-sep">|</span>
             <a href="#contact">お問い合わせ</a>
