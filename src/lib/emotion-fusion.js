@@ -93,7 +93,7 @@ function emotionVariability(distribution) {
 /**
  * Compute 3 condition scores from HRV data + emotion summary.
  *
- * @param {Object|null} hrvData - { metrics, stress } from analyzeHRV()
+ * @param {Object|null} hrvData - { metrics, stress, freqMetrics? } from analyzeHRV()
  * @param {Object|null} emotionSummary - { dominant, distribution } from EmotionProcessor.summary
  * @returns {{ tension: Object, vitality: Object, balance: Object, overall: Object }}
  */
@@ -156,12 +156,21 @@ export function computeConditionScores(hrvData, emotionSummary) {
   const vitalityLevel = scoreToLevel(vitalityScore);
 
   // --- Balance (バランス度) ---
-  // LF/HF balance approximation from stress score + emotion variability.
-  // Optimal = moderate stress (not too low, not too high) + low emotion variability.
+  // Uses real LF/HF ratio when available, falls back to stress-based approximation.
+  // Optimal LF/HF ≈ 1.0-2.0 (balanced autonomic nervous system).
   let balanceRaw;
-  const stressBalance = hasHRV
-    ? 100 - Math.abs(stressScore - 40) * 1.5  // optimal around 40
-    : 60;
+  const freqMetrics = hrvData?.freqMetrics;
+  let stressBalance;
+  if (freqMetrics && freqMetrics.lfHfRatio > 0) {
+    // Real LF/HF ratio: optimal around 1.5, deviation = imbalance
+    // Score: 100 at ratio=1.5, decreasing as ratio deviates
+    const deviation = Math.abs(freqMetrics.lfHfRatio - 1.5);
+    stressBalance = Math.max(0, 100 - deviation * 25);
+  } else {
+    stressBalance = hasHRV
+      ? 100 - Math.abs(stressScore - 40) * 1.5  // fallback: optimal around 40
+      : 60;
+  }
 
   if (hasEmotion) {
     // Low variability is good (stable emotional state)

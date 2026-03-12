@@ -19,6 +19,8 @@ import {
   detectPeaks,
   extractIBI,
   computeHRVMetrics,
+  computeFrequencyHRV,
+  estimateRespiratoryRate,
   assessStressLevel,
   analyzeHRV,
 } from '../hrv.js';
@@ -642,3 +644,309 @@ function gaussianRandom(rng) {
   const u2 = rng();
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
+
+// ============================================================
+// Frequency-domain HRV tests
+// ============================================================
+
+describe('computeFrequencyHRV', () => {
+  it('should return null for too few IBIs', () => {
+    expect(computeFrequencyHRV([800, 810, 790])).toBeNull();
+    expect(computeFrequencyHRV([])).toBeNull();
+    expect(computeFrequencyHRV(null)).toBeNull();
+  });
+
+  it('should return null for very short duration', () => {
+    // 10 IBIs of 800ms = 8 seconds total — too short
+    const ibis = Array(10).fill(800);
+    expect(computeFrequencyHRV(ibis)).toBeNull();
+  });
+
+  it('should compute LF/HF for constant IBI series (no variability)', () => {
+    // 60 seconds of constant 800ms IBIs (75 BPM)
+    const numBeats = 75;
+    const ibis = Array(numBeats).fill(800);
+    const result = computeFrequencyHRV(ibis);
+    // With no variability, power should be very low or null
+    // The detrended signal is all zeros, so FFT should yield minimal power
+    if (result) {
+      expect(result.lfHfRatio).toBeGreaterThanOrEqual(0);
+      expect(result.lfNorm).toBeGreaterThanOrEqual(0);
+      expect(result.hfNorm).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('should detect LF dominance with LF-modulated IBI series', () => {
+    // Create IBI series with strong 0.1 Hz modulation (LF band)
+    const rng = seedRandom(42);
+    const meanIBI = 800; // 75 BPM
+    const numBeats = 90; // ~72 seconds
+    const ibis = [];
+    let t = 0;
+    for (let i = 0; i < numBeats; i++) {
+      // 0.1 Hz modulation = LF band
+      const mod = 30 * Math.sin(2 * Math.PI * 0.1 * (t / 1000));
+      ibis.push(meanIBI + mod + gaussianRandom(rng) * 2);
+      t += ibis[ibis.length - 1];
+    }
+
+    const result = computeFrequencyHRV(ibis);
+    expect(result).not.toBeNull();
+    expect(result.lfHfRatio).toBeGreaterThan(1.0); // LF should dominate
+    expect(result.lfNorm).toBeGreaterThan(result.hfNorm);
+  });
+
+  it('should detect HF dominance with HF-modulated IBI series', () => {
+    // Create IBI series with strong 0.25 Hz modulation (HF band — respiratory)
+    const rng = seedRandom(123);
+    const meanIBI = 800;
+    const numBeats = 90;
+    const ibis = [];
+    let t = 0;
+    for (let i = 0; i < numBeats; i++) {
+      // 0.25 Hz modulation = HF band (respiratory sinus arrhythmia)
+      const mod = 30 * Math.sin(2 * Math.PI * 0.25 * (t / 1000));
+      ibis.push(meanIBI + mod + gaussianRandom(rng) * 2);
+      t += ibis[ibis.length - 1];
+    }
+
+    const result = computeFrequencyHRV(ibis);
+    expect(result).not.toBeNull();
+    expect(result.lfHfRatio).toBeLessThan(1.0); // HF should dominate
+    expect(result.hfNorm).toBeGreaterThan(result.lfNorm);
+  });
+
+  it('should return valid structure with all expected fields', () => {
+    const rng = seedRandom(99);
+    const ibis = [];
+    let t = 0;
+    for (let i = 0; i < 80; i++) {
+      const mod = 20 * Math.sin(2 * Math.PI * 0.1 * (t / 1000));
+      ibis.push(800 + mod + gaussianRandom(rng) * 5);
+      t += ibis[ibis.length - 1];
+    }
+
+    const result = computeFrequencyHRV(ibis);
+    expect(result).not.toBeNull();
+    expect(typeof result.lf).toBe('number');
+    expect(typeof result.hf).toBe('number');
+    expect(typeof result.lfHfRatio).toBe('number');
+    expect(typeof result.lfNorm).toBe('number');
+    expect(typeof result.hfNorm).toBe('number');
+    expect(typeof result.totalPower).toBe('number');
+    // Normalized LF + HF should sum to ~100%
+    expect(result.lfNorm + result.hfNorm).toBeCloseTo(100, 0);
+  });
+
+  it('should produce physiologically plausible LF/HF ratios', () => {
+    // Realistic IBI with mixed LF and HF modulation
+    const rng = seedRandom(777);
+    const ibis = [];
+    let t = 0;
+    for (let i = 0; i < 100; i++) {
+      const lfMod = 15 * Math.sin(2 * Math.PI * 0.1 * (t / 1000));
+      const hfMod = 10 * Math.sin(2 * Math.PI * 0.25 * (t / 1000));
+      ibis.push(800 + lfMod + hfMod + gaussianRandom(rng) * 3);
+      t += ibis[ibis.length - 1];
+    }
+
+    const result = computeFrequencyHRV(ibis);
+    expect(result).not.toBeNull();
+    // Typical LF/HF range: 0.1 to 10.0
+    expect(result.lfHfRatio).toBeGreaterThan(0.1);
+    expect(result.lfHfRatio).toBeLessThan(10.0);
+  });
+});
+
+describe('assessStressLevel with frequency metrics', () => {
+  it('should use LF/HF when provided', () => {
+    const metrics = { sdnn: 30, rmssd: 30, pnn50: 15, meanIBI: 800, meanHR: 75 };
+
+    // Low LF/HF = relaxed
+    const lowStress = assessStressLevel(metrics, { lfHfRatio: 0.8 });
+    // High LF/HF = stressed
+    const highStress = assessStressLevel(metrics, { lfHfRatio: 5.0 });
+
+    expect(highStress.score).toBeGreaterThan(lowStress.score);
+  });
+
+  it('should fall back gracefully when freqMetrics is null', () => {
+    const metrics = { sdnn: 30, rmssd: 30, pnn50: 15, meanIBI: 800, meanHR: 75 };
+    const withoutFreq = assessStressLevel(metrics, null);
+    const withoutArg = assessStressLevel(metrics);
+
+    expect(withoutFreq.score).toBe(withoutArg.score);
+  });
+});
+
+// ============================================================
+// Respiratory Rate Estimation tests
+// ============================================================
+
+describe('estimateRespiratoryRate', () => {
+  it('should return null for invalid inputs', () => {
+    expect(estimateRespiratoryRate(null, 0.01, 128)).toBeNull();
+    expect(estimateRespiratoryRate([], 0.01, 1)).toBeNull();
+    expect(estimateRespiratoryRate([1, 2, 3], 0, 2)).toBeNull();
+    expect(estimateRespiratoryRate([1, 2, 3], 0.01, 0)).toBeNull();
+  });
+
+  it('should return null when HF band bins are insufficient', () => {
+    // freqRes so large that hfLowBin >= hfHighBin
+    // HF_LOW=0.15, HF_HIGH=0.40. With freqRes=0.5, hfLowBin=ceil(0.15/0.5)=1, hfHighBin=floor(0.40/0.5)=0
+    // hfLowBin >= hfHighBin -> null
+    expect(estimateRespiratoryRate([1, 2, 3, 4], 0.5, 4)).toBeNull();
+  });
+
+  it('should detect peak at correct frequency for synthetic spectrum with 0.25 Hz peak', () => {
+    // Simulate a magnitude spectrum with a clear peak at 0.25 Hz (15 breaths/min)
+    const freqRes = 0.01; // 0.01 Hz per bin
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    // Fill with low background
+    for (let i = 0; i < halfN; i++) {
+      spectrum[i] = 0.1;
+    }
+    // Place strong peak at bin 25 (0.25 Hz)
+    spectrum[25] = 5.0;
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    // 0.25 Hz * 60 = 15 breaths/min
+    expect(result.respiratoryRate).toBeCloseTo(15, 0);
+    expect(result.peakFrequency).toBeCloseTo(0.25, 1);
+    expect(result.confidence).toBeGreaterThan(0);
+    expect(result.confidence).toBeLessThanOrEqual(1.0);
+  });
+
+  it('should detect peak at 0.20 Hz (12 breaths/min) — lower normal boundary', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    for (let i = 0; i < halfN; i++) spectrum[i] = 0.1;
+    spectrum[20] = 4.0; // 0.20 Hz
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    expect(result.respiratoryRate).toBeCloseTo(12, 0);
+  });
+
+  it('should detect peak at 0.33 Hz (20 breaths/min) — upper normal boundary', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    for (let i = 0; i < halfN; i++) spectrum[i] = 0.1;
+    spectrum[33] = 4.0; // 0.33 Hz
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    expect(result.respiratoryRate).toBeCloseTo(20, 0);
+  });
+
+  it('should clamp peak frequency to HF band boundaries', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    for (let i = 0; i < halfN; i++) spectrum[i] = 0.1;
+    // Peak at edge of HF band (bin 15 = 0.15 Hz)
+    spectrum[15] = 5.0;
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    expect(result.peakFrequency).toBeGreaterThanOrEqual(0.15);
+    expect(result.peakFrequency).toBeLessThanOrEqual(0.40);
+  });
+
+  it('should return low confidence for flat spectrum (no clear peak)', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    // Uniform power in HF band — no dominant peak
+    for (let i = 0; i < halfN; i++) spectrum[i] = 1.0;
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    // With all equal magnitudes, peakPower/avgPower = 1, confidence = (1-1)/4 = 0
+    expect(result.confidence).toBe(0);
+  });
+
+  it('should return high confidence for very prominent peak', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    for (let i = 0; i < halfN; i++) spectrum[i] = 0.01;
+    // Very strong peak relative to background
+    spectrum[25] = 10.0;
+
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).not.toBeNull();
+    expect(result.confidence).toBeGreaterThan(0.5);
+  });
+
+  it('should return null when total HF power is negligible', () => {
+    const freqRes = 0.01;
+    const halfN = 64;
+    const spectrum = new Float64Array(halfN);
+    // All zeros — no power at all
+    const result = estimateRespiratoryRate(spectrum, freqRes, halfN);
+    expect(result).toBeNull();
+  });
+});
+
+describe('computeFrequencyHRV respiratory integration', () => {
+  it('should include respiratory field in result for HF-modulated IBI series', () => {
+    // Create IBI series with strong 0.25 Hz (15 breaths/min) modulation
+    const rng = seedRandom(200);
+    const meanIBI = 800;
+    const numBeats = 90;
+    const ibis = [];
+    let t = 0;
+    for (let i = 0; i < numBeats; i++) {
+      const mod = 30 * Math.sin(2 * Math.PI * 0.25 * (t / 1000));
+      ibis.push(meanIBI + mod + gaussianRandom(rng) * 2);
+      t += ibis[ibis.length - 1];
+    }
+
+    const result = computeFrequencyHRV(ibis);
+    expect(result).not.toBeNull();
+    expect('respiratory' in result).toBe(true);
+    if (result.respiratory) {
+      expect(result.respiratory.respiratoryRate).toBeGreaterThanOrEqual(9);
+      expect(result.respiratory.respiratoryRate).toBeLessThanOrEqual(24);
+      expect(typeof result.respiratory.confidence).toBe('number');
+      expect(typeof result.respiratory.peakFrequency).toBe('number');
+    }
+  });
+
+  it('should pass respiratory through in analyzeHRV freqMetrics', () => {
+    // Generate 60s signal at 30fps
+    const fps = 30;
+    const durationSec = 60;
+    const signal = generateSineWave(1.25, durationSec, fps);
+    const timestamps = generateTimestamps(durationSec, fps);
+
+    const result = analyzeHRV(signal, timestamps, fps);
+    if (result.freqMetrics) {
+      expect('respiratory' in result.freqMetrics).toBe(true);
+    }
+  });
+});
+
+describe('analyzeHRV integration — frequency domain', () => {
+  it('should include freqMetrics in result for sufficiently long signals', () => {
+    // Generate 60s signal at 30fps with clear heartbeat at 75 BPM (1.25 Hz)
+    const fps = 30;
+    const durationSec = 60;
+    const N = fps * durationSec;
+    const signal = new Float64Array(N);
+    const hrFreq = 1.25; // 75 BPM
+    for (let i = 0; i < N; i++) {
+      signal[i] = Math.sin(2 * Math.PI * hrFreq * (i / fps));
+    }
+    const timestamps = generateTimestamps(durationSec, fps);
+
+    const result = analyzeHRV(signal, timestamps, fps);
+    // freqMetrics should exist in the result (may be null if not enough IBIs)
+    expect('freqMetrics' in result).toBe(true);
+  });
+});

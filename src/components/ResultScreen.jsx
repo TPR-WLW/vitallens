@@ -6,6 +6,7 @@ import { printReport } from '../lib/report-pdf.js';
 export default function ResultScreen({ result, onRestart, onBack, onShowHistory, onContact }) {
   const { hr, confidence, hrv, emotion } = result;
   const metrics = hrv?.metrics;
+  const freqMetrics = hrv?.freqMetrics;
   const stress = hrv?.stress;
   const quality = hrv?.quality;
 
@@ -28,7 +29,7 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
   // Compute condition scores (fuses HRV + emotion)
   const emotionSummary = emotion?.summary || null;
   const condition = computeConditionScores(
-    hrv ? { metrics, stress } : null,
+    hrv ? { metrics, stress, freqMetrics } : null,
     emotionSummary
   );
 
@@ -271,6 +272,47 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
                     <span className="hrv-desc">回復力指標</span>
                     <span className="hrv-ref">基準値: 3〜40%</span>
                   </div>
+                  {freqMetrics && (
+                    <>
+                      <div className="hrv-metric">
+                        <span className="hrv-value">{freqMetrics.lfHfRatio}</span>
+                        <span className="hrv-unit">ratio</span>
+                        <span className="hrv-name">LF/HF</span>
+                        <span className="hrv-desc">自律神経バランス</span>
+                        <span className="hrv-ref">基準値: 0.5〜2.0</span>
+                      </div>
+                      <div className="hrv-metric">
+                        <span className="hrv-value">{freqMetrics.lfNorm}</span>
+                        <span className="hrv-unit">%</span>
+                        <span className="hrv-name">LF</span>
+                        <span className="hrv-desc">交感神経活動</span>
+                        <span className="hrv-ref">低周波成分</span>
+                      </div>
+                      <div className="hrv-metric">
+                        <span className="hrv-value">{freqMetrics.hfNorm}</span>
+                        <span className="hrv-unit">%</span>
+                        <span className="hrv-name">HF</span>
+                        <span className="hrv-desc">副交感神経活動</span>
+                        <span className="hrv-ref">高周波成分</span>
+                      </div>
+                      {freqMetrics.respiratory && freqMetrics.respiratory.confidence >= 0.2 && (
+                        <div className="hrv-metric">
+                          <span className="hrv-value">{freqMetrics.respiratory.respiratoryRate}</span>
+                          <span className="hrv-unit">回/分</span>
+                          <span className="hrv-name">推定呼吸数</span>
+                          <span className="hrv-desc">呼吸性洞性不整脈より推定</span>
+                          <span className="hrv-ref">
+                            基準値: 12〜20回/分
+                            {freqMetrics.respiratory.confidence >= 0.6
+                              ? '（信頼度：高）'
+                              : freqMetrics.respiratory.confidence >= 0.4
+                                ? '（信頼度：中）'
+                                : '（信頼度：低）'}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 {quality && (
                   <div className="hrv-quality">

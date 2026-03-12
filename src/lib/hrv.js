@@ -3,11 +3,20 @@
  *
  * Extracts Inter-Beat Intervals (IBI) from rPPG pulse signal,
  * applies cubic spline interpolation for improved timing precision,
- * and computes time-domain HRV metrics: SDNN, RMSSD, pNN50.
+ * and computes time-domain HRV metrics (SDNN, RMSSD, pNN50)
+ * and frequency-domain HRV metrics (LF, HF, LF/HF ratio).
  *
  * Reference: de Haan & Jeanne (2013) — rPPG HRV feasibility.
  * Upsampling from ~30fps to 256Hz improves IBI timing from ~33ms to ~4ms uncertainty.
+ *
+ * Frequency-domain reference:
+ * Task Force of ESC/NASPE (1996) — Standard HRV frequency bands:
+ *   LF: 0.04–0.15 Hz (sympathetic + parasympathetic)
+ *   HF: 0.15–0.40 Hz (parasympathetic / vagal)
+ *   LF/HF ratio: sympathovagal balance indicator
  */
+
+import { fft, magnitude } from './signal.js';
 
 const TARGET_SAMPLE_RATE = 256; // Virtual sample rate after cubic spline interpolation
 const MIN_IBI_MS = 300;  // ~200 BPM max
@@ -291,6 +300,190 @@ export function computeHRVMetrics(ibis) {
   };
 }
 
+// Frequency-domain HRV constants
+const IBI_RESAMPLE_RATE = 4; // 4 Hz resampling for IBI series (standard for HRV frequency analysis)
+const LF_LOW = 0.04;  // LF band lower bound (Hz)
+const LF_HIGH = 0.15; // LF band upper bound (Hz)
+const HF_LOW = 0.15;  // HF band lower bound (Hz)
+const HF_HIGH = 0.40; // HF band upper bound (Hz)
+
+/**
+ * Estimate respiratory rate from the HF band of the FFT power spectrum.
+ * Respiratory sinus arrhythmia (RSA) produces a peak in the HF band (0.15-0.40 Hz)
+ * that corresponds to breathing frequency.
+ *
+ * @param {number[]} spectrum - Magnitude spectrum from FFT
+ * @param {number} freqRes - Frequency resolution (Hz per bin)
+ * @param {number} halfN - Number of positive-frequency bins
+ * @returns {{ respiratoryRate: number, confidence: number, peakFrequency: number } | null}
+ */
+export function estimateRespiratoryRate(spectrum, freqRes, halfN) {
+  if (!spectrum || halfN < 2 || freqRes <= 0) return null;
+
+  const hfLowBin = Math.ceil(HF_LOW / freqRes);
+  const hfHighBin = Math.floor(HF_HIGH / freqRes);
+
+  if (hfLowBin >= hfHighBin || hfHighBin >= halfN) return null;
+
+  // Find peak frequency and compute average power in HF band
+  let peakPower = -Infinity;
+  let peakBin = hfLowBin;
+  let sumPower = 0;
+  let binCount = 0;
+
+  for (let i = hfLowBin; i <= hfHighBin && i < halfN; i++) {
+    const power = spectrum[i] * spectrum[i];
+    sumPower += power;
+    binCount++;
+    if (power > peakPower) {
+      peakPower = power;
+      peakBin = i;
+    }
+  }
+
+  if (binCount === 0 || sumPower < 1e-12) return null;
+
+  const avgPower = sumPower / binCount;
+
+  // Parabolic interpolation for sub-bin peak accuracy
+  let peakFrequency = peakBin * freqRes;
+  if (peakBin > hfLowBin && peakBin < hfHighBin) {
+    const alpha = spectrum[peakBin - 1] * spectrum[peakBin - 1];
+    const beta = spectrum[peakBin] * spectrum[peakBin];
+    const gamma = spectrum[peakBin + 1] * spectrum[peakBin + 1];
+    const denom = alpha - 2 * beta + gamma;
+    if (Math.abs(denom) > 1e-10) {
+      const p = 0.5 * (alpha - gamma) / denom;
+      peakFrequency = (peakBin + p) * freqRes;
+    }
+  }
+
+  // Clamp to HF band boundaries
+  peakFrequency = Math.max(HF_LOW, Math.min(HF_HIGH, peakFrequency));
+
+  // Convert to breaths per minute
+  const respiratoryRate = Math.round(peakFrequency * 60 * 10) / 10;
+
+  // Confidence: how prominent the peak is relative to average power in HF band
+  // A clear respiratory peak should be significantly above average
+  const confidence = avgPower > 0
+    ? Math.min(1.0, Math.max(0, (peakPower / avgPower - 1) / 4))
+    : 0;
+
+  return {
+    respiratoryRate,
+    confidence: Math.round(confidence * 100) / 100,
+    peakFrequency: Math.round(peakFrequency * 1000) / 1000,
+  };
+}
+
+/**
+ * Compute frequency-domain HRV metrics from IBI array.
+ * Resamples IBI series to uniform 4Hz, applies Welch-style PSD estimation,
+ * then integrates power in LF and HF bands.
+ *
+ * @param {number[]} ibis - Array of inter-beat intervals in milliseconds
+ * @returns {{ lf: number, hf: number, lfHfRatio: number, lfNorm: number, hfNorm: number, totalPower: number, respiratory: object|null } | null}
+ */
+export function computeFrequencyHRV(ibis) {
+  if (!ibis || ibis.length < 10) return null; // Need sufficient IBIs for meaningful spectrum
+
+  // Build cumulative time axis from IBIs (in seconds)
+  const tAxis = [0];
+  for (let i = 0; i < ibis.length; i++) {
+    tAxis.push(tAxis[i] + ibis[i] / 1000);
+  }
+
+  // IBI values correspond to intervals between successive beats
+  // Place each IBI value at the midpoint of its interval
+  const tMid = [];
+  const ibiSeconds = [];
+  for (let i = 0; i < ibis.length; i++) {
+    tMid.push((tAxis[i] + tAxis[i + 1]) / 2);
+    ibiSeconds.push(ibis[i] / 1000); // Convert to seconds for spectral analysis
+  }
+
+  const duration = tAxis[tAxis.length - 1];
+  if (duration < 30) return null; // Need at least 30s for LF band (0.04 Hz = 25s period)
+
+  // Resample IBI series to uniform 4Hz using cubic spline
+  const numSamples = Math.floor(duration * IBI_RESAMPLE_RATE);
+  if (numSamples < 16) return null;
+
+  const tUniform = [];
+  for (let i = 0; i < numSamples; i++) {
+    tUniform.push(tMid[0] + (i / IBI_RESAMPLE_RATE));
+  }
+
+  const resampled = cubicSplineInterpolate(tMid, ibiSeconds, tUniform);
+
+  // Detrend: remove mean
+  let mean = 0;
+  for (let i = 0; i < resampled.length; i++) mean += resampled[i];
+  mean /= resampled.length;
+  const detrended = new Float64Array(resampled.length);
+  for (let i = 0; i < resampled.length; i++) {
+    detrended[i] = resampled[i] - mean;
+  }
+
+  // Apply Hamming window
+  const N = detrended.length;
+  const windowed = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    const w = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (N - 1));
+    windowed[i] = detrended[i] * w;
+  }
+
+  // FFT
+  const spectrum = magnitude(fft(windowed));
+  const fftSize = spectrum.length; // May be zero-padded to next power of 2
+  const freqRes = IBI_RESAMPLE_RATE / fftSize;
+
+  // Compute power spectral density (magnitude squared, normalized)
+  // Only use first half (positive frequencies)
+  const halfN = Math.floor(fftSize / 2);
+
+  // Integrate power in LF and HF bands
+  let lfPower = 0;
+  let hfPower = 0;
+  let totalPower = 0;
+
+  for (let i = 1; i < halfN; i++) {
+    const freq = i * freqRes;
+    const power = spectrum[i] * spectrum[i];
+
+    if (freq >= LF_LOW && freq < HF_HIGH) {
+      totalPower += power;
+    }
+    if (freq >= LF_LOW && freq < LF_HIGH) {
+      lfPower += power;
+    }
+    if (freq >= HF_LOW && freq <= HF_HIGH) {
+      hfPower += power;
+    }
+  }
+
+  // Avoid division by zero
+  if (hfPower < 1e-12 || totalPower < 1e-12) return null;
+
+  const lfHfRatio = lfPower / hfPower;
+  const lfNorm = (lfPower / (lfPower + hfPower)) * 100; // Normalized LF (%)
+  const hfNorm = (hfPower / (lfPower + hfPower)) * 100; // Normalized HF (%)
+
+  // Estimate respiratory rate from HF band peak (respiratory sinus arrhythmia)
+  const respiratory = estimateRespiratoryRate(spectrum, freqRes, halfN);
+
+  return {
+    lf: Math.round(lfPower * 1e6) / 1e6,     // LF absolute power
+    hf: Math.round(hfPower * 1e6) / 1e6,     // HF absolute power
+    lfHfRatio: Math.round(lfHfRatio * 100) / 100,
+    lfNorm: Math.round(lfNorm * 10) / 10,     // LF normalized units (%)
+    hfNorm: Math.round(hfNorm * 10) / 10,     // HF normalized units (%)
+    totalPower: Math.round(totalPower * 1e6) / 1e6,
+    respiratory,
+  };
+}
+
 /**
  * Compute stress level from HRV metrics.
  * Lower HRV (low RMSSD, low SDNN) = higher stress.
@@ -303,9 +496,10 @@ export function computeHRVMetrics(ibis) {
  * - SDNN typical range: 15-55ms (vs 30-100ms for 5-min ECG)
  *
  * @param {{ sdnn: number, rmssd: number, pnn50: number }} metrics
+ * @param {{ lfHfRatio: number }|null} [freqMetrics] - Frequency-domain metrics (optional)
  * @returns {{ level: string, score: number, label: string, color: string }}
  */
-export function assessStressLevel(metrics) {
+export function assessStressLevel(metrics, freqMetrics) {
   if (!metrics) return { level: 'unknown', score: 0, label: '計測不可', color: '#9ca3af' };
 
   const { rmssd, sdnn } = metrics;
@@ -316,8 +510,19 @@ export function assessStressLevel(metrics) {
   const rmssdScore = Math.max(0, Math.min(100, 100 - (rmssd - 5) * (100 / 55)));  // 5ms=100stress, 60ms=0stress
   const sdnnScore = Math.max(0, Math.min(100, 100 - (sdnn - 5) * (100 / 50)));    // 5ms=100stress, 55ms=0stress
 
-  // RMSSD weighted 70%, SDNN 30% (RMSSD more reliable in ultra-short recordings)
-  const stressScore = Math.round(rmssdScore * 0.7 + sdnnScore * 0.3);
+  let stressScore;
+  if (freqMetrics && freqMetrics.lfHfRatio > 0) {
+    // LF/HF ratio: higher = more sympathetic dominance = more stress
+    // Typical range: 0.5-6.0 for rPPG ultra-short recordings
+    // Normal rest: ~1.0-2.0, Stressed: >3.0
+    const lfHfScore = Math.max(0, Math.min(100, (freqMetrics.lfHfRatio - 0.5) * (100 / 5.5)));
+
+    // Weight: RMSSD 50%, LF/HF 30%, SDNN 20% (LF/HF adds sympathovagal balance info)
+    stressScore = Math.round(rmssdScore * 0.5 + lfHfScore * 0.3 + sdnnScore * 0.2);
+  } else {
+    // Fallback: RMSSD 70%, SDNN 30% (original weighting when no frequency data)
+    stressScore = Math.round(rmssdScore * 0.7 + sdnnScore * 0.3);
+  }
 
   if (stressScore <= 30) {
     return { level: 'low', score: stressScore, label: 'リラックス', color: '#22c55e' };
@@ -375,11 +580,14 @@ export function analyzeHRV(signal, timestamps, fps) {
   // Step 4: Extract IBIs with artifact rejection
   const { ibis, validCount, artifactCount } = extractIBI(peaks, TARGET_SAMPLE_RATE);
 
-  // Step 5: Compute HRV metrics
+  // Step 5: Compute HRV metrics (time-domain)
   const metrics = computeHRVMetrics(ibis);
 
-  // Step 6: Assess stress level
-  const stress = assessStressLevel(metrics);
+  // Step 5b: Compute frequency-domain HRV (LF/HF ratio)
+  const freqMetrics = computeFrequencyHRV(ibis);
+
+  // Step 6: Assess stress level (incorporating LF/HF if available)
+  const stress = assessStressLevel(metrics, freqMetrics);
 
   // Step 7: Quality assessment
   const totalBeats = peaks.length;
@@ -405,6 +613,7 @@ export function analyzeHRV(signal, timestamps, fps) {
 
   return {
     metrics,
+    freqMetrics,
     stress,
     quality: { grade, score: Math.round(qualityScore * 100) / 100, message },
     debug: { totalBeats, validIBIs: validCount, artifactCount, artifactRate: Math.round(artifactRate * 100) },
