@@ -15,6 +15,7 @@ const MEASUREMENT_DURATION = 180; // 3 minutes for reliable HRV
 const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
 const HRV_MIN_DURATION = 45;      // Minimum seconds before attempting HRV
 const EMOTION_FRAME_INTERVAL = 4; // Run emotion every 4th frame (~7.5fps at 30fps)
+const FACE_LOST_PAUSE_DELAY = 3;  // Seconds without face before auto-pause
 
 export default function MeasureScreen({ onComplete, onCancel, quickMode = false, initialStream = null }) {
   const cameraRef = useRef(null);
@@ -25,6 +26,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const startTimeRef = useRef(null);
   const frameCountRef = useRef(0);
   const landmarkerReadyRef = useRef(false);
+  const faceLostTimeRef = useRef(null);
+  const pausedTimeRef = useRef(0); // Total paused duration in ms
 
   const duration = quickMode ? QUICK_CHECK_DURATION : MEASUREMENT_DURATION;
 
@@ -34,16 +37,17 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const [currentHR, setCurrentHR] = useState(null);
   const [status, setStatus] = useState('カメラを起動中...');
   const [signalQuality, setSignalQuality] = useState(0);
-  const [sqi, setSqi] = useState(null); // Enhanced SQI object { score, label, color, components }
+  const [sqi, setSqi] = useState(null);
   const [phase, setPhase] = useState('init'); // init | calibrating | measuring | hrv
-  const [emotionStatus, setEmotionStatus] = useState('loading'); // loading | calibrating | active | error
+  const [emotionStatus, setEmotionStatus] = useState('loading');
+  const [paused, setPaused] = useState(false);
+  const [calibrationDone, setCalibrationDone] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       try {
-        // Reuse stream from StartScreen if available, otherwise start new
         const mediaStream = initialStream || await startCamera();
         if (cancelled) {
           stopCamera(mediaStream);
@@ -57,10 +61,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       }
     }
 
-    // Init camera immediately
     init();
 
-    // Init FaceLandmarker in parallel (non-blocking)
     initFaceLandmarker()
       .then(() => {
         if (!cancelled) {
@@ -78,10 +80,17 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       cancelled = true;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (streamRef.current) stopCamera(streamRef.current);
-      // Note: we do NOT dispose FaceLandmarker here — it's a shared singleton
-      // that can be reused across measurements
     };
   }, []);
+
+  // Keyboard: Escape to cancel
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   const processFrame = useCallback(() => {
     if (!cameraRef.current) {
@@ -104,14 +113,43 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       startTimeRef.current = now;
     }
 
-    const elapsedSec = (now - startTimeRef.current) / 1000;
+    // Subtract paused time from elapsed
+    const elapsedSec = (now - startTimeRef.current - pausedTimeRef.current) / 1000;
     setElapsed(Math.min(elapsedSec, duration));
 
     // ----- rPPG Pipeline (EVERY frame, unchanged) -----
     const roi = extractROI(canvas, ctx, video);
-    setFaceDetected(roi.valid);
+    const faceNow = roi.valid;
+    setFaceDetected(faceNow);
 
-    if (roi.valid) {
+    // ----- Auto-pause on face lost -----
+    if (!faceNow) {
+      if (!faceLostTimeRef.current) {
+        faceLostTimeRef.current = now;
+      }
+      const lostDuration = (now - faceLostTimeRef.current) / 1000;
+      if (lostDuration >= FACE_LOST_PAUSE_DELAY && !paused && elapsedSec > 5) {
+        setPaused(true);
+        setStatus('顔が検出されていません — 一時停止中');
+      }
+    } else {
+      if (faceLostTimeRef.current) {
+        // If we were paused, accumulate paused time
+        if (paused) {
+          pausedTimeRef.current += now - faceLostTimeRef.current;
+          setPaused(false);
+        }
+        faceLostTimeRef.current = null;
+      }
+    }
+
+    // Skip processing while paused
+    if (paused) {
+      animFrameRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
+
+    if (faceNow) {
       processorRef.current.addSample(roi.r, roi.g, roi.b, now);
 
       if (processorRef.current.isReady) {
@@ -125,6 +163,10 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
             setPhase('calibrating');
             setStatus('キャリブレーション中...');
           } else if (elapsedSec < HRV_MIN_DURATION) {
+            // Calibration just completed — show visual feedback
+            if (!calibrationDone) {
+              setCalibrationDone(true);
+            }
             setPhase('measuring');
             const sqiScore = result.sqi?.score ?? result.confidence;
             if (sqiScore < 0.25) {
@@ -170,13 +212,11 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       const confidence = finalResult?.confidence || signalQuality;
       const finalSqi = finalResult?.sqi || sqi;
 
-      // Run HRV analysis
       let hrvResult = null;
       if (finalResult?.signal && finalResult?.timestamps) {
         hrvResult = analyzeHRV(finalResult.signal, finalResult.timestamps, finalResult.fps);
       }
 
-      // Gather emotion data
       const emotionProcessor = emotionRef.current;
       const emotionData = emotionProcessor.isCalibrated
         ? {
@@ -199,7 +239,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     }
 
     animFrameRef.current = requestAnimationFrame(processFrame);
-  }, [onComplete, currentHR, signalQuality, duration]);
+  }, [onComplete, currentHR, signalQuality, duration, paused, calibrationDone]);
 
   useEffect(() => {
     if (stream) {
@@ -242,14 +282,14 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   }
 
   return (
-    <div className="measure-screen">
-      <CameraView ref={cameraRef} stream={stream} faceDetected={faceDetected} />
+    <div className="measure-screen" role="main" aria-label="バイタル計測中">
+      <CameraView ref={cameraRef} stream={stream} faceDetected={faceDetected} paused={paused} />
 
       <div className="measure-overlay">
-        <div className="measure-status">
+        <div className="measure-status" aria-live="polite">
           <span className="status-text">{status}</span>
           {currentHR > 0 && (
-            <span className="current-hr">
+            <span className="current-hr" aria-label={`現在の心拍数 ${currentHR} BPM`}>
               <span className="hr-value">{currentHR}</span>
               <span className="hr-unit">BPM</span>
             </span>
@@ -257,22 +297,32 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         </div>
 
         {/* Phase indicator */}
-        <div className="phase-indicator">
-          <span className={`phase-dot ${phase === 'calibrating' || phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} />
-          <span className={`phase-dot ${phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} />
-          <span className={`phase-dot ${phase === 'hrv' ? 'active' : ''}`} />
+        <div className="phase-indicator" role="status" aria-label={`計測フェーズ: ${
+          phase === 'init' ? '準備中' :
+          phase === 'calibrating' ? 'キャリブレーション' :
+          phase === 'measuring' ? '心拍計測' : 'HRV分析'
+        }`}>
+          <span className={`phase-dot ${phase === 'calibrating' || phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} aria-hidden="true" />
+          <span className={`phase-dot ${phase === 'measuring' || phase === 'hrv' ? 'active' : ''}`} aria-hidden="true" />
+          <span className={`phase-dot ${phase === 'hrv' ? 'active' : ''}`} aria-hidden="true" />
           <span className="phase-label">
             {phase === 'init' && '準備中'}
             {phase === 'calibrating' && 'キャリブレーション'}
             {phase === 'measuring' && '心拍計測'}
             {phase === 'hrv' && 'HRV分析'}
           </span>
+          {calibrationDone && phase === 'measuring' && elapsed < 20 && (
+            <span className="sr-only" role="status">キャリブレーション完了 — 本計測を開始しました</span>
+          )}
         </div>
 
-        {/* Emotion analysis indicator (subtle, top-right style placed in overlay) */}
+        {/* Emotion analysis indicator */}
         {emotionStatus !== 'error' && (
-          <div className="emotion-indicator">
-            <span className={`emotion-dot ${emotionStatus === 'active' ? 'emotion-dot-active' : ''}`} />
+          <div className="emotion-indicator" aria-label={`表情分析: ${
+            emotionStatus === 'loading' ? '準備中' :
+            emotionStatus === 'calibrating' ? 'キャリブレーション中' : '分析中'
+          }`}>
+            <span className={`emotion-dot ${emotionStatus === 'active' ? 'emotion-dot-active' : ''}`} aria-hidden="true" />
             <span className="emotion-indicator-text">
               {emotionStatus === 'loading' && '表情分析を準備中...'}
               {emotionStatus === 'calibrating' && '表情キャリブレーション中...'}
@@ -282,7 +332,14 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         )}
 
         <div className="progress-container">
-          <div className="progress-bar">
+          <div
+            className={`progress-bar${calibrationDone && phase === 'measuring' && elapsed < 20 ? ' calibration-done' : ''}`}
+            role="progressbar"
+            aria-valuenow={Math.round(progress)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`計測進捗 ${Math.round(progress)}% — 残り ${timeDisplay}`}
+          >
             <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <div className="progress-info">
@@ -295,10 +352,10 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
 
         {/* Enhanced SQI display */}
         {phase !== 'init' && (
-          <div className="sqi-display">
+          <div className="sqi-display" aria-label={`信号品質 ${sqiPercent}%`}>
             <div className="sqi-bar-container">
               <span className="sqi-label">信号品質</span>
-              <div className="sqi-bar-track">
+              <div className="sqi-bar-track" role="meter" aria-valuenow={sqiPercent} aria-valuemin={0} aria-valuemax={100} aria-label={`信号品質 ${sqiPercent}%`}>
                 <div
                   className="sqi-bar-fill"
                   style={{
@@ -312,15 +369,19 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
               </span>
             </div>
             {sqiTip && (
-              <div className={`sqi-tip${sqiTipWarning ? ' sqi-tip-warning' : ''}`}>
-                <span className="sqi-tip-icon">{sqiTipWarning ? '\u26A0' : '\u2713'}</span>
+              <div className={`sqi-tip${sqiTipWarning ? ' sqi-tip-warning' : ''}`} role={sqiTipWarning ? 'alert' : 'status'}>
+                <span className="sqi-tip-icon" aria-hidden="true">{sqiTipWarning ? '\u26A0' : '\u2713'}</span>
                 <span>{sqiTip}</span>
               </div>
             )}
           </div>
         )}
 
-        <button className="btn-cancel" onClick={onCancel}>
+        <button
+          className="btn-cancel"
+          onClick={onCancel}
+          aria-label="計測を中止"
+        >
           中止
         </button>
       </div>

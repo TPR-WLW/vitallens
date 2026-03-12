@@ -8,12 +8,16 @@
  * @returns {Promise<MediaStream>}
  */
 export async function startCamera() {
+  // Detect low-spec device: low memory or slow CPU
+  const isLowSpec = (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+
   const constraints = {
     video: {
       facingMode: 'user',
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      frameRate: { ideal: 30 },
+      width: { ideal: isLowSpec ? 320 : 640 },
+      height: { ideal: isLowSpec ? 240 : 480 },
+      frameRate: { ideal: isLowSpec ? 15 : 30 },
     },
     audio: false,
   };
@@ -21,9 +25,16 @@ export async function startCamera() {
   try {
     return await navigator.mediaDevices.getUserMedia(constraints);
   } catch (err) {
-    // Fallback: try without specific constraints
+    // Fallback: try lower resolution, then no constraints
     if (err.name === 'OverconstrainedError') {
-      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
+          audio: false,
+        });
+      } catch {
+        return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      }
     }
     throw err;
   }

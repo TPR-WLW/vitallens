@@ -102,7 +102,7 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
   const showCondition = condition.overall.score >= 0;
 
   return (
-    <div className="result-screen">
+    <div className="result-screen" role="main" aria-label="計測結果画面">
       <div className="result-content">
         <h2>コンディションチェック結果</h2>
 
@@ -237,13 +237,15 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
         <button
           className="detail-toggle"
           onClick={() => setDetailOpen(!detailOpen)}
+          aria-expanded={detailOpen}
+          aria-controls="detail-section"
         >
           {detailOpen ? '▲ 詳細データを閉じる' : '▼ 詳細データを見る'}
         </button>
 
         {/* Detail Section (expandable) */}
         {detailOpen && (
-          <div className="detail-section">
+          <div className="detail-section" id="detail-section">
             {/* HRV Metrics */}
             {metrics && (
               <div className="hrv-metrics-card">

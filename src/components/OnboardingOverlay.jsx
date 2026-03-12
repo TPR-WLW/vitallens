@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const steps = [
   {
@@ -86,6 +86,7 @@ const steps = [
 
 export default function OnboardingOverlay({ onComplete }) {
   const [step, setStep] = useState(0);
+  const nextBtnRef = useRef(null);
   const current = steps[step];
   const isLastStep = step === steps.length - 1;
 
@@ -97,25 +98,60 @@ export default function OnboardingOverlay({ onComplete }) {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onComplete();
+      } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft' && step > 0) {
+        setStep(step - 1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, onComplete]);
+
+  useEffect(() => {
+    nextBtnRef.current?.focus();
+  }, [step]);
+
   return (
-    <div className="onboarding-overlay">
+    <div
+      className="onboarding-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`ガイド ステップ${step + 1}/${steps.length}: ${current.title}`}
+    >
       <div className="onboarding-card">
-        <div className="onboarding-progress">
-          {steps.map((_, i) => (
+        <div className="onboarding-progress" role="tablist" aria-label="ガイド進捗">
+          {steps.map((s, i) => (
             <span
               key={i}
               className={`onboarding-dot${i === step ? ' active' : ''}`}
+              role="tab"
+              aria-selected={i === step}
+              aria-label={`ステップ${i + 1}: ${s.title}`}
             />
           ))}
         </div>
-        <div className="onboarding-icon">{current.icon}</div>
+        <div className="onboarding-icon" aria-hidden="true">{current.icon}</div>
         <h2 className="onboarding-title">{current.title}</h2>
         <div className="onboarding-body">{current.body}</div>
         <div className="onboarding-actions">
-          <button className="onboarding-skip" onClick={onComplete}>
+          <button
+            className="onboarding-skip"
+            onClick={onComplete}
+            aria-label="ガイドをスキップ"
+          >
             スキップ
           </button>
-          <button className="onboarding-next" onClick={handleNext}>
+          <button
+            ref={nextBtnRef}
+            className="onboarding-next"
+            onClick={handleNext}
+            aria-label={isLastStep ? '計測をはじめる' : `次のステップへ: ${steps[step + 1]?.title || ''}`}
+          >
             {isLastStep ? 'はじめる' : '次へ'}
           </button>
         </div>

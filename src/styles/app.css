@@ -1970,3 +1970,215 @@ body {
     font-size: 1.1rem;
   }
 }
+
+/* ===== Tablet Landscape (768px - 1023px) ===== */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .start-content {
+    max-width: 480px;
+  }
+
+  .result-content {
+    max-width: 520px;
+  }
+
+  .history-content {
+    max-width: 520px;
+  }
+
+  .measure-overlay {
+    padding: 24px 32px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+
+  .measure-status,
+  .phase-indicator,
+  .sqi-display,
+  .progress-container {
+    max-width: 480px;
+  }
+
+  .checklist-card {
+    padding: 24px 28px;
+  }
+
+  .onboarding-card {
+    max-width: 440px;
+    padding: 36px 32px;
+  }
+
+  .condition-dimensions {
+    gap: 14px;
+  }
+
+  .hrv-grid {
+    gap: 16px;
+  }
+}
+
+/* ===== Desktop (1024px+) ===== */
+
+@media (min-width: 1024px) {
+  .start-screen {
+    padding: 60px 24px;
+  }
+
+  .start-content {
+    max-width: 520px;
+  }
+
+  .result-screen {
+    padding: 32px;
+  }
+
+  .result-content {
+    max-width: 560px;
+    padding-top: 48px;
+  }
+
+  .history-screen {
+    padding: 32px;
+  }
+
+  .history-content {
+    max-width: 560px;
+    padding-top: 48px;
+  }
+
+  .measure-overlay {
+    padding: 28px 40px;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+
+  .measure-status,
+  .phase-indicator,
+  .sqi-display,
+  .progress-container {
+    max-width: 520px;
+  }
+
+  .onboarding-card {
+    max-width: 460px;
+    padding: 40px 36px;
+  }
+
+  .onboarding-title {
+    font-size: 1.3rem;
+  }
+
+  .onboarding-body {
+    font-size: 0.95rem;
+  }
+
+  .condition-dimensions {
+    gap: 16px;
+  }
+
+  .condition-dim-card {
+    padding: 18px 14px;
+  }
+
+  .hrv-grid {
+    gap: 18px;
+  }
+
+  .hrv-metric {
+    padding: 16px 8px;
+  }
+}
+
+/* ===== Focus Styles (Keyboard Navigation) ===== */
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-primary:focus-visible,
+.btn-cancel:focus-visible,
+.btn-sample:focus-visible,
+.btn-demo:focus-visible,
+.btn-history:focus-visible,
+.btn-export-pdf:focus-visible,
+.btn-export-csv:focus-visible,
+.btn-save-history:focus-visible,
+.btn-history-link:focus-visible,
+.btn-history-pdf:focus-visible,
+.btn-clear:focus-visible,
+.onboarding-next:focus-visible,
+.onboarding-skip:focus-visible,
+.mode-btn:focus-visible,
+.detail-toggle:focus-visible,
+.checklist-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.2);
+}
+
+.back-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* ===== Auto-pause overlay ===== */
+
+.measure-paused-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  animation: onboarding-fade-in 0.3s ease-out;
+}
+
+.paused-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+
+.paused-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.paused-sub {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Calibration complete flash */
+
+.calibration-done {
+  animation: calibration-flash 0.6s ease-out;
+}
+
+@keyframes calibration-flash {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Screen reader only utility */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
