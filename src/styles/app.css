@@ -2287,6 +2287,60 @@ body {
   background: rgba(245, 158, 11, 0.08);
 }
 
+/* ===== 計測品質ガイドリマインダー ===== */
+
+.quality-guide-reminder {
+  background: rgba(79, 140, 255, 0.06);
+  border: 1px solid rgba(79, 140, 255, 0.2);
+  border-left: 4px solid #4f8cff;
+  border-radius: var(--radius-sm, 8px);
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+
+.quality-guide-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4f8cff;
+  margin-bottom: 8px;
+}
+
+.quality-guide-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #9ca3af);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.quality-guide-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quality-guide-tips li {
+  font-size: 0.85rem;
+  color: var(--color-text, #e2e8f0);
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.quality-guide-tips li::before {
+  content: '\2713';
+  position: absolute;
+  left: 0;
+  color: #4f8cff;
+  font-weight: 700;
+}
+
+.quality-guide-tips li strong {
+  color: var(--color-text, #e2e8f0);
+}
+
 /* ===== Stress Recommendation ===== */
 
 .stress-recommendation {

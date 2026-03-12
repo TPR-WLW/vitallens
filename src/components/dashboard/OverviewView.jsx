@@ -2,6 +2,123 @@ import { useState, useEffect, useMemo } from 'react';
 import { dataService } from '../../services/index.js';
 import { stressStatus, StatusBadge, KPICard } from './AdminDashboard.jsx';
 
+function relativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'たった今';
+  if (mins < 60) return `${mins}分前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return '昨日';
+  if (days < 7) return `${days}日前`;
+  return new Date(dateStr).toLocaleDateString('ja-JP');
+}
+
+function NotificationPanel({ orgStats, alertThreshold = 55 }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orgStats?.orgId) { setLoading(false); return; }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const fromISO = sevenDaysAgo.toISOString();
+        const toISO = now.toISOString();
+
+        const [measurements, users] = await Promise.all([
+          dataService.getMeasurements({ orgId: orgStats.orgId, from: fromISO, to: toISO }),
+          dataService.getUsersByOrg(orgStats.orgId),
+        ]);
+
+        if (cancelled) return;
+
+        const items = [];
+
+        // New member registrations within last 7 days
+        const recentUsers = (users || []).filter(u => {
+          if (!u.createdAt) return false;
+          return new Date(u.createdAt).getTime() >= sevenDaysAgo.getTime();
+        });
+        for (const u of recentUsers) {
+          items.push({
+            type: 'member',
+            message: `新しいメンバーが参加しました: ${u.name || '匿名'}`,
+            timestamp: u.createdAt,
+          });
+        }
+
+        // High stress alerts (no user names for privacy)
+        const highStress = (measurements || []).filter(
+          m => m.stressScore != null && m.stressScore > alertThreshold
+        );
+        for (const m of highStress) {
+          items.push({
+            type: 'stress',
+            message: `高ストレスが検出されました（スコア: ${m.stressScore}）`,
+            timestamp: m.measuredAt || m.createdAt || m.timestamp,
+          });
+        }
+
+        // Low quality measurements
+        const lowQuality = (measurements || []).filter(m => m.qualityGrade === 'C');
+        for (const m of lowQuality) {
+          items.push({
+            type: 'quality',
+            message: '低品質の計測がありました — 環境改善をお勧めします',
+            timestamp: m.measuredAt || m.createdAt || m.timestamp,
+          });
+        }
+
+        // Sort descending by timestamp, take max 5
+        items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setNotifications(items.slice(0, 5));
+      } catch {
+        // Silently fail — notifications are non-critical
+        setNotifications([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [orgStats?.orgId, alertThreshold]);
+
+  if (loading) return null;
+
+  const iconMap = {
+    member: { cls: 'adm-notif-icon-member', icon: '\ud83d\udc64' },
+    stress: { cls: 'adm-notif-icon-stress', icon: '\u26a0' },
+    quality: { cls: 'adm-notif-icon-quality', icon: '\u25cb' },
+  };
+
+  return (
+    <div className="adm-notifications">
+      <h3 className="adm-section-title">最近のイベント</h3>
+      {notifications.length === 0 ? (
+        <div className="adm-notif-empty">直近7日間のイベントはありません</div>
+      ) : (
+        <div className="adm-notif-list">
+          {notifications.map((n, i) => {
+            const { cls, icon } = iconMap[n.type] || iconMap.quality;
+            return (
+              <div key={i} className="adm-notif-item">
+                <span className={`adm-notif-icon ${cls}`}>{icon}</span>
+                <span className="adm-notif-text">{n.message}</span>
+                <span className="adm-notif-time">{n.timestamp ? relativeTime(n.timestamp) : ''}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AlertBanner({ teamStats, alertThreshold = 55 }) {
   const alerts = teamStats.filter(
     (ts) => !ts.privacyFiltered && ts.stats?.avgStress > alertThreshold
@@ -119,6 +236,9 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
           </div>
         </div>
       )}
+
+      {/* 通知パネル */}
+      <NotificationPanel orgStats={orgStats} alertThreshold={alertThreshold} />
 
       <div className="adm-kpi-row">
         <KPICard value={`${totalMembers}名`} label="登録メンバー" />

@@ -1004,6 +1004,40 @@ test.describe('MembersView CSVインポート', () => {
   });
 });
 
+test.describe('OverviewView 通知パネル', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  test('サンプルデータで通知パネルが表示される', async ({ page }) => {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const ts = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('通知テスト社');
+    await page.locator('.adm-login-form input[type="email"]').fill(`notif-${ts}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Load sample data
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await page.waitForTimeout(3000);
+    await page.reload();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Notification panel section title should be visible
+    await expect(page.locator('.adm-notifications')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.adm-section-title', { hasText: '最近のイベント' })).toBeVisible();
+  });
+});
+
 test.describe('MembersView スコアタイムライン', () => {
   test.beforeEach(async ({ page }) => {
     await skipOnboarding(page);

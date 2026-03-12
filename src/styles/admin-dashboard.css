@@ -1090,6 +1090,73 @@
   padding: 6px 14px;
 }
 
+/* ===== 通知パネル ===== */
+
+.adm-notifications {
+  margin-bottom: 20px;
+}
+
+.adm-notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-notif-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.adm-notif-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.adm-notif-icon-member {
+  background: rgba(79, 140, 255, 0.12);
+  color: #4f8cff;
+}
+
+.adm-notif-icon-stress {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.adm-notif-icon-quality {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.adm-notif-text {
+  flex: 1;
+  color: var(--color-text);
+}
+
+.adm-notif-time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.adm-notif-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
 /* ===== 印刷用スタイル ===== */
 
 @media print {
@@ -1110,7 +1177,8 @@
   .adm-btn-ghost,
   .adm-btn-danger,
   .adm-link-btn,
-  .adm-filters {
+  .adm-filters,
+  .adm-notifications {
     display: none !important;
   }
 

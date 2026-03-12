@@ -502,6 +502,9 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           <StressRecommendation stressScore={stress.score} stressLabel={stress.label} />
         )}
 
+        {/* Quality guide reminder for users with repeated low-quality measurements */}
+        {!result.isShared && !result.isDemo && !result.isSample && <QualityGuideReminder />}
+
         {/* Personal trend mini-chart (last 5 real measurements) */}
         {!result.isShared && <MiniTrendChart currentCondition={condition} />}
 
@@ -700,6 +703,51 @@ function StressRecommendation({ stressScore, stressLabel }) {
       <p className="stress-rec-disclaimer">
         ※ 一般的なウェルネスアドバイスです。医療上の助言ではありません。
       </p>
+    </div>
+  );
+}
+
+/**
+ * 計測品質ガイドリマインダー — 直近3回中2回以上がグレードCの場合に表示
+ */
+function QualityGuideReminder() {
+  const recentEntries = (() => {
+    try {
+      const entries = getEntries().filter(e => !e.data.isDemo && !e.data.isSample);
+      return entries.slice(0, 3);
+    } catch { return []; }
+  })();
+
+  const lowQualityCount = recentEntries.filter(
+    e => e.data.hrv?.quality?.grade === 'C'
+  ).length;
+
+  if (lowQualityCount < 2) return null;
+
+  return (
+    <div className="quality-guide-reminder">
+      <h4 className="quality-guide-title">計測品質を改善しましょう</h4>
+      <p className="quality-guide-desc">
+        最近の計測で信号品質が低めの結果が続いています。
+        以下のポイントを確認して、より正確な結果を得ましょう。
+      </p>
+      <ul className="quality-guide-tips">
+        <li>
+          <strong>照明:</strong> 顔全体に均一な光が当たる環境で計測してください。蛍光灯や自然光が最適です。
+        </li>
+        <li>
+          <strong>距離:</strong> カメラから40〜60cmの距離を保ってください。
+        </li>
+        <li>
+          <strong>安定:</strong> 計測中は頭や体をできるだけ動かさないでください。
+        </li>
+        <li>
+          <strong>顔の露出:</strong> サングラス、マスク、帽子を外してください。
+        </li>
+        <li>
+          <strong>背景:</strong> 動く物や強い光源が背景にないことを確認してください。
+        </li>
+      </ul>
     </div>
   );
 }
