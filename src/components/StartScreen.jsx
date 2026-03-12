@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function StartScreen({ onStart, onBack }) {
+export default function StartScreen({ onStart, onBack, onShowSample }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [quickMode, setQuickMode] = useState(true);
@@ -11,8 +11,8 @@ export default function StartScreen({ onStart, onBack }) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((t) => t.stop());
-      onStart(quickMode);
+      // Pass stream to MeasureScreen instead of stopping it
+      onStart(quickMode, stream);
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setCameraError('カメラへのアクセスが拒否されました。カメラの使用を許可して再度お試しください。');
@@ -91,6 +91,12 @@ export default function StartScreen({ onStart, onBack }) {
         <button className="btn-primary" onClick={handleStart} disabled={loading}>
           {loading ? 'カメラを確認中...' : 'チェック開始'}
         </button>
+
+        {onShowSample && (
+          <button className="btn-sample" onClick={onShowSample}>
+            サンプル結果を見る
+          </button>
+        )}
 
         <p className="disclaimer">
           ※ 本ツールはウェルネス参考値を提供するものであり、医療機器ではありません。

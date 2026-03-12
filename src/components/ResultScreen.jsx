@@ -1,3 +1,5 @@
+import { CONTACT_FORM_URL } from '../config/api.js';
+
 export default function ResultScreen({ result, onRestart, onBack }) {
   const { hr, confidence, hrv } = result;
   const metrics = hrv?.metrics;
@@ -52,6 +54,13 @@ export default function ResultScreen({ result, onRestart, onBack }) {
     <div className="result-screen">
       <div className="result-content">
         <h2>コンディションチェック結果</h2>
+
+        {result.isSample && (
+          <div className="sample-banner">
+            <span className="sample-badge">サンプル</span>
+            これはサンプルデータです。実際に計測すると、あなた自身の結果が表示されます。
+          </div>
+        )}
 
         {/* Stress level card (primary result) */}
         {stress && stress.level !== 'unknown' && (
@@ -109,18 +118,21 @@ export default function ResultScreen({ result, onRestart, onBack }) {
                 <span className="hrv-unit">ms</span>
                 <span className="hrv-name">RMSSD</span>
                 <span className="hrv-desc">自律神経活性</span>
+                <span className="hrv-ref">基準値: 20〜60ms</span>
               </div>
               <div className="hrv-metric">
                 <span className="hrv-value">{metrics.sdnn}</span>
                 <span className="hrv-unit">ms</span>
                 <span className="hrv-name">SDNN</span>
                 <span className="hrv-desc">全体変動</span>
+                <span className="hrv-ref">基準値: 20〜55ms</span>
               </div>
               <div className="hrv-metric">
                 <span className="hrv-value">{metrics.pnn50}</span>
                 <span className="hrv-unit">%</span>
                 <span className="hrv-name">pNN50</span>
                 <span className="hrv-desc">回復力指標</span>
+                <span className="hrv-ref">基準値: 3〜40%</span>
               </div>
             </div>
             {quality && (
@@ -171,10 +183,29 @@ export default function ResultScreen({ result, onRestart, onBack }) {
           </div>
         )}
 
+        {/* Enterprise CTA */}
+        <div className="result-cta-card">
+          <p className="result-cta-pitch">
+            いま体験された測定は、貴社の全従業員に展開できます。<br />
+            カメラだけで、ストレスチェック制度への対応と健康経営の推進を同時に実現します。
+          </p>
+          <a
+            className="btn-primary btn-cta-enterprise"
+            href={CONTACT_FORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            法人導入について相談する
+          </a>
+          <p className="result-cta-note">
+            無料パイロット（50名・3ヶ月）のご案内も可能です
+          </p>
+        </div>
+
         {/* Actions */}
         <div className="result-actions">
           <button className="btn-primary" onClick={onRestart}>
-            もう一度チェック
+            {result.isSample ? '実際に計測してみる' : 'もう一度チェック'}
           </button>
           {onBack && (
             <a className="back-link back-link-center" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>

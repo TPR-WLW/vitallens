@@ -8,7 +8,7 @@ const MEASUREMENT_DURATION = 180; // 3 minutes for reliable HRV
 const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
 const HRV_MIN_DURATION = 45;      // Minimum seconds before attempting HRV
 
-export default function MeasureScreen({ onComplete, onCancel, quickMode = false }) {
+export default function MeasureScreen({ onComplete, onCancel, quickMode = false, initialStream = null }) {
   const cameraRef = useRef(null);
   const processorRef = useRef(new RPPGProcessor());
   const streamRef = useRef(null);
@@ -30,7 +30,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false 
 
     async function init() {
       try {
-        const mediaStream = await startCamera();
+        // Reuse stream from StartScreen if available, otherwise start new
+        const mediaStream = initialStream || await startCamera();
         if (cancelled) {
           stopCamera(mediaStream);
           return;

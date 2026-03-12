@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { CONTACT_FORM_URL } from '../config/api.js';
 import '../styles/landing.css';
 
-export default function LandingPage({ onTryDemo }) {
+export default function LandingPage({ onTryDemo, onShowDashboard }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   const handleNavClick = (e) => {
     setMenuOpen(false);
@@ -34,6 +36,7 @@ export default function LandingPage({ onTryDemo }) {
             <a href="#solution" onClick={handleNavClick}>ソリューション</a>
             <a href="#pricing" onClick={handleNavClick}>料金</a>
             <a href="#contact" onClick={handleNavClick}>お問い合わせ</a>
+            <button className="btn-nav-secondary" onClick={() => { setMenuOpen(false); onShowDashboard(); }}>管理者デモ</button>
             <button className="btn-nav" onClick={() => { setMenuOpen(false); onTryDemo(); }}>無料デモ</button>
           </div>
         </div>
@@ -220,6 +223,33 @@ export default function LandingPage({ onTryDemo }) {
         </div>
       </section>
 
+      {/* Dashboard Preview */}
+      <section className="section section-dark" id="dashboard">
+        <div className="section-inner">
+          <h2>管理者向け<em>ダッシュボード</em></h2>
+          <p className="section-sub">
+            部署別のストレス傾向、月次推移、参加率をリアルタイムで把握。
+            匿名集計データのみを表示し、個人の特定はできない設計です。
+            ROI試算機能で、導入効果を数値で確認できます。
+          </p>
+          <div className="dashboard-preview-features">
+            <div className="dash-feature">
+              <strong>部署別ストレス分析</strong>
+              <p>部署ごとの平均ストレス、参加率、要注意部署を一目で把握</p>
+            </div>
+            <div className="dash-feature">
+              <strong>月次推移レポート</strong>
+              <p>ストレス傾向の時系列変化を追跡し、施策の効果を可視化</p>
+            </div>
+            <div className="dash-feature">
+              <strong>ROI試算・レポート出力</strong>
+              <p>導入効果をシミュレーションし、PDF形式で稟議書に添付可能</p>
+            </div>
+          </div>
+          <button className="btn-secondary" onClick={onShowDashboard}>ダッシュボードのデモを見る</button>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section className="section section-dark" id="pricing">
         <div className="section-inner">
@@ -260,13 +290,107 @@ export default function LandingPage({ onTryDemo }) {
         <div className="section-inner contact-section">
           <h2>お問い合わせ</h2>
           <p className="section-sub">
-            導入のご相談・デモのご依頼はお気軽にお問い合わせください。
+            導入のご相談・資料請求・無料パイロットのお申し込みなど、<br />
+            お気軽にお問い合わせください。通常1営業日以内にご返信いたします。
           </p>
-          <a className="contact-email" href="mailto:info@mirucare.jp">
-            info@mirucare.jp
-          </a>
+          <div className="contact-actions">
+            <a
+              className="btn-hero"
+              href={CONTACT_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              お問い合わせフォーム
+            </a>
+            <a className="contact-email" href="mailto:info@mirucare.jp">
+              info@mirucare.jp
+            </a>
+          </div>
         </div>
       </section>
+
+      {/* Company Info */}
+      <section className="section" id="company">
+        <div className="section-inner company-section">
+          <h2>運営情報</h2>
+          <div className="company-grid">
+            <div className="company-row">
+              <span className="company-label">サービス名</span>
+              <span className="company-value">ミルケア（MiruCare）</span>
+            </div>
+            <div className="company-row">
+              <span className="company-label">運営</span>
+              <span className="company-value">ミルケア運営チーム</span>
+            </div>
+            <div className="company-row">
+              <span className="company-label">設立</span>
+              <span className="company-value">2026年</span>
+            </div>
+            <div className="company-row">
+              <span className="company-label">事業内容</span>
+              <span className="company-value">カメラによる非接触バイタルモニタリングサービスの企画・開発・運営</span>
+            </div>
+            <div className="company-row">
+              <span className="company-label">連絡先</span>
+              <span className="company-value">
+                <a href="mailto:info@mirucare.jp">info@mirucare.jp</a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <div className="privacy-overlay" onClick={() => setShowPrivacy(false)}>
+          <div className="privacy-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="privacy-close" onClick={() => setShowPrivacy(false)}>&times;</button>
+            <h2>プライバシーポリシー</h2>
+
+            <h3>1. カメラ映像の取り扱い</h3>
+            <p>
+              本サービスでは、心拍変動（HRV）の解析にカメラ映像を使用します。
+              映像データはすべて利用者のデバイス（ブラウザ）上で処理されます。
+              <strong>映像データが外部サーバーに送信・保存・転送されることは一切ありません。</strong>
+              計測終了後、映像データはブラウザのメモリから即時に破棄されます。
+            </p>
+
+            <h3>2. 計測データの取り扱い</h3>
+            <p>
+              計測結果（心拍数、HRV指標、ストレスレベル）は、計測完了後に利用者の画面上にのみ表示されます。
+              現在のバージョンでは、計測データを外部サーバーに送信する機能はありません。
+              計測データはブラウザを閉じた時点で消去されます。
+            </p>
+
+            <h3>3. Cookieおよびトラッキング</h3>
+            <p>本サービスでは、利用者を追跡するCookieやトラッキングツールを使用しません。</p>
+
+            <h3>4. 個人情報の収集</h3>
+            <p>
+              本サービスの計測機能のご利用にあたり、氏名・メールアドレス等の個人情報の入力は不要です。
+              お問い合わせフォームからご連絡いただく場合に限り、お名前・メールアドレス・ご所属先をお伺いすることがあります。
+              これらの情報は、お問い合わせへのご回答の目的にのみ使用し、第三者に提供することはありません。
+            </p>
+
+            <h3>5. 法令の遵守</h3>
+            <p>
+              ミルケア運営チーム（以下「当チーム」）は、個人情報の保護に関する法律（個人情報保護法）
+              その他の関連法令を遵守し、個人情報の適正な取り扱いに努めます。
+            </p>
+
+            <h3>6. ポリシーの変更</h3>
+            <p>
+              本ポリシーは、サービス内容の変更や法令改正に伴い、事前の通知なく改定する場合があります。
+              最新のポリシーは、本ページに掲載します。
+            </p>
+
+            <h3>7. お問い合わせ窓口</h3>
+            <p>ミルケア運営チーム<br /><a href="mailto:info@mirucare.jp">info@mirucare.jp</a></p>
+
+            <p className="privacy-updated">最終更新: 2026年3月</p>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="landing-footer">
@@ -277,6 +401,13 @@ export default function LandingPage({ onTryDemo }) {
               <path d="M24 14c-4 0-8 3.5-8 9s4 11 8 15c4-4 8-9 8-15s-4-9-8-9z" fill="#4f8cff" opacity="0.85" />
             </svg>
             <span>ミルケア</span>
+          </div>
+          <div className="footer-links">
+            <a href="#company">運営情報</a>
+            <span className="footer-sep">|</span>
+            <a href="#" onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }}>プライバシーポリシー</a>
+            <span className="footer-sep">|</span>
+            <a href="#contact">お問い合わせ</a>
           </div>
           <p className="footer-disclaimer">
             本サービスは一般的なウェルネス指標の参考値を提供するものであり、医療機器ではありません。
