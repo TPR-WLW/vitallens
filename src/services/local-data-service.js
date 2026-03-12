@@ -440,6 +440,29 @@ export class LocalDataService {
     return org.config;
   }
 
+  // === メンバー別CSV出力（最終計測日付き） ===
+
+  async exportMemberCSV(orgId) {
+    const users = await getUsersByOrg(orgId);
+    const lastDates = await this.getLastMeasurementDates(orgId);
+    const memberships = await getAll('teamMemberships');
+    const teams = await getByIndex('teams', 'orgId', orgId);
+    const teamMap = Object.fromEntries(teams.map(t => [t.id, t.name]));
+
+    const rows = ['表示名,ロール,部署,参加日,最終計測日'];
+    for (const u of users) {
+      const userMemberships = memberships.filter(m => m.userId === u.id);
+      const teamName = userMemberships.length > 0 && teamMap[userMemberships[0].teamId]
+        ? teamMap[userMemberships[0].teamId] : '未配属';
+      const role = u.role === 'admin' ? '管理者' : 'メンバー';
+      const joinDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('ja-JP') : '';
+      const lastDate = lastDates[u.id]
+        ? new Date(lastDates[u.id]).toLocaleDateString('ja-JP') : '未計測';
+      rows.push(`${u.name || ''},${role},${teamName},${joinDate},${lastDate}`);
+    }
+    return rows.join('\n') + '\n';
+  }
+
   async getLastMeasurementDates(orgId) {
     const measurements = await getByIndex('measurements', 'orgId', orgId);
     const lastDates = {};

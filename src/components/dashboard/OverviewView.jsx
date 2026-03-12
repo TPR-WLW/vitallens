@@ -243,9 +243,16 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
   );
 }
 
-function MeasurementReminder({ orgId }) {
+const SCHEDULE_THRESHOLDS = {
+  daily: { days: 2, label: '2日' },
+  thrice: { days: 4, label: '4日' },
+  weekly: { days: 10, label: '10日' },
+};
+
+function MeasurementReminder({ orgId, measureSchedule }) {
   const [inactiveCount, setInactiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const threshold = SCHEDULE_THRESHOLDS[measureSchedule] || SCHEDULE_THRESHOLDS.daily;
 
   useEffect(() => {
     if (!orgId) { setLoading(false); return; }
@@ -254,13 +261,15 @@ function MeasurementReminder({ orgId }) {
     (async () => {
       try {
         const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const lookbackMs = 30 * 24 * 60 * 60 * 1000;
+        const thresholdMs = threshold.days * 24 * 60 * 60 * 1000;
+        const lookbackDate = new Date(now.getTime() - lookbackMs);
+        const cutoff = new Date(now.getTime() - thresholdMs);
 
         const [measurements, users] = await Promise.all([
           dataService.getMeasurements({
             orgId,
-            from: thirtyDaysAgo.toISOString(),
+            from: lookbackDate.toISOString(),
             to: now.toISOString(),
           }),
           dataService.getUsersByOrg(orgId),
@@ -268,11 +277,10 @@ function MeasurementReminder({ orgId }) {
 
         if (cancelled) return;
 
-        // Build set of userIds who measured within last 7 days
         const recentUserIds = new Set();
         for (const m of (measurements || [])) {
           const ts = m.measuredAt || m.createdAt || m.timestamp;
-          if (ts && new Date(ts).getTime() >= sevenDaysAgo.getTime()) {
+          if (ts && new Date(ts).getTime() >= cutoff.getTime()) {
             recentUserIds.add(m.userId);
           }
         }
@@ -288,7 +296,7 @@ function MeasurementReminder({ orgId }) {
     })();
 
     return () => { cancelled = true; };
-  }, [orgId]);
+  }, [orgId, threshold.days]);
 
   if (loading || inactiveCount === 0) return null;
 
@@ -297,10 +305,10 @@ function MeasurementReminder({ orgId }) {
       <span className="adm-reminder-icon">{'\u23f0'}</span>
       <div className="adm-reminder-text">
         <div className="adm-reminder-main">
-          {inactiveCount}名のメンバーが7日以上計測を行っていません
+          {inactiveCount}名のメンバーが{threshold.label}以上計測を行っていません
         </div>
         <div className="adm-reminder-sub">
-          定期的な計測の実施を推奨します
+          推奨スケジュール（{measureSchedule === 'daily' ? '毎日' : measureSchedule === 'thrice' ? '週3回' : '週1回'}）に基づく判定です
         </div>
       </div>
     </div>
@@ -477,11 +485,52 @@ function ActivityHeatmap({ orgId, teams }) {
   );
 }
 
-export default function OverviewView({ orgStats, teamStats, onTeamClick, alertThreshold, goalStress, goalParticipation, teams }) {
+const WIDGET_DEFAULTS = {
+  periodWidgets: true,
+  notifications: true,
+  kpiCards: true,
+  kpiGoals: true,
+  heatmap: true,
+  teamSummary: true,
+};
+
+const WIDGET_STORAGE_KEY = 'mirucare_widget_config';
+
+function loadWidgetConfig() {
+  try {
+    const raw = localStorage.getItem(WIDGET_STORAGE_KEY);
+    return raw ? { ...WIDGET_DEFAULTS, ...JSON.parse(raw) } : { ...WIDGET_DEFAULTS };
+  } catch {
+    return { ...WIDGET_DEFAULTS };
+  }
+}
+
+const WIDGET_LABELS = {
+  periodWidgets: '期間別ウィジェット',
+  notifications: '通知パネル',
+  kpiCards: 'KPIカード',
+  kpiGoals: 'KPI目標達成状況',
+  heatmap: '計測アクティビティ',
+  teamSummary: '部署別サマリー',
+};
+
+export default function OverviewView({ orgStats, teamStats, onTeamClick, alertThreshold, goalStress, goalParticipation, teams, measureSchedule }) {
   const totalMembers = orgStats?.totalMembers || 0;
   const activeMeasured = orgStats?.activeMeasured || 0;
   const participationRate = totalMembers > 0 ? Math.round((activeMeasured / totalMembers) * 100) : 0;
   const avgStress = orgStats?.stats?.avgStress;
+
+  // ウィジェットカスタマイズ
+  const [widgetConfig, setWidgetConfig] = useState(loadWidgetConfig);
+  const [showWidgetPanel, setShowWidgetPanel] = useState(false);
+
+  const toggleWidget = (key) => {
+    setWidgetConfig(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // 期間セレクター
   const [period, setPeriod] = useState(7);
@@ -550,10 +599,33 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
   return (
     <div className="adm-view">
       <AlertBanner teamStats={teamStats} alertThreshold={alertThreshold} />
-      <MeasurementReminder orgId={orgStats?.orgId} />
+      <MeasurementReminder orgId={orgStats?.orgId} measureSchedule={measureSchedule} />
+
+      {/* ウィジェットカスタマイズ */}
+      <div className="adm-widget-customize">
+        <button className="adm-widget-gear" onClick={() => setShowWidgetPanel(p => !p)} aria-label="ウィジェット設定">
+          {showWidgetPanel ? '閉じる' : '⚙ カスタマイズ'}
+        </button>
+      </div>
+      {showWidgetPanel && (
+        <div className="adm-widget-panel">
+          <h4>表示ウィジェット</h4>
+          {Object.entries(WIDGET_LABELS).map(([key, label]) => (
+            <div key={key} className="adm-widget-toggle">
+              <input
+                type="checkbox"
+                id={`widget-${key}`}
+                checked={widgetConfig[key]}
+                onChange={() => toggleWidget(key)}
+              />
+              <label htmlFor={`widget-${key}`}>{label}</label>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 期間セレクター + ウィジェットカード */}
-      <div className="adm-weekly-widgets">
+      {widgetConfig.periodWidgets && <div className="adm-weekly-widgets">
         <div className="adm-period-header">
           <h3 className="adm-section-title">{periodLabel}</h3>
           <div className="adm-period-selector" role="group" aria-label="表示期間">
@@ -597,23 +669,25 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* 通知パネル */}
-      <NotificationPanel orgStats={orgStats} alertThreshold={alertThreshold} />
+      {widgetConfig.notifications && <NotificationPanel orgStats={orgStats} alertThreshold={alertThreshold} />}
 
-      <div className="adm-kpi-row">
-        <KPICard value={`${totalMembers}名`} label="登録メンバー" />
-        <KPICard value={`${activeMeasured}名`} label="計測済み" sub={`(${participationRate}%)`} />
-        <KPICard
-          value={avgStress != null ? avgStress : '---'}
-          label="平均ストレス"
-          sub={avgStress != null ? stressStatus(avgStress).label : ''}
-        />
-      </div>
+      {widgetConfig.kpiCards && (
+        <div className="adm-kpi-row">
+          <KPICard value={`${totalMembers}名`} label="登録メンバー" />
+          <KPICard value={`${activeMeasured}名`} label="計測済み" sub={`(${participationRate}%)`} />
+          <KPICard
+            value={avgStress != null ? avgStress : '---'}
+            label="平均ストレス"
+            sub={avgStress != null ? stressStatus(avgStress).label : ''}
+          />
+        </div>
+      )}
 
       {/* KPI目標達成状況 */}
-      {(goalStress != null || goalParticipation != null) && (
+      {widgetConfig.kpiGoals && (goalStress != null || goalParticipation != null) && (
         <div className="adm-kpi-goals">
           <h3 className="adm-section-title">KPI目標達成状況</h3>
           {goalStress != null && avgStress != null && (() => {
@@ -655,8 +729,9 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
       )}
 
       {/* 計測アクティビティヒートマップ */}
-      <ActivityHeatmap orgId={orgStats?.orgId} teams={teams || []} />
+      {widgetConfig.heatmap && <ActivityHeatmap orgId={orgStats?.orgId} teams={teams || []} />}
 
+      {widgetConfig.teamSummary && <>
       <h3 className="adm-section-title">部署別サマリー</h3>
       <div className="adm-table-wrap">
         <table className="adm-table" aria-label="部署別サマリー">
@@ -695,6 +770,7 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
       <p className="adm-privacy-note">
         すべてのデータは匿名化・集計された状態で表示されます。個人の計測結果は管理者に表示されません。
       </p>
+      </>}
     </div>
   );
 }

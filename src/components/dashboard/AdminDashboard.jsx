@@ -55,6 +55,10 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   const [alertThreshold, setAlertThreshold] = useState(55);
   const [goalStress, setGoalStress] = useState(null);
   const [goalParticipation, setGoalParticipation] = useState(null);
+  const [measureSchedule, setMeasureSchedule] = useState('daily');
+  const [showOrgJoin, setShowOrgJoin] = useState(false);
+  const [orgJoinCode, setOrgJoinCode] = useState('');
+  const [orgJoinMsg, setOrgJoinMsg] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -63,6 +67,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
       if (org?.config?.alertThreshold != null) setAlertThreshold(org.config.alertThreshold);
       if (org?.config?.goalStress != null) setGoalStress(org.config.goalStress);
       if (org?.config?.goalParticipation != null) setGoalParticipation(org.config.goalParticipation);
+      if (org?.config?.measureSchedule) setMeasureSchedule(org.config.measureSchedule);
 
       const orgS = await dataService.getOrgStats(session.orgId);
       setOrgStats(orgS);
@@ -179,12 +184,63 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
           <h2>ミルケア</h2>
         </div>
 
-        {/* 組織切替（マルチテナント準備） */}
+        {/* 組織切替（マルチテナント） */}
         <div className="adm-org-switcher">
           <div className="adm-org-current" title={`組織ID: ${session.orgId}`}>
             <span className="adm-org-icon">🏢</span>
             <span className="adm-org-name">{orgName || '組織名未設定'}</span>
           </div>
+          {!showOrgJoin ? (
+            <button className="adm-btn-ghost adm-org-add-btn" onClick={() => { setShowOrgJoin(true); setOrgJoinMsg(null); }}>
+              + 組織を追加
+            </button>
+          ) : (
+            <div className="adm-org-join-form">
+              <input
+                type="text"
+                className="adm-org-join-input"
+                placeholder="招待コード（組織ID）"
+                value={orgJoinCode}
+                onChange={(e) => setOrgJoinCode(e.target.value)}
+                aria-label="招待コード"
+              />
+              <div className="adm-org-join-actions">
+                <button
+                  className="adm-btn-primary adm-org-join-btn"
+                  disabled={!orgJoinCode.trim()}
+                  onClick={async () => {
+                    setOrgJoinMsg(null);
+                    try {
+                      const org = await dataService.getOrg(orgJoinCode.trim());
+                      if (!org) { setOrgJoinMsg({ type: 'error', text: '組織が見つかりません' }); return; }
+                      // Save as additional org in localStorage
+                      const key = 'mirucare_orgs';
+                      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+                      if (!stored.includes(orgJoinCode.trim()) && orgJoinCode.trim() !== session.orgId) {
+                        stored.push(orgJoinCode.trim());
+                        localStorage.setItem(key, JSON.stringify(stored));
+                      }
+                      setOrgJoinMsg({ type: 'success', text: `「${org.name}」に参加しました` });
+                      setOrgJoinCode('');
+                      setShowOrgJoin(false);
+                    } catch {
+                      setOrgJoinMsg({ type: 'error', text: '参加に失敗しました' });
+                    }
+                  }}
+                >
+                  参加
+                </button>
+                <button className="adm-btn-ghost" onClick={() => { setShowOrgJoin(false); setOrgJoinCode(''); setOrgJoinMsg(null); }}>
+                  キャンセル
+                </button>
+              </div>
+              {orgJoinMsg && (
+                <div className={orgJoinMsg.type === 'success' ? 'adm-org-join-success' : 'adm-org-join-error'}>
+                  {orgJoinMsg.text}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <nav className="adm-sidebar-nav">
@@ -251,7 +307,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
 
         {view === 'overview' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} goalStress={goalStress} goalParticipation={goalParticipation} teams={teams} />
+            <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} goalStress={goalStress} goalParticipation={goalParticipation} teams={teams} measureSchedule={measureSchedule} />
           </Suspense>
         )}
         {view === 'team' && (
@@ -271,7 +327,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); }} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); }} />
           </Suspense>
         )}
       </main>

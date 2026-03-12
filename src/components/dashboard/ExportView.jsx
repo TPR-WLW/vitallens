@@ -122,6 +122,12 @@ export default function ExportView({ session, teams }) {
 
       <hr className="adm-divider" />
 
+      <h2 className="adm-view-title" style={{ marginTop: 24 }}>メンバー別CSV出力</h2>
+      <p className="adm-view-desc">メンバー一覧と最終計測日をCSV形式でエクスポートします。計測未実施メンバーの把握にご利用ください。</p>
+      <MemberCsvExport session={session} />
+
+      <hr className="adm-divider" />
+
       <h2 className="adm-view-title" style={{ marginTop: 24 }}>組織レポート出力（PDF）</h2>
       <p className="adm-view-desc">期間比較・部署間ベンチマーク・チーム推移を含むA4レポートをPDFとして出力します。</p>
       <button
@@ -130,6 +136,49 @@ export default function ExportView({ session, teams }) {
       >
         組織レポートをPDF出力
       </button>
+    </div>
+  );
+}
+
+function MemberCsvExport({ session }) {
+  const [preview, setPreview] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const csv = await dataService.exportMemberCSV(session.orgId);
+        setPreview(csv);
+      } catch {
+        setPreview('エラーが発生しました');
+      }
+      setLoading(false);
+    })();
+  }, [session.orgId]);
+
+  const handleDownload = () => {
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + preview], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mirucare-members-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div>
+      <button className="adm-btn-primary" onClick={handleDownload} disabled={!preview || loading}>
+        メンバーCSVをダウンロード
+      </button>
+      {preview && (
+        <>
+          <h3 className="adm-section-title" style={{ marginTop: 16 }}>プレビュー</h3>
+          <pre className="adm-csv-preview">{preview.split('\n').slice(0, 11).join('\n')}</pre>
+        </>
+      )}
     </div>
   );
 }

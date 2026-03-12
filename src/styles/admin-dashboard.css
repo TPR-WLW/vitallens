@@ -2046,3 +2046,89 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.adm-org-add-btn {
+  width: 100%;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+.adm-org-join-form {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm-org-join-input {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 8px);
+  font-size: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.adm-org-join-actions {
+  display: flex;
+  gap: 6px;
+}
+.adm-org-join-btn {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+.adm-org-join-success {
+  font-size: 0.8rem;
+  color: #16a34a;
+  margin-top: 2px;
+}
+.adm-org-join-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+/* ウィジェットカスタマイズ */
+.adm-widget-customize {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.adm-widget-gear {
+  background: none;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 8px);
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b7280);
+}
+.adm-widget-gear:hover {
+  background: rgba(79, 140, 255, 0.08);
+}
+.adm-widget-panel {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 8px);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.adm-widget-panel h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.adm-widget-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+.adm-widget-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.adm-widget-toggle label {
+  cursor: pointer;
+}
