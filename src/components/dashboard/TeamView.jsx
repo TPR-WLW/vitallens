@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
-import { stressStatus, KPICard } from './AdminDashboard.jsx';
+import { stressStatus, StatusBadge, KPICard } from './AdminDashboard.jsx';
 
 export default function TeamView({ teamStats, orgId }) {
   const [period, setPeriod] = useState('4weeks');
@@ -202,6 +202,58 @@ export default function TeamView({ teamStats, orgId }) {
           );
         })}
       </div>
+
+      {/* 部署間ベンチマーク比較 */}
+      {(() => {
+        const benchmarkTeams = teamStats.filter(ts => !ts.privacyFiltered && ts.stats);
+        if (benchmarkTeams.length < 2) return null;
+
+        const allAvg = benchmarkTeams.reduce((sum, ts) => sum + (ts.stats.avgStress || 0), 0) / benchmarkTeams.length;
+        const orgAvg = Math.round(allAvg);
+        const sorted = [...benchmarkTeams].sort((a, b) => (a.stats.avgStress || 0) - (b.stats.avgStress || 0));
+
+        return (
+          <>
+            <h3 className="adm-section-title">部署間ベンチマーク</h3>
+            <div className="adm-table-wrap">
+              <table className="adm-table">
+                <thead>
+                  <tr>
+                    <th>順位</th>
+                    <th>部署</th>
+                    <th>ストレススコア</th>
+                    <th>組織平均との差</th>
+                    <th>参加率</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((ts, idx) => {
+                    const score = ts.stats.avgStress || 0;
+                    const diff = score - orgAvg;
+                    const participation = ts.memberCount > 0
+                      ? Math.round((ts.stats.measurementCount / ts.memberCount) * 100)
+                      : 0;
+                    return (
+                      <tr key={ts.teamId}>
+                        <td>{idx + 1}</td>
+                        <td>{ts.teamName}</td>
+                        <td><StatusBadge score={score} /></td>
+                        <td style={{ color: diff > 5 ? '#ef4444' : diff < -5 ? '#22c55e' : '#9ca3af' }}>
+                          {diff > 0 ? '+' : ''}{diff}
+                        </td>
+                        <td>{participation}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="adm-privacy-note">
+              ※ 組織全体の平均ストレススコア: {orgAvg}（{benchmarkTeams.length}部署の集計）
+            </p>
+          </>
+        );
+      })()}
     </div>
   );
 }

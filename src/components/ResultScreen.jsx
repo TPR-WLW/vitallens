@@ -6,7 +6,7 @@ import { dataService } from '../services/index.js';
 import { getSession } from '../services/auth-local.js';
 
 export default function ResultScreen({ result, onRestart, onBack, onShowHistory, onContact }) {
-  const { hr, confidence, hrv, emotion } = result;
+  const { hr, confidence, hrv, emotion, algorithm } = result;
   const metrics = hrv?.metrics;
   const freqMetrics = hrv?.freqMetrics;
   const stress = hrv?.stress;
@@ -35,6 +35,7 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
             respiratory: result.hrv?.freqMetrics?.respiratory || null,
             stressScore: result.hrv?.stress?.score || 0,
             qualityGrade: result.hrv?.quality?.grade || 'C',
+            algorithm: result.algorithm || null,
             emotionSummary: result.emotion?.summary || null,
           }).catch(() => {});
         }
@@ -407,6 +408,12 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
                 <span>サンプル数</span>
                 <span>{result.samples}</span>
               </div>
+              {algorithm && (
+                <div className="quality-row">
+                  <span>解析アルゴリズム</span>
+                  <span>{algorithm}</span>
+                </div>
+              )}
               {condition.hasEmotion && emotion?.history && (
                 <div className="quality-row">
                   <span>表情フレーム数</span>

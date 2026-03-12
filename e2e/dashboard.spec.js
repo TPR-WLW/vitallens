@@ -274,6 +274,85 @@ test.describe('ダッシュボード（新規登録→サンプルデータ）',
   });
 });
 
+test.describe('ダッシュボード 通知・印刷・ベンチマーク', () => {
+  test.beforeEach(async ({ page }) => {
+    await skipOnboarding(page);
+    await page.goto('/');
+  });
+
+  async function registerAndLoadSample(page) {
+    const hamburger = page.locator('.nav-hamburger');
+    if (await hamburger.isVisible()) await hamburger.click();
+    await page.locator('button.btn-nav-secondary', { hasText: 'チーム管理' }).click();
+    await expect(page.locator('.adm-login-page')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.adm-login-tab', { hasText: '新規登録' }).click();
+    const timestamp = Date.now();
+    await page.locator('.adm-login-form input[type="text"]').first().fill('通知テスト');
+    await page.locator('.adm-login-form input[type="email"]').fill(`notify-${timestamp}@example.co.jp`);
+    const passwords = page.locator('.adm-login-form input[type="password"]');
+    await passwords.nth(0).fill('testpassword123');
+    await passwords.nth(1).fill('testpassword123');
+    await page.locator('.adm-login-form .adm-btn-primary').click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 15000 });
+
+    // Load sample data
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+    }
+    await page.locator('.adm-sidebar-btn', { hasText: 'サンプルデータ読込' }).click();
+    await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('.adm-sample-banner')).toContainText('サンプルデータを表示中です', { timeout: 10000 });
+  }
+
+  test('印刷ボタンが表示されクリック可能', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    // Print button should be visible
+    const printBtn = page.locator('.adm-print-btn');
+    await expect(printBtn).toBeVisible();
+    await expect(printBtn).toContainText('印刷');
+    await expect(printBtn).toHaveAttribute('title', '印刷 / PDF出力');
+  });
+
+  test('アラートバナーのrole=alert属性が正しい', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    // AlertBanner may or may not be visible depending on stress scores
+    // Verify: if it exists, it has role="alert" and correct structure
+    const alertBanner = page.locator('.adm-alert-banner');
+    const count = await alertBanner.count();
+    if (count > 0) {
+      await expect(alertBanner).toHaveAttribute('role', 'alert');
+      await expect(page.locator('.adm-alert-icon')).toContainText('⚠');
+      await expect(page.locator('.adm-alert-content strong')).toContainText('要注意');
+    }
+    // If no alert, that's also valid (all teams below threshold)
+  });
+
+  test('チームビューに部署間ベンチマークが表示される', async ({ page }) => {
+    await registerAndLoadSample(page);
+
+    // Navigate to team view
+    const admHamburger = page.locator('.adm-hamburger');
+    if (await admHamburger.isVisible()) {
+      await admHamburger.click();
+      await expect(page.locator('.adm-sidebar.open')).toBeVisible();
+    }
+    await page.locator('.adm-nav-item', { hasText: 'チーム' }).click();
+    await expect(page.locator('.adm-view-title')).toContainText('チーム ストレス推移');
+
+    // Benchmark section should be visible (sample data has 3 departments)
+    await expect(page.locator('.adm-section-title', { hasText: '部署間ベンチマーク' })).toBeVisible({ timeout: 10000 });
+
+    // Table should have rows for departments
+    const benchmarkRows = page.locator('.adm-table').last().locator('tbody tr');
+    await expect(benchmarkRows).toHaveCount(3); // 3 departments in sample data
+  });
+});
+
 test.describe('ダッシュボード モバイルサイドバー', () => {
   test.beforeEach(async ({ page }) => {
     await skipOnboarding(page);
