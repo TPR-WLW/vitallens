@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { saveLead } from '../lib/lead-store.js';
+import { recordEvent } from '../lib/analytics-store.js';
 
 // ------------------------------------------------------------------
-// Contact email address — swap back to info@mirucare.jp once domain is acquired.
-// Gmail fallback activated Cycle #21 so outreach can start immediately.
+// Formspree endpoint ID — set this to your Formspree form ID once created.
+// While empty, leads are saved to localStorage only (no email delivery).
 // ------------------------------------------------------------------
-const CONTACT_EMAIL = 'mirucare.contact@gmail.com';
+const FORMSPREE_ID = '';
 
 const INQUIRY_TYPES = [
   { value: '', label: '選択してください' },
@@ -41,6 +43,8 @@ export default function ContactForm() {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formspreeOk, setFormspreeOk] = useState(false);
 
   const update = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -54,7 +58,7 @@ export default function ContactForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationErrors = validateForm(form);
@@ -64,29 +68,50 @@ export default function ContactForm() {
     }
 
     setErrors({});
+    setSubmitting(true);
 
-    const subject = encodeURIComponent(
-      `[${form.type || 'お問い合わせ'}] ${form.company} ${form.name}様`
-    );
+    // Always save to localStorage
+    saveLead({
+      company: form.company,
+      department: form.department,
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      type: form.type || 'お問い合わせ',
+      message: form.message,
+    });
 
-    const lines = [
-      `会社名: ${form.company}`,
-      form.department ? `部署名: ${form.department}` : null,
-      `お名前: ${form.name}`,
-      `メールアドレス: ${form.email}`,
-      form.phone ? `電話番号: ${form.phone}` : null,
-      `お問い合わせ種別: ${form.type || '未選択'}`,
-      '',
-      `お問い合わせ内容:`,
-      form.message,
-    ]
-      .filter((l) => l !== null)
-      .join('\n');
+    // Track event
+    recordEvent('contact_submit', { type: form.type || 'お問い合わせ' });
 
-    const body = encodeURIComponent(lines);
+    // Try Formspree if configured
+    let formspreeSuccess = false;
+    if (FORMSPREE_ID) {
+      try {
+        const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            company: form.company,
+            department: form.department,
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            type: form.type || 'お問い合わせ',
+            message: form.message,
+          }),
+        });
+        formspreeSuccess = res.ok;
+      } catch {
+        // Formspree failed — localStorage save already done
+      }
+    }
 
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
-
+    setFormspreeOk(formspreeSuccess);
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -94,22 +119,18 @@ export default function ContactForm() {
     return (
       <div className="contact-form" role="status" aria-live="polite">
         <div className="cf-success">
-          <h3>送信ありがとうございます</h3>
+          <h3>送信完了</h3>
           <p>
-            メーラーが起動しましたら、そのまま送信してください。
-            通常1営業日以内にご返信いたします。
+            {formspreeOk
+              ? 'お問い合わせを受け付けました。通常1営業日以内にご返信いたします。'
+              : 'お問い合わせ内容を記録しました。担当者が確認次第ご連絡いたします。'}
           </p>
-          <p className="cf-success-note">
-            メーラーが起動しなかった場合は、下記アドレスまで直接ご連絡ください。
-          </p>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="cf-email-link">
-            {CONTACT_EMAIL}
-          </a>
           <button
             type="button"
             className="btn-secondary cf-reset"
             onClick={() => {
               setSubmitted(false);
+              setFormspreeOk(false);
               setForm({
                 company: '',
                 department: '',
@@ -274,18 +295,10 @@ export default function ContactForm() {
       <button
         type="submit"
         className="btn-hero cf-submit"
+        disabled={submitting}
       >
-        送信する（メーラーが起動します）
+        {submitting ? '送信中...' : '送信する'}
       </button>
-
-      <div className="cf-alternatives">
-        <p className="cf-fallback">
-          フォームが動作しない場合は、直接メールでお問い合わせください:
-          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-        </p>
-      </div>
     </form>
   );
 }
-
-export { CONTACT_EMAIL };

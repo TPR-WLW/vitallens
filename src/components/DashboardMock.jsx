@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { CONTACT_EMAIL } from './ContactForm.jsx';
 import {
   generateAllData,
   filterData,
@@ -96,7 +95,7 @@ ${deptSummary.map((d) => `<tr><td>${d.deptName}</td><td>${d.members}</td><td>${d
 <tr><td>平均ストレス</td>${monthlyTrend.map((m) => `<td>${m.avgStress}</td>`).join('')}</tr>
 <tr><td>参加率</td>${monthlyTrend.map((m) => `<td>${m.avgParticipation}%</td>`).join('')}</tr>
 <tr><td>コンディション</td>${monthlyTrend.map((m) => `<td>${m.avgCondition}</td>`).join('')}</tr></table>
-<p class="footer">※ 本レポートはデモ用サンプルデータに基づくものです。実際のデータとは異なります。<br>※ 本サービスは医療機器ではありません。計測値は参考値としてご活用ください。<br>ミルケア（MiruCare）— ${CONTACT_EMAIL}</p>
+<p class="footer">※ 本レポートはデモ用サンプルデータに基づくものです。実際のデータとは異なります。<br>※ 本サービスは医療機器ではありません。計測値は参考値としてご活用ください。<br>ミルケア（MiruCare）— mirucare.jp</p>
 <button onclick="window.print()" style="margin-top:16px;padding:10px 24px;background:#4f8cff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">印刷 / PDF保存</button>
 </body></html>`);
   printWindow.document.close();

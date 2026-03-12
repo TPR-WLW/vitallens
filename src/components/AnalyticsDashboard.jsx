@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { getPageViewStats, getEventStats, clearAnalytics } from '../lib/analytics-store.js';
 import { getErrorStats, clearErrorLog } from '../lib/error-monitor.js';
 import { getActiveTests, getTestResults } from '../lib/ab-test.js';
+import { getLeads, getLeadStats, clearLeads } from '../lib/lead-store.js';
 import '../styles/analytics.css';
 
 const EVENT_LABELS = {
@@ -73,6 +74,8 @@ export default function AnalyticsDashboard({ onBack }) {
   const pv = getPageViewStats();
   const ev = getEventStats();
   const err = getErrorStats();
+  const leadStats = getLeadStats();
+  const recentLeads = getLeads().slice(0, 20);
   const abTests = getActiveTests();
   const abResults = abTests.reduce((acc, name) => {
     acc[name] = getTestResults(name);
@@ -82,6 +85,7 @@ export default function AnalyticsDashboard({ onBack }) {
   const handleClearAll = useCallback(() => {
     clearAnalytics();
     clearErrorLog();
+    clearLeads();
     setRefresh((n) => n + 1);
   }, []);
 
@@ -128,6 +132,8 @@ export default function AnalyticsDashboard({ onBack }) {
             variant={Object.values(err.last24h).reduce((s, n) => s + n, 0) > 0 ? 'danger' : ''}
           />
           <KpiCard value={err.measureTotal} label="Total Measures" />
+          <KpiCard value={leadStats.total} label="Leads (Total)" />
+          <KpiCard value={leadStats.last7d} label="Leads (7d)" />
         </div>
 
         {/* Daily PV Chart */}
@@ -274,6 +280,31 @@ export default function AnalyticsDashboard({ onBack }) {
             </table>
           </div>
         )}
+
+        {/* Leads */}
+        <div className="analytics-section">
+          <h2>Leads</h2>
+          {recentLeads.length > 0 ? (
+            <table className="analytics-table">
+              <thead>
+                <tr><th>Time</th><th>Company</th><th>Name</th><th>Email</th><th>Type</th></tr>
+              </thead>
+              <tbody>
+                {recentLeads.map((l, i) => (
+                  <tr key={i}>
+                    <td className="analytics-ts">{formatTime(l.ts)}</td>
+                    <td>{l.company}</td>
+                    <td>{l.name}</td>
+                    <td>{l.email}</td>
+                    <td>{l.type || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="analytics-empty">No leads yet</p>
+          )}
+        </div>
 
         {/* Recent Events */}
         {ev.recent.length > 0 && (

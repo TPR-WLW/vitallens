@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
+import ContactForm from './ContactForm.jsx';
 import '../styles/landing.css';
 
 const LogoSvg = ({ size = 32 }) => (
@@ -363,7 +363,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             <div className="company-row">
               <span className="company-label">連絡先</span>
               <span className="company-value">
-                <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+                <a href="#contact">お問い合わせフォーム</a>
               </span>
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             </p>
 
             <h3>7. お問い合わせ窓口</h3>
-            <p>ミルケア運営チーム<br /><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+            <p>ミルケア運営チーム<br /><a href="#contact">お問い合わせフォームよりご連絡ください</a></p>
 
             <p className="privacy-updated">最終更新: 2026年3月</p>
           </div>

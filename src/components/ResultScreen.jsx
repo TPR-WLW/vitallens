@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { CONTACT_EMAIL } from './ContactForm.jsx';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
 import { saveEntry } from '../lib/history.js';
 import { printReport } from '../lib/report-pdf.js';
 
-export default function ResultScreen({ result, onRestart, onBack, onShowHistory }) {
+export default function ResultScreen({ result, onRestart, onBack, onShowHistory, onContact }) {
   const { hr, confidence, hrv, emotion } = result;
   const metrics = hrv?.metrics;
   const stress = hrv?.stress;
@@ -393,7 +392,21 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory 
           </p>
           <a
             className="btn-primary btn-cta-enterprise"
-            href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('[法人導入相談] お問い合わせ')}`}
+            href="#contact"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onContact) {
+                onContact();
+              } else if (onBack) {
+                onBack();
+                setTimeout(() => {
+                  const el = document.getElementById('contact');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              } else {
+                window.location.hash = '#contact';
+              }
+            }}
           >
             法人導入について相談する
           </a>
