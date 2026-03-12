@@ -179,6 +179,14 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
           <h2>ミルケア</h2>
         </div>
 
+        {/* 組織切替（マルチテナント準備） */}
+        <div className="adm-org-switcher">
+          <div className="adm-org-current" title={`組織ID: ${session.orgId}`}>
+            <span className="adm-org-icon">🏢</span>
+            <span className="adm-org-name">{orgName || '組織名未設定'}</span>
+          </div>
+        </div>
+
         <nav className="adm-sidebar-nav">
           {navItems.map(item => (
             <button

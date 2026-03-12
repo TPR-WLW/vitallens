@@ -2006,3 +2006,43 @@
   background: var(--color-surface, #fff);
   color: var(--color-text, #1f2937);
 }
+
+/* 最終計測日 警告（7日超） */
+.adm-last-measure-warn {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* 計測スケジュール設定 */
+.adm-schedule-select {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius, 8px);
+  font-size: 0.9rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #1f2937);
+}
+
+/* 組織切替（マルチテナント） */
+.adm-org-switcher {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+.adm-org-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius, 8px);
+  background: rgba(79, 140, 255, 0.08);
+  cursor: default;
+}
+.adm-org-icon { font-size: 1.1rem; }
+.adm-org-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text, #1f2937);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

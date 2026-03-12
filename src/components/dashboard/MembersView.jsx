@@ -8,6 +8,7 @@ export default function MembersView({ session, teams, onRefresh }) {
   const [expandedMemberId, setExpandedMemberId] = useState(null);
   const [timelineData, setTimelineData] = useState(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [lastMeasurementDates, setLastMeasurementDates] = useState({});
 
   useEffect(() => {
     loadMembers();
@@ -15,14 +16,12 @@ export default function MembersView({ session, teams, onRefresh }) {
 
   async function loadMembers() {
     const users = await dataService.getUsersByOrg(session.orgId);
-    // 各ユーザーのチーム情報を取得
-    const enriched = [];
-    for (const u of users) {
-      const memberships = await dataService.getTeamMembers
-        ? null : null; // チーム情報はteamMembershipsから
-      enriched.push(u);
-    }
     setMembers(users);
+    // 最終計測日を取得
+    try {
+      const dates = await dataService.getLastMeasurementDates(session.orgId);
+      setLastMeasurementDates(dates);
+    } catch { /* ignore */ }
   }
 
   async function handleMemberClick(memberId) {
@@ -85,6 +84,7 @@ export default function MembersView({ session, teams, onRefresh }) {
               <th>表示名</th>
               <th>ロール</th>
               <th>参加日</th>
+              <th>最終計測</th>
             </tr>
           </thead>
           <tbody>
@@ -105,10 +105,15 @@ export default function MembersView({ session, teams, onRefresh }) {
                     </td>
                     <td>{m.role === 'admin' ? '管理者' : 'メンバー'}</td>
                     <td>{new Date(m.createdAt).toLocaleDateString('ja-JP')}</td>
+                    <td className={lastMeasurementDates[m.id] && (Date.now() - new Date(lastMeasurementDates[m.id]).getTime() > 7 * 24 * 60 * 60 * 1000) ? 'adm-last-measure-warn' : ''}>
+                      {lastMeasurementDates[m.id]
+                        ? new Date(lastMeasurementDates[m.id]).toLocaleDateString('ja-JP')
+                        : '未計測'}
+                    </td>
                   </tr>
                   {isOwn && isExpanded && (
                     <tr>
-                      <td colSpan={3} style={{ padding: 0, border: 'none' }}>
+                      <td colSpan={4} style={{ padding: 0, border: 'none' }}>
                         <ScoreTimeline
                           data={timelineData}
                           loading={timelineLoading}

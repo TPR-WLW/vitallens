@@ -20,6 +20,10 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
   const [goalParticipation, setGoalParticipation] = useState(80);
   const [goalMsg, setGoalMsg] = useState(null);
 
+  // 計測スケジュール設定
+  const [measureSchedule, setMeasureSchedule] = useState('daily');
+  const [scheduleMsg, setScheduleMsg] = useState(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -27,6 +31,7 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
         if (config.alertThreshold != null) setAlertThreshold(config.alertThreshold);
         if (config.goalStress != null) setGoalStress(config.goalStress);
         if (config.goalParticipation != null) setGoalParticipation(config.goalParticipation);
+        if (config.measureSchedule) setMeasureSchedule(config.measureSchedule);
       } catch { /* デフォルト値を使用 */ }
     })();
   }, [session.orgId]);
@@ -69,6 +74,18 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
       if (onSettingsChange) onSettingsChange({ goalStress, goalParticipation });
     } catch (err) {
       setGoalMsg({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    setScheduleMsg(null);
+    const labels = { daily: '毎日', thrice: '週3回', weekly: '週1回' };
+    try {
+      await dataService.updateOrgSettings(session.orgId, { measureSchedule });
+      setScheduleMsg({ type: 'success', text: `計測スケジュールを「${labels[measureSchedule]}」に設定しました` });
+      if (onSettingsChange) onSettingsChange({ measureSchedule });
+    } catch (err) {
+      setScheduleMsg({ type: 'error', text: err.message });
     }
   };
 
@@ -210,6 +227,37 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, onS
 
           <button className="adm-btn-primary" onClick={handleSaveGoals}>
             目標を保存
+          </button>
+        </div>
+      </div>
+
+      {/* 計測スケジュール設定 */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">計測スケジュール設定</h3>
+        <div className="adm-settings-card">
+          {scheduleMsg && (
+            <div className={scheduleMsg.type === 'success' ? 'adm-settings-success' : 'adm-login-error'}>
+              {scheduleMsg.text}
+            </div>
+          )}
+          <div className="adm-settings-row">
+            <span className="adm-settings-label">推奨計測頻度</span>
+            <select
+              value={measureSchedule}
+              onChange={(e) => setMeasureSchedule(e.target.value)}
+              className="adm-schedule-select"
+              aria-label="推奨計測頻度"
+            >
+              <option value="daily">毎日</option>
+              <option value="thrice">週3回</option>
+              <option value="weekly">週1回</option>
+            </select>
+          </div>
+          <p className="adm-privacy-note">
+            メンバーへの推奨計測頻度です。計測リマインダーの判定基準に使用されます。
+          </p>
+          <button className="adm-btn-primary" onClick={handleSaveSchedule}>
+            スケジュールを保存
           </button>
         </div>
       </div>

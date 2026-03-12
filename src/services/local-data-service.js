@@ -440,6 +440,18 @@ export class LocalDataService {
     return org.config;
   }
 
+  async getLastMeasurementDates(orgId) {
+    const measurements = await getByIndex('measurements', 'orgId', orgId);
+    const lastDates = {};
+    for (const m of measurements) {
+      const existing = lastDates[m.userId];
+      if (!existing || new Date(m.timestamp) > new Date(existing)) {
+        lastDates[m.userId] = m.timestamp;
+      }
+    }
+    return lastDates;
+  }
+
   async deleteAllData() {
     await clearAll();
   }
