@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import LandingPage from './components/LandingPage.jsx';
 import StartScreen from './components/StartScreen.jsx';
 import MeasureScreen from './components/MeasureScreen.jsx';
 import DemoMeasureScreen from './components/DemoMeasureScreen.jsx';
-import ResultScreen from './components/ResultScreen.jsx';
-import HistoryScreen from './components/HistoryScreen.jsx';
-import DashboardMock from './components/DashboardMock.jsx';
 import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
 import OnboardingOverlay from './components/OnboardingOverlay.jsx';
 import { isFirstVisit, completeOnboarding } from './lib/onboarding.js';
 import './styles/app.css';
+
+// Lazy-loaded heavy components (split into separate chunks)
+const ResultScreen = lazy(() => import('./components/ResultScreen.jsx'));
+const HistoryScreen = lazy(() => import('./components/HistoryScreen.jsx'));
+const DashboardMock = lazy(() => import('./components/DashboardMock.jsx'));
 
 const SCREENS = {
   LANDING: 'landing',
@@ -128,18 +130,28 @@ export default function App() {
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingOverlay onComplete={handleOnboardingComplete} />}
       {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />}
-      {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
-      {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}
+      <Suspense fallback={<div className="loading-fallback">読み込み中...</div>}>
+        {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
+        {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}
+        {screen === SCREENS.SAMPLE && result && (
+          <ResultScreen
+            result={result}
+            onRestart={() => setScreen(SCREENS.START)}
+            onBack={handleBackToLanding}
+            onShowHistory={handleShowHistory}
+          />
+        )}
+        {screen === SCREENS.RESULT && result && (
+          <ResultScreen
+            result={result}
+            onRestart={handleRestart}
+            onBack={handleBackToLanding}
+            onShowHistory={handleShowHistory}
+          />
+        )}
+      </Suspense>
       {screen === SCREENS.START && (
         <StartScreen onStart={handleStart} onBack={handleBackToLanding} onShowSample={handleShowSample} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />
-      )}
-      {screen === SCREENS.SAMPLE && result && (
-        <ResultScreen
-          result={result}
-          onRestart={() => setScreen(SCREENS.START)}
-          onBack={handleBackToLanding}
-          onShowHistory={handleShowHistory}
-        />
       )}
       {screen === SCREENS.DEMO && (
         <DemoMeasureScreen
@@ -153,14 +165,6 @@ export default function App() {
           onCancel={handleCancel}
           quickMode={quickMode}
           initialStream={cameraStream}
-        />
-      )}
-      {screen === SCREENS.RESULT && result && (
-        <ResultScreen
-          result={result}
-          onRestart={handleRestart}
-          onBack={handleBackToLanding}
-          onShowHistory={handleShowHistory}
         />
       )}
     </div>

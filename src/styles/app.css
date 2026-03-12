@@ -27,6 +27,15 @@ html, body, #root {
   width: 100%;
 }
 
+.loading-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
+
 body.measuring {
   overflow: hidden;
 }

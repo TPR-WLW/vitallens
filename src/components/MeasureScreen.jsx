@@ -16,6 +16,7 @@ const QUICK_CHECK_DURATION = 60;  // 1 minute minimum for basic HRV
 const HRV_MIN_DURATION = 45;      // Minimum seconds before attempting HRV
 const EMOTION_FRAME_INTERVAL = 4; // Run emotion every 4th frame (~7.5fps at 30fps)
 const FACE_LOST_PAUSE_DELAY = 3;  // Seconds without face before auto-pause
+const DISPLAY_UPDATE_INTERVAL = 200; // Throttle display updates to 5fps
 
 export default function MeasureScreen({ onComplete, onCancel, quickMode = false, initialStream = null }) {
   const cameraRef = useRef(null);
@@ -28,20 +29,25 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const landmarkerReadyRef = useRef(false);
   const faceLostTimeRef = useRef(null);
   const pausedTimeRef = useRef(0); // Total paused duration in ms
+  const lastDisplayUpdateRef = useRef(0); // Throttle display state updates
 
-  const duration = quickMode ? QUICK_CHECK_DURATION : MEASUREMENT_DURATION;
+  // Refs for values used inside processFrame (avoid dependency array)
+  const onCompleteRef = useRef(onComplete);
+  const durationRef = useRef(quickMode ? QUICK_CHECK_DURATION : MEASUREMENT_DURATION);
+  const displayRef = useRef({
+    elapsed: 0, faceDetected: false, currentHR: null, status: 'カメラを起動中...',
+    signalQuality: 0, sqi: null, phase: 'init', emotionStatus: 'loading',
+    paused: false, calibrationDone: false,
+  });
+
+  const duration = durationRef.current;
+
+  // Keep onComplete ref in sync
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   const [stream, setStream] = useState(null);
-  const [elapsed, setElapsed] = useState(0);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [currentHR, setCurrentHR] = useState(null);
-  const [status, setStatus] = useState('カメラを起動中...');
-  const [signalQuality, setSignalQuality] = useState(0);
-  const [sqi, setSqi] = useState(null);
-  const [phase, setPhase] = useState('init'); // init | calibrating | measuring | hrv
-  const [emotionStatus, setEmotionStatus] = useState('loading');
-  const [paused, setPaused] = useState(false);
-  const [calibrationDone, setCalibrationDone] = useState(false);
+  // Single display state object — updated at throttled rate from refs
+  const [display, setDisplay] = useState(() => ({ ...displayRef.current }));
 
   useEffect(() => {
     let cancelled = false;
@@ -55,9 +61,10 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         }
         streamRef.current = mediaStream;
         setStream(mediaStream);
-        setStatus('顔をガイドの中に合わせてください');
+        displayRef.current.status = '顔をガイドの中に合わせてください';
       } catch (err) {
-        setStatus('カメラエラー: ' + err.message);
+        displayRef.current.status = 'カメラエラー: ' + err.message;
+        setDisplay({ ...displayRef.current });
       }
     }
 
@@ -67,12 +74,13 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       .then(() => {
         if (!cancelled) {
           landmarkerReadyRef.current = true;
-          setEmotionStatus('calibrating');
+          displayRef.current.emotionStatus = 'calibrating';
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setEmotionStatus('error');
+          displayRef.current.emotionStatus = 'error';
+          setDisplay({ ...displayRef.current });
         }
       });
 
@@ -92,6 +100,14 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancel]);
 
+  // Flush display refs → React state (throttled helper)
+  const flushDisplay = useCallback((now) => {
+    if (now - lastDisplayUpdateRef.current >= DISPLAY_UPDATE_INTERVAL) {
+      lastDisplayUpdateRef.current = now;
+      setDisplay({ ...displayRef.current });
+    }
+  }, []);
+
   const processFrame = useCallback(() => {
     if (!cameraRef.current) {
       animFrameRef.current = requestAnimationFrame(processFrame);
@@ -108,6 +124,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     }
 
     const now = performance.now();
+    const d = displayRef.current;
+    const dur = durationRef.current;
 
     if (!startTimeRef.current) {
       startTimeRef.current = now;
@@ -115,12 +133,12 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
 
     // Subtract paused time from elapsed
     const elapsedSec = (now - startTimeRef.current - pausedTimeRef.current) / 1000;
-    setElapsed(Math.min(elapsedSec, duration));
+    d.elapsed = Math.min(elapsedSec, dur);
 
     // ----- rPPG Pipeline (EVERY frame, unchanged) -----
     const roi = extractROI(canvas, ctx, video);
     const faceNow = roi.valid;
-    setFaceDetected(faceNow);
+    d.faceDetected = faceNow;
 
     // ----- Auto-pause on face lost -----
     if (!faceNow) {
@@ -128,23 +146,24 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         faceLostTimeRef.current = now;
       }
       const lostDuration = (now - faceLostTimeRef.current) / 1000;
-      if (lostDuration >= FACE_LOST_PAUSE_DELAY && !paused && elapsedSec > 5) {
-        setPaused(true);
-        setStatus('顔が検出されていません — 一時停止中');
+      if (lostDuration >= FACE_LOST_PAUSE_DELAY && !d.paused && elapsedSec > 5) {
+        d.paused = true;
+        d.status = '顔が検出されていません — 一時停止中';
+        setDisplay({ ...d }); // Immediate update for pause state
       }
     } else {
       if (faceLostTimeRef.current) {
-        // If we were paused, accumulate paused time
-        if (paused) {
+        if (d.paused) {
           pausedTimeRef.current += now - faceLostTimeRef.current;
-          setPaused(false);
+          d.paused = false;
+          setDisplay({ ...d }); // Immediate update for unpause
         }
         faceLostTimeRef.current = null;
       }
     }
 
     // Skip processing while paused
-    if (paused) {
+    if (d.paused) {
       animFrameRef.current = requestAnimationFrame(processFrame);
       return;
     }
@@ -155,37 +174,36 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       if (processorRef.current.isReady) {
         const result = processorRef.current.computeHeartRate();
         if (result && result.hr > 0) {
-          setCurrentHR(result.hr);
-          setSignalQuality(result.confidence);
-          if (result.sqi) setSqi(result.sqi);
+          d.currentHR = result.hr;
+          d.signalQuality = result.confidence;
+          if (result.sqi) d.sqi = result.sqi;
 
           if (elapsedSec < 15) {
-            setPhase('calibrating');
-            setStatus('キャリブレーション中...');
+            d.phase = 'calibrating';
+            d.status = 'キャリブレーション中...';
           } else if (elapsedSec < HRV_MIN_DURATION) {
-            // Calibration just completed — show visual feedback
-            if (!calibrationDone) {
-              setCalibrationDone(true);
+            if (!d.calibrationDone) {
+              d.calibrationDone = true;
             }
-            setPhase('measuring');
+            d.phase = 'measuring';
             const sqiScore = result.sqi?.score ?? result.confidence;
             if (sqiScore < 0.25) {
-              setStatus('計測中 — 動かないでください...');
+              d.status = '計測中 — 動かないでください...';
             } else if (result.sqi?.components?.channelStability < 0.4) {
-              setStatus('計測中 — 照明が不安定です、位置を調整してください');
+              d.status = '計測中 — 照明が不安定です、位置を調整してください';
             } else {
-              setStatus('心拍を読み取っています...');
+              d.status = '心拍を読み取っています...';
             }
           } else {
-            setPhase('hrv');
-            setStatus('HRV分析中 — そのままお待ちください...');
+            d.phase = 'hrv';
+            d.status = 'HRV分析中 — そのままお待ちください...';
           }
         }
       } else {
-        setStatus('データ収集中 — じっとしていてください...');
+        d.status = 'データ収集中 — じっとしていてください...';
       }
     } else {
-      setStatus('顔をガイドの中に合わせてください');
+      d.status = '顔をガイドの中に合わせてください';
     }
 
     // ----- Emotion Pipeline (every Nth frame, additive only) -----
@@ -197,20 +215,19 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       const landmarks = detectLandmarks(video, Math.round(now));
       if (landmarks) {
         const emotionResult = emotionRef.current.processLandmarks(landmarks, now);
-        if (emotionResult.calibrating) {
-          setEmotionStatus('calibrating');
-        } else {
-          setEmotionStatus('active');
-        }
+        d.emotionStatus = emotionResult.calibrating ? 'calibrating' : 'active';
       }
     }
 
+    // Throttled display update (5fps instead of ~30fps)
+    flushDisplay(now);
+
     // ----- Completion -----
-    if (elapsedSec >= duration) {
+    if (elapsedSec >= dur) {
       const finalResult = processorRef.current.computeHeartRate();
-      const hr = finalResult?.hr || currentHR || 0;
-      const confidence = finalResult?.confidence || signalQuality;
-      const finalSqi = finalResult?.sqi || sqi;
+      const hr = finalResult?.hr || d.currentHR || 0;
+      const confidence = finalResult?.confidence || d.signalQuality;
+      const finalSqi = finalResult?.sqi || d.sqi;
 
       let hrvResult = null;
       if (finalResult?.signal && finalResult?.timestamps) {
@@ -226,11 +243,11 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
           }
         : null;
 
-      onComplete({
+      onCompleteRef.current({
         hr,
         confidence,
         sqi: finalSqi,
-        duration,
+        duration: dur,
         samples: processorRef.current.sampleCount,
         hrv: hrvResult,
         emotion: emotionData,
@@ -239,7 +256,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     }
 
     animFrameRef.current = requestAnimationFrame(processFrame);
-  }, [onComplete, currentHR, signalQuality, duration, paused, calibrationDone]);
+  }, [flushDisplay]);
 
   useEffect(() => {
     if (stream) {
@@ -249,6 +266,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, [stream, processFrame]);
+
+  const { elapsed, faceDetected, currentHR, status, signalQuality, sqi, phase, emotionStatus, paused, calibrationDone } = display;
 
   const progress = Math.min((elapsed / duration) * 100, 100);
   const remainingSec = Math.max(0, Math.ceil(duration - elapsed));

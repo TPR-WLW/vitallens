@@ -2,6 +2,13 @@ import { useState } from 'react';
 import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
 import '../styles/landing.css';
 
+const LogoSvg = ({ size = 32 }) => (
+  <svg viewBox="0 0 48 48" width={size} height={size} fill="none">
+    <circle cx="24" cy="24" r="22" stroke="#4f8cff" strokeWidth="3" />
+    <path d="M24 14c-4 0-8 3.5-8 9s4 11 8 15c4-4 8-9 8-15s-4-9-8-9z" fill="#4f8cff" opacity="0.85" />
+  </svg>
+);
+
 export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -16,10 +23,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
       <nav className="landing-nav">
         <div className="nav-inner">
           <div className="nav-logo">
-            <svg viewBox="0 0 48 48" width="32" height="32" fill="none">
-              <circle cx="24" cy="24" r="22" stroke="#4f8cff" strokeWidth="3" />
-              <path d="M24 14c-4 0-8 3.5-8 9s4 11 8 15c4-4 8-9 8-15s-4-9-8-9z" fill="#4f8cff" opacity="0.85" />
-            </svg>
+            <LogoSvg />
             <span>ミルケア</span>
           </div>
           <button
@@ -409,10 +413,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
       <footer className="landing-footer">
         <div className="footer-inner">
           <div className="footer-brand">
-            <svg viewBox="0 0 48 48" width="24" height="24" fill="none">
-              <circle cx="24" cy="24" r="22" stroke="#4f8cff" strokeWidth="3" />
-              <path d="M24 14c-4 0-8 3.5-8 9s4 11 8 15c4-4 8-9 8-15s-4-9-8-9z" fill="#4f8cff" opacity="0.85" />
-            </svg>
+            <LogoSvg size={24} />
             <span>ミルケア</span>
           </div>
           <div className="footer-links">
