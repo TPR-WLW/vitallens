@@ -57,4 +57,7 @@ export default defineConfig({
     }),
   ],
   base: '/vitallens/',
+  test: {
+    exclude: ['e2e/**', 'node_modules/**'],
+  },
 })

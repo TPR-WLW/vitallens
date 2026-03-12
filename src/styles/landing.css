@@ -56,7 +56,7 @@
 
 .btn-nav {
   padding: 8px 20px;
-  background: var(--color-primary);
+  background: var(--color-primary-btn);
   color: white;
   border: none;
   border-radius: var(--radius-sm);
@@ -191,7 +191,7 @@
 .btn-hero {
   display: inline-block;
   padding: 16px 36px;
-  background: var(--color-primary);
+  background: var(--color-primary-btn);
   color: white;
   border: none;
   border-radius: var(--radius);
@@ -800,17 +800,15 @@
 
 .footer-disclaimer {
   font-size: 0.78rem;
-  color: var(--color-text-muted);
+  color: #8a8f99;
   line-height: 1.6;
   max-width: 560px;
   margin: 0 auto 12px;
-  opacity: 0.7;
 }
 
 .footer-copy {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
-  opacity: 0.5;
+  color: #8a8f99;
 }
 
 /* ===== Responsive ===== */
@@ -1001,7 +999,7 @@
 
 .cf-fallback a {
   color: var(--color-primary);
-  text-decoration: none;
+  text-decoration: underline;
   margin-left: 4px;
 }
 

@@ -150,7 +150,7 @@ export default function OnboardingOverlay({ onComplete }) {
             ref={nextBtnRef}
             className="onboarding-next"
             onClick={handleNext}
-            aria-label={isLastStep ? '計測をはじめる' : `次のステップへ: ${steps[step + 1]?.title || ''}`}
+            aria-label={isLastStep ? 'はじめる — 計測を開始' : `次へ — ${steps[step + 1]?.title || ''}`}
           >
             {isLastStep ? 'はじめる' : '次へ'}
           </button>

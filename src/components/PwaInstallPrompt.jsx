@@ -78,7 +78,7 @@ const styles = {
   },
   installBtn: {
     padding: '0.4rem 0.75rem',
-    background: '#4f8cff',
+    background: '#2563eb',
     color: '#fff',
     border: 'none',
     borderRadius: '0.375rem',

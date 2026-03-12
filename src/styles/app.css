@@ -3,6 +3,7 @@
 :root {
   --color-primary: #4f8cff;
   --color-primary-dark: #3a6fd8;
+  --color-primary-btn: #2563eb;
   --color-bg: #0f1117;
   --color-surface: #1a1d27;
   --color-surface-light: #252836;
@@ -1812,7 +1813,7 @@ body {
 .onboarding-next {
   flex: 1;
   padding: 12px 24px;
-  background: var(--color-primary);
+  background: var(--color-primary-btn);
   color: white;
   border: none;
   border-radius: var(--radius-sm);

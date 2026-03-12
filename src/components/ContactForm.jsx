@@ -274,7 +274,6 @@ export default function ContactForm() {
       <button
         type="submit"
         className="btn-hero cf-submit"
-        aria-label="お問い合わせ内容を送信する"
       >
         送信する（メーラーが起動します）
       </button>
