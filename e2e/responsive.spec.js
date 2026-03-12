@@ -50,7 +50,7 @@ test.describe('レスポンシブ表示テスト', () => {
     await expect(benefitCards).toHaveCount(6);
 
     const guideLinks = page.locator('.footer-guides a');
-    await expect(guideLinks).toHaveCount(5);
+    await expect(guideLinks).toHaveCount(9);
   });
 
   test('モバイルでデモフローが動作する', async ({ page }) => {

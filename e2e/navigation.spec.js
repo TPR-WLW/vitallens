@@ -43,7 +43,7 @@ test.describe('LP → 画面遷移', () => {
     const footer = page.locator('.landing-footer');
     await expect(footer.locator('a[href="#company"]')).toBeVisible();
     await expect(footer.locator('a[href="#contact"]')).toBeVisible();
-    await expect(footer.locator('.footer-guides a')).toHaveCount(5);
+    await expect(footer.locator('.footer-guides a')).toHaveCount(9);
   });
 
   test('プライバシーポリシーモーダルが開閉する', async ({ page }) => {
