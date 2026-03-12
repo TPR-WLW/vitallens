@@ -428,6 +428,10 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo })
             <a href="/vitallens/guides/stress-check-tools/">ツール比較ガイド</a>
             <span className="footer-sep">|</span>
             <a href="/vitallens/guides/health-management-certification/">健康経営認定ガイド</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/stress-check-howto/">実施手順ガイド</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/stress-check-analysis/">集団分析ガイド</a>
           </div>
           <p className="footer-disclaimer">
             本サービスは一般的なウェルネス指標の参考値を提供するものであり、医療機器ではありません。
