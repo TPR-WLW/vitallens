@@ -25,6 +25,10 @@
 html, body, #root {
   height: 100%;
   width: 100%;
+}
+
+/* Lock overflow only for the demo measurement screen */
+body.measuring {
   overflow: hidden;
 }
 

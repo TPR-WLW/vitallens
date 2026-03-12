@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function StartScreen({ onStart }) {
+export default function StartScreen({ onStart, onBack }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +28,11 @@ export default function StartScreen({ onStart }) {
   return (
     <div className="start-screen">
       <div className="start-content">
+        {onBack && (
+          <button className="btn-cancel" onClick={onBack} style={{ marginBottom: 16, alignSelf: 'flex-start' }}>
+            ← Back to Home
+          </button>
+        )}
         <div className="logo">
           <svg viewBox="0 0 48 48" width="64" height="64" fill="none">
             <circle cx="24" cy="24" r="22" stroke="#4f8cff" strokeWidth="3" />
