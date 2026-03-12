@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getPageViewStats, getEventStats, clearAnalytics } from '../lib/analytics-store.js';
 import { getErrorStats, clearErrorLog } from '../lib/error-monitor.js';
+import { getActiveTests, getTestResults } from '../lib/ab-test.js';
 import '../styles/analytics.css';
 
 const EVENT_LABELS = {
@@ -72,6 +73,11 @@ export default function AnalyticsDashboard({ onBack }) {
   const pv = getPageViewStats();
   const ev = getEventStats();
   const err = getErrorStats();
+  const abTests = getActiveTests();
+  const abResults = abTests.reduce((acc, name) => {
+    acc[name] = getTestResults(name);
+    return acc;
+  }, {});
 
   const handleClearAll = useCallback(() => {
     clearAnalytics();
@@ -199,6 +205,54 @@ export default function AnalyticsDashboard({ onBack }) {
             <p className="analytics-empty">No data</p>
           )}
         </div>
+
+        {/* A/B Tests */}
+        {abTests.length > 0 && (
+          <div className="analytics-section">
+            <h2>A/Bテスト</h2>
+            {abTests.map((testName) => {
+              const variants = abResults[testName];
+              const entries = Object.entries(variants);
+              const maxViews = Math.max(...entries.map(([, v]) => v.views), 1);
+              return (
+                <div key={testName} style={{ marginBottom: entries.length > 0 ? 16 : 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: 'var(--color-primary)' }}>
+                    {testName}
+                  </div>
+                  <table className="analytics-table">
+                    <thead>
+                      <tr>
+                        <th>Variant</th>
+                        <th>Views</th>
+                        <th>CV</th>
+                        <th>CVR</th>
+                        <th style={{ width: '40%' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.map(([variant, data]) => (
+                        <tr key={variant}>
+                          <td><span className="analytics-event-badge">{variant}</span></td>
+                          <td>{data.views}</td>
+                          <td>{data.conversions}</td>
+                          <td>{data.rate}%</td>
+                          <td>
+                            <div className="ab-bar-bg">
+                              <div
+                                className="ab-bar-fill"
+                                style={{ width: `${(data.views / maxViews) * 100}%` }}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Recent Errors */}
         {err.recentErrors.length > 0 && (

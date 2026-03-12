@@ -9,7 +9,7 @@ const LogoSvg = ({ size = 32 }) => (
   </svg>
 );
 
-export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory }) {
+export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory, ctaText = '無料デモを体験する' }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showStickyCta, setShowStickyCta] = useState(false);
@@ -71,7 +71,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             ウェアラブル不要。顔画像・映像の保存や送信は一切行いません。
           </p>
           <div className="hero-actions">
-            <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
+            <button className="btn-hero" onClick={onTryDemo}>{ctaText}</button>
             <button className="btn-hero-secondary" onClick={onStartDemo}>カメラなしでデモを見る</button>
           </div>
           <div className="hero-stats">
@@ -320,7 +320,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
             お手持ちのPCのカメラで、今すぐストレス測定をお試しいただけます。
             アカウント登録不要。データの保存や送信は一切行いません。
           </p>
-          <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
+          <button className="btn-hero" onClick={onTryDemo}>{ctaText}</button>
           <p className="cta-demo-alt">
             <button className="btn-text-link" onClick={onStartDemo}>カメラなしでデモを体験する &rarr;</button>
           </p>
@@ -425,7 +425,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
 
       {/* Sticky Mobile CTA */}
       <div className={`sticky-cta-bar ${showStickyCta ? 'sticky-cta-visible' : ''}`}>
-        <button className="btn-hero sticky-cta-btn" onClick={onTryDemo}>無料デモを体験する</button>
+        <button className="btn-hero sticky-cta-btn" onClick={onTryDemo}>{ctaText}</button>
       </div>
 
       {/* Footer */}

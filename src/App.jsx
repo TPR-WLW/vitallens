@@ -7,6 +7,7 @@ import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
 import OnboardingOverlay from './components/OnboardingOverlay.jsx';
 import { isFirstVisit, completeOnboarding } from './lib/onboarding.js';
 import { recordEvent } from './lib/analytics-store.js';
+import { getVariant, recordConversion } from './lib/ab-test.js';
 import './styles/app.css';
 
 // Lazy-loaded heavy components (split into separate chunks)
@@ -54,6 +55,12 @@ const SAMPLE_RESULT = {
   },
 };
 
+// A/B test: CTA button text
+const CTA_VARIANTS = {
+  A: '無料デモを体験する',
+  B: '今すぐストレスチェック',
+};
+
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.LANDING);
   const [result, setResult] = useState(null);
@@ -61,8 +68,12 @@ export default function App() {
   const [cameraStream, setCameraStream] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
+  const ctaVariant = getVariant('cta_text', ['A', 'B']);
+  const ctaText = CTA_VARIANTS[ctaVariant] || CTA_VARIANTS.A;
+
   const handleTryDemo = () => {
-    recordEvent('cta_click', { from: 'landing' });
+    recordEvent('cta_click', { from: 'landing', variant: ctaVariant });
+    recordConversion('cta_text', ctaVariant);
     setScreen(SCREENS.START);
   };
 
@@ -155,7 +166,7 @@ export default function App() {
     <div className="app">
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingOverlay onComplete={handleOnboardingComplete} />}
-      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />}
+      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} ctaText={ctaText} />}
       <Suspense fallback={<div className="loading-fallback">読み込み中...</div>}>
         {screen === SCREENS.ANALYTICS && <AnalyticsDashboard onBack={handleBackToLanding} />}
         {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
