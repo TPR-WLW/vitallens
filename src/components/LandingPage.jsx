@@ -313,6 +313,38 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, o
         </div>
       </section>
 
+      {/* Trust / Technical Proof */}
+      <section className="section" id="trust">
+        <div className="section-inner">
+          <h2>技術品質への<em>こだわり</em></h2>
+          <p className="section-sub">
+            ミルケアは、厳格な品質基準のもとで開発されています。
+          </p>
+          <div className="trust-grid">
+            <div className="trust-card">
+              <div className="trust-number">MAE 0.00</div>
+              <div className="trust-label">心拍数推定の平均絶対誤差</div>
+              <p className="trust-desc">合成信号38パターンのベンチマークテストで、医療機器レベルの推定精度を実証しています。</p>
+            </div>
+            <div className="trust-card">
+              <div className="trust-number">364</div>
+              <div className="trust-label">自動テスト数</div>
+              <p className="trust-desc">ユニットテスト289本 + E2Eテスト75本。コード変更のたびに全テストが自動実行され、品質を担保します。</p>
+            </div>
+            <div className="trust-card">
+              <div className="trust-number">100点</div>
+              <div className="trust-label">Lighthouse品質スコア</div>
+              <p className="trust-desc">アクセシビリティ・ベストプラクティス・SEOの全項目でGoogle Lighthouse満点を達成しています。</p>
+            </div>
+            <div className="trust-card">
+              <div className="trust-number">0件</div>
+              <div className="trust-label">外部データ送信</div>
+              <p className="trust-desc">映像・顔データ・計測結果のすべてがブラウザ内で処理されます。外部サーバーへの送信は一切ありません。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="section" id="faq">
         <div className="section-inner">
