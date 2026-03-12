@@ -421,6 +421,14 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo })
             <span className="footer-sep">|</span>
             <a href="#contact">お問い合わせ</a>
           </div>
+          <div className="footer-links footer-guides">
+            <span className="footer-guides-label">お役立ち情報</span>
+            <a href="/vitallens/guides/stress-check-2028/">ストレスチェック義務化ガイド</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/stress-check-tools/">ツール比較ガイド</a>
+            <span className="footer-sep">|</span>
+            <a href="/vitallens/guides/health-management-certification/">健康経営認定ガイド</a>
+          </div>
           <p className="footer-disclaimer">
             本サービスは一般的なウェルネス指標の参考値を提供するものであり、医療機器ではありません。
             疾病の診断、治療、予防を目的としたものではありません。

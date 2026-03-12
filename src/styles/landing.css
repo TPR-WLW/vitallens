@@ -756,6 +756,16 @@
   color: var(--color-border);
 }
 
+.footer-guides {
+  flex-wrap: wrap;
+}
+
+.footer-guides-label {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
 /* ===== CTA Section ===== */
 
 .cta-section {

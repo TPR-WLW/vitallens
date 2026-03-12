@@ -7,6 +7,12 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://tpr-wlw.github.io/vitallens/guides/</loc>
+    <lastmod>2026-03-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://tpr-wlw.github.io/vitallens/guides/stress-check-2028/</loc>
     <lastmod>2026-03-12</lastmod>
     <changefreq>monthly</changefreq>
@@ -20,6 +26,12 @@
   </url>
   <url>
     <loc>https://tpr-wlw.github.io/vitallens/guides/health-management-certification/</loc>
+    <lastmod>2026-03-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tpr-wlw.github.io/vitallens/guides/stress-check-howto/</loc>
     <lastmod>2026-03-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
