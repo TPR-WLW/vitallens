@@ -1,8 +1,9 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 
 const CameraView = forwardRef(function CameraView({ stream, faceDetected }, ref) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const [videoError, setVideoError] = useState(null);
 
   useImperativeHandle(ref, () => ({
     getVideo: () => videoRef.current,
@@ -14,7 +15,12 @@ const CameraView = forwardRef(function CameraView({ stream, faceDetected }, ref)
     const video = videoRef.current;
     if (video && stream) {
       video.srcObject = stream;
-      video.play().catch(() => {});
+      setVideoError(null);
+      video.play().catch((err) => {
+        setVideoError(
+          '映像の再生に失敗しました。ブラウザの設定を確認するか、ページを再読み込みしてお試しください。'
+        );
+      });
     }
 
     return () => {
@@ -63,9 +69,11 @@ const CameraView = forwardRef(function CameraView({ stream, faceDetected }, ref)
         </svg>
 
         <div className="face-guide-text">
-          {faceDetected
-            ? '顔を検出しました — そのまま動かないでください'
-            : '顔をガイドの中に合わせてください'}
+          {videoError
+            ? videoError
+            : faceDetected
+              ? '顔を検出しました — そのまま動かないでください'
+              : '顔をガイドの中に合わせてください'}
         </div>
       </div>
     </div>

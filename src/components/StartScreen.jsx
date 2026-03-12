@@ -1,8 +1,9 @@
 import { useState } from 'react';
 
-export default function StartScreen({ onStart }) {
+export default function StartScreen({ onStart, onBack }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [quickMode, setQuickMode] = useState(true);
 
   const handleStart = async () => {
     setLoading(true);
@@ -11,7 +12,7 @@ export default function StartScreen({ onStart }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach((t) => t.stop());
-      onStart();
+      onStart(quickMode);
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setCameraError('カメラへのアクセスが拒否されました。カメラの使用を許可して再度お試しください。');
@@ -24,9 +25,17 @@ export default function StartScreen({ onStart }) {
     }
   };
 
+  const durationLabel = quickMode ? '1分間' : '3分間';
+
   return (
     <div className="start-screen">
       <div className="start-content">
+        {onBack && (
+          <a className="back-link" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
+            &larr; トップに戻る
+          </a>
+        )}
+
         <div className="logo">
           <svg viewBox="0 0 48 48" width="64" height="64" fill="none">
             <circle cx="24" cy="24" r="22" stroke="#4f8cff" strokeWidth="3" />
@@ -41,11 +50,28 @@ export default function StartScreen({ onStart }) {
         <h1>ミルケア</h1>
         <p className="subtitle">非接触バイタルモニタリング</p>
 
+        <div className="mode-selector">
+          <button
+            className={`mode-btn ${quickMode ? 'mode-active' : ''}`}
+            onClick={() => setQuickMode(true)}
+          >
+            <span className="mode-label">クイックチェック</span>
+            <span className="mode-duration">1分</span>
+          </button>
+          <button
+            className={`mode-btn ${!quickMode ? 'mode-active' : ''}`}
+            onClick={() => setQuickMode(false)}
+          >
+            <span className="mode-label">通常チェック</span>
+            <span className="mode-duration">3分</span>
+          </button>
+        </div>
+
         <div className="info-card">
           <h3>計測の流れ</h3>
           <ol>
             <li>顔をガイドの楕円に合わせます</li>
-            <li>3分間じっとしていてください</li>
+            <li>{durationLabel}じっとしていてください</li>
             <li>心拍数・HRV・ストレスレベルを確認</li>
           </ol>
         </div>

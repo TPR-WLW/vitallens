@@ -46,6 +46,69 @@ body {
   flex-direction: column;
 }
 
+/* ===== Back Link ===== */
+
+.back-link {
+  display: inline-block;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--color-text);
+}
+
+.back-link-center {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* ===== Mode Selector ===== */
+
+.mode-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s, color 0.2s;
+  color: var(--color-text-muted);
+}
+
+.mode-btn.mode-active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.mode-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.mode-duration {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
 /* ===== Buttons ===== */
 
 .btn-primary {

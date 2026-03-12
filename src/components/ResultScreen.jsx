@@ -1,4 +1,4 @@
-export default function ResultScreen({ result, onRestart }) {
+export default function ResultScreen({ result, onRestart, onBack }) {
   const { hr, confidence, hrv } = result;
   const metrics = hrv?.metrics;
   const stress = hrv?.stress;
@@ -176,6 +176,11 @@ export default function ResultScreen({ result, onRestart }) {
           <button className="btn-primary" onClick={onRestart}>
             もう一度チェック
           </button>
+          {onBack && (
+            <a className="back-link back-link-center" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
+              &larr; トップに戻る
+            </a>
+          )}
         </div>
 
         <p className="disclaimer">

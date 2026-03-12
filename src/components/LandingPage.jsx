@@ -1,6 +1,13 @@
+import { useState } from 'react';
 import '../styles/landing.css';
 
 export default function LandingPage({ onTryDemo }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleNavClick = (e) => {
+    setMenuOpen(false);
+  };
+
   return (
     <div className="landing">
       {/* Nav */}
@@ -13,11 +20,21 @@ export default function LandingPage({ onTryDemo }) {
             </svg>
             <span>ミルケア</span>
           </div>
-          <div className="nav-links">
-            <a href="#problems">課題</a>
-            <a href="#solution">ソリューション</a>
-            <a href="#pricing">料金</a>
-            <button className="btn-nav" onClick={onTryDemo}>無料デモ</button>
+          <button
+            className="nav-hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="メニューを開く"
+          >
+            <span className={`hamburger-line ${menuOpen ? 'open' : ''}`} />
+            <span className={`hamburger-line ${menuOpen ? 'open' : ''}`} />
+            <span className={`hamburger-line ${menuOpen ? 'open' : ''}`} />
+          </button>
+          <div className={`nav-links ${menuOpen ? 'nav-open' : ''}`}>
+            <a href="#problems" onClick={handleNavClick}>課題</a>
+            <a href="#solution" onClick={handleNavClick}>ソリューション</a>
+            <a href="#pricing" onClick={handleNavClick}>料金</a>
+            <a href="#contact" onClick={handleNavClick}>お問い合わせ</a>
+            <button className="btn-nav" onClick={() => { setMenuOpen(false); onTryDemo(); }}>無料デモ</button>
           </div>
         </div>
       </nav>
@@ -235,6 +252,19 @@ export default function LandingPage({ onTryDemo }) {
             アカウント登録不要。データの保存や送信は一切行いません。
           </p>
           <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section className="section section-dark" id="contact">
+        <div className="section-inner contact-section">
+          <h2>お問い合わせ</h2>
+          <p className="section-sub">
+            導入のご相談・デモのご依頼はお気軽にお問い合わせください。
+          </p>
+          <a className="contact-email" href="mailto:info@mirucare.jp">
+            info@mirucare.jp
+          </a>
         </div>
       </section>
 
