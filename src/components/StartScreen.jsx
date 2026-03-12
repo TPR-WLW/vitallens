@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { getCount } from '../lib/history.js';
 
+const CHECKLIST_ITEMS = [
+  { id: 'lighting', text: '顔に均一な照明が当たっている（逆光・強い影なし）' },
+  { id: 'position', text: 'カメラの正面に座っている' },
+  { id: 'face', text: 'サングラス・マスクを外している' },
+  { id: 'rest', text: 'リラックスした状態で安静にしている' },
+];
+
 export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo, onShowHistory }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [quickMode, setQuickMode] = useState(true);
+  const [checked, setChecked] = useState({});
 
   const handleStart = async () => {
     setLoading(true);
@@ -68,13 +76,24 @@ export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo
           </button>
         </div>
 
-        <div className="info-card">
-          <h3>計測の流れ</h3>
-          <ol>
-            <li>顔をガイドの楕円に合わせます</li>
-            <li>{durationLabel}じっとしていてください</li>
-            <li>心拍数・HRV・ストレスレベルを確認</li>
-          </ol>
+        <div className="checklist-card">
+          <h3>計測前チェックリスト</h3>
+          <div className="checklist-items">
+            {CHECKLIST_ITEMS.map((item) => (
+              <label key={item.id} className="checklist-item" onClick={() => setChecked((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}>
+                <span className={`checklist-check${checked[item.id] ? ' checked' : ''}`}>
+                  {checked[item.id] && (
+                    <svg viewBox="0 0 14 14" fill="none">
+                      <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                <span className={`checklist-text${checked[item.id] ? ' checklist-text-checked' : ''}`}>
+                  {item.text}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="privacy-note">

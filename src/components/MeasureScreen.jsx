@@ -220,6 +220,26 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
 
   const qualityLabel = sqi ? sqi.label : (signalQuality > 0.4 ? '信号良好' : signalQuality > 0.2 ? '信号普通' : '信号不安定');
   const qualityColor = sqi ? sqi.color : undefined;
+  const sqiScore = sqi?.score ?? signalQuality;
+  const sqiPercent = Math.round(sqiScore * 100);
+
+  // Contextual SQI tip based on signal components
+  let sqiTip = null;
+  let sqiTipWarning = false;
+  if (phase !== 'init' && elapsed > 5) {
+    if (sqi?.components?.channelStability < 0.3) {
+      sqiTip = '動きを検出しています — できるだけ静止してください';
+      sqiTipWarning = true;
+    } else if (sqi?.components?.channelStability < 0.5) {
+      sqiTip = '照明環境を確認してください — 顔に均一な光が当たると精度が向上します';
+      sqiTipWarning = true;
+    } else if (sqiScore < 0.35) {
+      sqiTip = '信号が不安定です — 顔の位置とカメラの距離を調整してください';
+      sqiTipWarning = true;
+    } else if (sqiScore >= 0.6 && phase === 'measuring') {
+      sqiTip = '信号品質が良好です — そのまま動かないでください';
+    }
+  }
 
   return (
     <div className="measure-screen">
@@ -272,6 +292,33 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
             </span>
           </div>
         </div>
+
+        {/* Enhanced SQI display */}
+        {phase !== 'init' && (
+          <div className="sqi-display">
+            <div className="sqi-bar-container">
+              <span className="sqi-label">信号品質</span>
+              <div className="sqi-bar-track">
+                <div
+                  className="sqi-bar-fill"
+                  style={{
+                    width: `${sqiPercent}%`,
+                    backgroundColor: qualityColor || 'var(--color-primary)',
+                  }}
+                />
+              </div>
+              <span className="sqi-value" style={qualityColor ? { color: qualityColor } : undefined}>
+                {sqiPercent}%
+              </span>
+            </div>
+            {sqiTip && (
+              <div className={`sqi-tip${sqiTipWarning ? ' sqi-tip-warning' : ''}`}>
+                <span className="sqi-tip-icon">{sqiTipWarning ? '\u26A0' : '\u2713'}</span>
+                <span>{sqiTip}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <button className="btn-cancel" onClick={onCancel}>
           中止

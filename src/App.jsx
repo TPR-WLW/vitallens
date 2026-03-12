@@ -7,6 +7,8 @@ import ResultScreen from './components/ResultScreen.jsx';
 import HistoryScreen from './components/HistoryScreen.jsx';
 import DashboardMock from './components/DashboardMock.jsx';
 import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
+import OnboardingOverlay from './components/OnboardingOverlay.jsx';
+import { isFirstVisit, completeOnboarding } from './lib/onboarding.js';
 import './styles/app.css';
 
 const SCREENS = {
@@ -52,6 +54,7 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [quickMode, setQuickMode] = useState(true);
   const [cameraStream, setCameraStream] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
   const handleTryDemo = () => {
     setScreen(SCREENS.START);
@@ -115,9 +118,15 @@ export default function App() {
     setResult(null);
   };
 
+  const handleOnboardingComplete = () => {
+    completeOnboarding();
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="app">
       <PwaInstallPrompt />
+      {showOnboarding && <OnboardingOverlay onComplete={handleOnboardingComplete} />}
       {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />}
       {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
       {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}
