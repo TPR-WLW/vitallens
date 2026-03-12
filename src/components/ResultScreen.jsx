@@ -15,6 +15,7 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
   const [detailOpen, setDetailOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showQuickCompare, setShowQuickCompare] = useState(false);
 
   // 自動保存：実計測結果は自動的に履歴に保存（デモ・サンプルは手動）
   useEffect(() => {
@@ -190,6 +191,16 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
         return { score: c.overall.score, date: e.timestamp };
       }).filter(s => s.score >= 0).reverse();
     } catch { return []; }
+  })();
+
+  // 前回の計測結果を取得（デモ・サンプル以外）
+  const previousEntry = (() => {
+    if (result.isDemo || result.isSample) return null;
+    try {
+      const entries = getEntries().filter(e => !e.data.isDemo && !e.data.isSample);
+      // entries[0] is the current measurement (just saved), so previous is entries[1]
+      return entries.length >= 2 ? entries[1] : null;
+    } catch { return null; }
   })();
 
   return (
@@ -631,6 +642,16 @@ export default function ResultScreen({ result, onRestart, onBack, onShowHistory,
           )}
         </div>
 
+        {/* Quick Compare with Previous */}
+        {previousEntry && (
+          <QuickCompare
+            current={result}
+            previous={previousEntry}
+            isOpen={showQuickCompare}
+            onToggle={() => setShowQuickCompare(v => !v)}
+          />
+        )}
+
         <p className="disclaimer">
           ※ 本ツールはウェルネス参考値を提供するものであり、医療機器ではありません。
           診断・治療の目的で使用しないでください。体調に不安がある場合は医療専門家にご相談ください。
@@ -804,6 +825,148 @@ function MiniTrendChart({ currentCondition }) {
           {latest.score}
         </text>
       </svg>
+    </div>
+  );
+}
+
+/**
+ * 前回比較コンポーネント — 今回と任意の過去計測の主要指標を並べて表示
+ */
+function QuickCompare({ current, previous, isOpen, onToggle }) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  // Load all past entries for comparison picker
+  const allPastEntries = (() => {
+    try {
+      const entries = getEntries().filter(e => !e.data.isDemo && !e.data.isSample);
+      // entries[0] is the current measurement just saved, skip it
+      return entries.slice(1, 11); // up to 10 past measurements
+    } catch { return []; }
+  })();
+
+  const selectedEntry = allPastEntries[selectedIdx] || previous;
+  const prevData = selectedEntry.data;
+  const prevTimestamp = selectedEntry.timestamp;
+
+  const formatTime = (iso) => {
+    try {
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    } catch { return '--'; }
+  };
+
+  const compareMetric = (currentVal, prevVal, higherIsBetter) => {
+    if (currentVal == null || prevVal == null) return null;
+    const delta = currentVal - prevVal;
+    if (delta === 0) return { arrow: '\u2192', delta: 0, color: 'var(--color-text-muted)' };
+    const improved = higherIsBetter ? delta > 0 : delta < 0;
+    return {
+      arrow: delta > 0 ? '\u2191' : '\u2193',
+      delta: Math.abs(delta),
+      color: improved ? 'var(--color-success)' : 'var(--color-danger)',
+    };
+  };
+
+  const metrics = [
+    {
+      label: '心拍数',
+      unit: 'BPM',
+      current: current.hr > 0 ? current.hr : null,
+      prev: prevData.hr > 0 ? prevData.hr : null,
+      higherIsBetter: false,
+    },
+    {
+      label: 'ストレス',
+      unit: '点',
+      current: current.hrv?.stress?.score ?? null,
+      prev: prevData.hrv?.stress?.score ?? null,
+      higherIsBetter: false,
+    },
+    {
+      label: 'RMSSD',
+      unit: 'ms',
+      current: current.hrv?.metrics?.rmssd ?? null,
+      prev: prevData.hrv?.metrics?.rmssd ?? null,
+      higherIsBetter: true,
+    },
+    {
+      label: 'SDNN',
+      unit: 'ms',
+      current: current.hrv?.metrics?.sdnn ?? null,
+      prev: prevData.hrv?.metrics?.sdnn ?? null,
+      higherIsBetter: true,
+    },
+    {
+      label: 'LF/HF',
+      unit: '',
+      current: current.hrv?.freqMetrics?.lfHfRatio ?? null,
+      prev: prevData.hrv?.freqMetrics?.lfHfRatio ?? null,
+      higherIsBetter: false,
+    },
+  ];
+
+  return (
+    <div className="quick-compare-section">
+      <button
+        className="quick-compare-toggle"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls="quick-compare-panel"
+      >
+        {isOpen ? '▲ 比較を閉じる' : '◀▶ 過去の計測と比較'}
+      </button>
+
+      {isOpen && (
+        <div className="quick-compare-panel" id="quick-compare-panel">
+          {/* Measurement picker */}
+          {allPastEntries.length > 1 && (
+            <div className="quick-compare-picker">
+              <label className="quick-compare-picker-label">比較対象:</label>
+              <select
+                className="quick-compare-select"
+                value={selectedIdx}
+                onChange={(e) => setSelectedIdx(Number(e.target.value))}
+                aria-label="比較対象の計測を選択"
+              >
+                {allPastEntries.map((entry, i) => {
+                  const stressScore = entry.data.hrv?.stress?.score;
+                  const stressLabel = stressScore != null ? ` (ストレス: ${stressScore})` : '';
+                  return (
+                    <option key={entry.id || i} value={i}>
+                      {formatTime(entry.timestamp)}{stressLabel}{i === 0 ? ' — 前回' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          <div className="quick-compare-header">
+            <span className="quick-compare-col-label">指標</span>
+            <span className="quick-compare-col-label">今回</span>
+            <span className="quick-compare-col-label">{formatTime(prevTimestamp)}</span>
+            <span className="quick-compare-col-label">変化</span>
+          </div>
+          {metrics.map((m) => {
+            if (m.current == null && m.prev == null) return null;
+            const cmp = compareMetric(m.current, m.prev, m.higherIsBetter);
+            return (
+              <div className="quick-compare-row" key={m.label}>
+                <span className="quick-compare-label">{m.label}</span>
+                <span className="quick-compare-value">
+                  {m.current != null ? `${m.current}${m.unit ? ` ${m.unit}` : ''}` : '--'}
+                </span>
+                <span className="quick-compare-value quick-compare-prev">
+                  {m.prev != null ? `${m.prev}${m.unit ? ` ${m.unit}` : ''}` : '--'}
+                </span>
+                <span className="quick-compare-delta" style={{ color: cmp?.color || 'var(--color-text-muted)' }}>
+                  {cmp ? `${cmp.arrow} ${cmp.delta > 0 ? cmp.delta : '--'}` : '--'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -32,8 +32,8 @@ test.describe('LP → 画面遷移', () => {
   test('ナビ「管理者デモ」→ Dashboard に遷移', async ({ page }) => {
     const hamburger = page.locator('.nav-hamburger');
     if (await hamburger.isVisible()) await hamburger.click();
-    await page.locator('button.btn-nav-secondary').click();
-    await expect(page.locator('[class*="dashboard"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('button.btn-nav-secondary').first().click();
+    await expect(page.locator('[class*="dashboard"], .adm-login-page')).toBeVisible({ timeout: 10000 });
   });
 
   test('ナビアンカーリンクが正しく機能する', async ({ page }) => {

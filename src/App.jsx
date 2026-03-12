@@ -8,6 +8,7 @@ import OnboardingOverlay from './components/OnboardingOverlay.jsx';
 import { isFirstVisit, completeOnboarding } from './lib/onboarding.js';
 import { recordEvent } from './lib/analytics-store.js';
 import { getVariant, recordConversion } from './lib/ab-test.js';
+import { getSession } from './services/auth-local.js';
 import './styles/app.css';
 
 // Lazy-loaded heavy components (split into separate chunks)
@@ -79,6 +80,15 @@ export default function App() {
 
   const ctaVariant = getVariant('cta_text', ['A', 'B']);
   const ctaText = CTA_VARIANTS[ctaVariant] || CTA_VARIANTS.A;
+
+  // Auto-restore session from localStorage on mount (e.g. after page reload)
+  useEffect(() => {
+    const savedSession = getSession();
+    if (savedSession && !authSession) {
+      setAuthSession(savedSession);
+      setScreen(SCREENS.ADMIN);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle shared result URL: #shared=<base64>
   useEffect(() => {

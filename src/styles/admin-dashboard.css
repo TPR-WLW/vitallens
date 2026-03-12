@@ -1157,6 +1157,63 @@
   font-size: 0.85rem;
 }
 
+/* ===== イベントログ ===== */
+
+.adm-notif-log-section {
+  margin-top: 12px;
+}
+
+.adm-notif-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.adm-notif-log-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adm-notif-log-count {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.adm-notif-log-body {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.adm-notif-log-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 12px 0;
+}
+
+.adm-notif-log-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.adm-notif-log-page {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  min-width: 60px;
+  text-align: center;
+}
+
 /* ===== 印刷用スタイル ===== */
 
 @media print {
@@ -1178,7 +1235,9 @@
   .adm-btn-danger,
   .adm-link-btn,
   .adm-filters,
-  .adm-notifications {
+  .adm-notifications,
+  .adm-notif-log-section,
+  .adm-period-selector {
     display: none !important;
   }
 
@@ -1464,7 +1523,53 @@
   vertical-align: middle;
 }
 
-/* ===== 直近7日ウィジェット ===== */
+/* ===== 期間セレクター ===== */
+
+.adm-period-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+.adm-period-header .adm-section-title {
+  margin: 0;
+}
+
+.adm-period-selector {
+  display: inline-flex;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.adm-period-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.4;
+}
+
+.adm-period-btn:hover {
+  color: var(--color-text);
+}
+
+.adm-period-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== 直近ウィジェット ===== */
 
 .adm-weekly-widgets {
   margin-bottom: 20px;
@@ -1516,6 +1621,107 @@
   color: var(--color-text-muted);
   opacity: 0.7;
   margin-top: 2px;
+}
+
+/* ===== Activity Heatmap ===== */
+
+.adm-heatmap {
+  margin-top: 24px;
+  margin-bottom: 20px;
+}
+
+.adm-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.adm-heatmap-day-label {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.adm-heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  position: relative;
+  cursor: default;
+  transition: transform 0.15s;
+  min-height: 20px;
+}
+
+.adm-heatmap-cell:hover {
+  transform: scale(1.15);
+  z-index: 1;
+}
+
+.adm-heatmap-cell-empty {
+  background: transparent;
+}
+
+.adm-heatmap-cell-0 {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.adm-heatmap-cell-1 {
+  background: rgba(79, 140, 255, 0.25);
+}
+
+.adm-heatmap-cell-2 {
+  background: rgba(79, 140, 255, 0.50);
+}
+
+.adm-heatmap-cell-3 {
+  background: rgba(79, 140, 255, 0.75);
+}
+
+.adm-heatmap-cell-4 {
+  background: rgba(79, 140, 255, 1.0);
+}
+
+.adm-heatmap-tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.adm-heatmap-cell:hover .adm-heatmap-tooltip {
+  opacity: 1;
+}
+
+.adm-heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+}
+
+.adm-heatmap-legend-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+@media print {
+  .adm-heatmap { display: none !important; }
 }
 
 /* ===== CSV Import ===== */

@@ -1,6 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { dataService } from '../../services/index.js';
 import { stressStatus, StatusBadge, KPICard } from './AdminDashboard.jsx';
+
+const EVENT_LOG_KEY = 'mirucare_event_log';
+const EVENT_LOG_MAX = 100;
+const EVENTS_PER_PAGE = 10;
 
 function relativeTime(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -15,9 +19,45 @@ function relativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString('ja-JP');
 }
 
+function loadEventLog() {
+  try {
+    const raw = localStorage.getItem(EVENT_LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEventLog(events) {
+  const sorted = events
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, EVENT_LOG_MAX);
+  try {
+    localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(sorted));
+  } catch {
+    // Storage full — silently fail
+  }
+  return sorted;
+}
+
+function mergeEvents(fresh, stored) {
+  const ids = new Set(stored.map(e => e.id));
+  const merged = [...stored];
+  for (const e of fresh) {
+    if (!ids.has(e.id)) {
+      merged.push(e);
+      ids.add(e.id);
+    }
+  }
+  return merged;
+}
+
 function NotificationPanel({ orgStats, alertThreshold = 55 }) {
   const [notifications, setNotifications] = useState([]);
+  const [eventLog, setEventLog] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [logExpanded, setLogExpanded] = useState(false);
+  const [logPage, setLogPage] = useState(1);
 
   useEffect(() => {
     if (!orgStats?.orgId) { setLoading(false); return; }
@@ -45,10 +85,12 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
           return new Date(u.createdAt).getTime() >= sevenDaysAgo.getTime();
         });
         for (const u of recentUsers) {
+          const ts = u.createdAt;
           items.push({
+            id: `member-${ts}`,
             type: 'member',
             message: `新しいメンバーが参加しました: ${u.name || '匿名'}`,
-            timestamp: u.createdAt,
+            timestamp: ts,
           });
         }
 
@@ -57,29 +99,39 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
           m => m.stressScore != null && m.stressScore > alertThreshold
         );
         for (const m of highStress) {
+          const ts = m.measuredAt || m.createdAt || m.timestamp;
           items.push({
+            id: `stress-${ts}`,
             type: 'stress',
             message: `高ストレスが検出されました（スコア: ${m.stressScore}）`,
-            timestamp: m.measuredAt || m.createdAt || m.timestamp,
+            timestamp: ts,
           });
         }
 
         // Low quality measurements
         const lowQuality = (measurements || []).filter(m => m.qualityGrade === 'C');
         for (const m of lowQuality) {
+          const ts = m.measuredAt || m.createdAt || m.timestamp;
           items.push({
+            id: `quality-${ts}`,
             type: 'quality',
             message: '低品質の計測がありました — 環境改善をお勧めします',
-            timestamp: m.measuredAt || m.createdAt || m.timestamp,
+            timestamp: ts,
           });
         }
 
-        // Sort descending by timestamp, take max 5
-        items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setNotifications(items.slice(0, 5));
+        // Merge fresh events with stored log, persist
+        const stored = loadEventLog();
+        const merged = mergeEvents(items, stored);
+        const persisted = saveEventLog(merged);
+
+        // Top 5 for the notification panel
+        setNotifications(persisted.slice(0, 5));
+        setEventLog(persisted);
       } catch {
         // Silently fail — notifications are non-critical
         setNotifications([]);
+        setEventLog(loadEventLog());
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -87,6 +139,14 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
 
     return () => { cancelled = true; };
   }, [orgStats?.orgId, alertThreshold]);
+
+  const handleClearLog = useCallback(() => {
+    try { localStorage.removeItem(EVENT_LOG_KEY); } catch {}
+    setEventLog([]);
+    setNotifications([]);
+    setLogExpanded(false);
+    setLogPage(1);
+  }, []);
 
   if (loading) return null;
 
@@ -96,6 +156,9 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
     quality: { cls: 'adm-notif-icon-quality', icon: '\u25cb' },
   };
 
+  const totalPages = Math.max(1, Math.ceil(eventLog.length / EVENTS_PER_PAGE));
+  const pagedEvents = eventLog.slice((logPage - 1) * EVENTS_PER_PAGE, logPage * EVENTS_PER_PAGE);
+
   return (
     <div className="adm-notifications">
       <h3 className="adm-section-title">最近のイベント</h3>
@@ -103,16 +166,77 @@ function NotificationPanel({ orgStats, alertThreshold = 55 }) {
         <div className="adm-notif-empty">直近7日間のイベントはありません</div>
       ) : (
         <div className="adm-notif-list">
-          {notifications.map((n, i) => {
+          {notifications.map((n) => {
             const { cls, icon } = iconMap[n.type] || iconMap.quality;
             return (
-              <div key={i} className="adm-notif-item">
+              <div key={n.id} className="adm-notif-item">
                 <span className={`adm-notif-icon ${cls}`}>{icon}</span>
                 <span className="adm-notif-text">{n.message}</span>
                 <span className="adm-notif-time">{n.timestamp ? relativeTime(n.timestamp) : ''}</span>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Event Log Section */}
+      {eventLog.length > 0 && (
+        <div className="adm-notif-log-section">
+          <div className="adm-notif-log-header">
+            <button
+              className="adm-btn-ghost adm-notif-log-toggle"
+              onClick={() => { setLogExpanded(e => !e); setLogPage(1); }}
+            >
+              {logExpanded ? '閉じる' : 'すべて表示'}
+              <span className="adm-notif-log-count">({eventLog.length}件)</span>
+            </button>
+            {logExpanded && (
+              <button className="adm-link-btn" onClick={handleClearLog}>
+                ログをクリア
+              </button>
+            )}
+          </div>
+
+          {logExpanded && (
+            <div className="adm-notif-log-body">
+              <h4 className="adm-notif-log-title">イベントログ</h4>
+              <div className="adm-notif-list">
+                {pagedEvents.map((n) => {
+                  const { cls, icon } = iconMap[n.type] || iconMap.quality;
+                  return (
+                    <div key={n.id} className="adm-notif-item">
+                      <span className={`adm-notif-icon ${cls}`}>{icon}</span>
+                      <span className="adm-notif-text">{n.message}</span>
+                      <span className="adm-notif-time">
+                        {n.timestamp ? new Date(n.timestamp).toLocaleString('ja-JP') : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {totalPages > 1 && (
+                <div className="adm-notif-log-pager">
+                  <button
+                    className="adm-btn-ghost"
+                    disabled={logPage <= 1}
+                    onClick={() => setLogPage(p => p - 1)}
+                  >
+                    前へ
+                  </button>
+                  <span className="adm-notif-log-page">
+                    {logPage} / {totalPages}
+                  </span>
+                  <button
+                    className="adm-btn-ghost"
+                    disabled={logPage >= totalPages}
+                    onClick={() => setLogPage(p => p + 1)}
+                  >
+                    次へ
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -143,40 +267,173 @@ function AlertBanner({ teamStats, alertThreshold = 55 }) {
   );
 }
 
+const PERIOD_OPTIONS = [
+  { value: 7, label: '7日' },
+  { value: 30, label: '30日' },
+  { value: 90, label: '90日' },
+];
+
+const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+
+function ActivityHeatmap({ orgId }) {
+  const [cells, setCells] = useState([]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    let cancelled = false;
+
+    (async () => {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      let measurements = [];
+      try {
+        measurements = await dataService.getMeasurements({
+          orgId,
+          from: thirtyDaysAgo.toISOString(),
+          to: now.toISOString(),
+        });
+      } catch { /* */ }
+
+      if (cancelled) return;
+
+      // Group by date string
+      const byDate = {};
+      for (const m of measurements) {
+        const ts = m.measuredAt || m.createdAt || m.timestamp;
+        if (!ts) continue;
+        const dateKey = new Date(ts).toISOString().slice(0, 10);
+        if (!byDate[dateKey]) byDate[dateKey] = [];
+        byDate[dateKey].push(m);
+      }
+
+      // Build 35 cells (5 weeks) ending today
+      const result = [];
+      // Start from the most recent Sunday that is >= 30 days ago
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startDate = new Date(todayDate);
+      startDate.setDate(startDate.getDate() - 34); // 35 days including today
+      // Align to previous Sunday
+      const dayOfWeek = startDate.getDay();
+      startDate.setDate(startDate.getDate() - dayOfWeek);
+
+      const endDate = new Date(todayDate);
+      endDate.setDate(endDate.getDate() + (6 - todayDate.getDay())); // complete the week
+
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const key = d.toISOString().slice(0, 10);
+        const isFuture = d > todayDate;
+        const dayMeasurements = byDate[key] || [];
+        const count = dayMeasurements.length;
+
+        let level = 0;
+        if (count >= 10) level = 4;
+        else if (count >= 5) level = 3;
+        else if (count >= 2) level = 2;
+        else if (count >= 1) level = 1;
+
+        const avgStress = count > 0
+          ? Math.round(dayMeasurements.reduce((s, m) => s + (m.stressScore || 0), 0) / count)
+          : null;
+
+        result.push({
+          date: key,
+          count,
+          level,
+          avgStress,
+          isFuture,
+          label: `${new Date(key + 'T00:00:00').getMonth() + 1}/${new Date(key + 'T00:00:00').getDate()}`,
+        });
+      }
+
+      setCells(result);
+    })();
+
+    return () => { cancelled = true; };
+  }, [orgId]);
+
+  if (cells.length === 0) return null;
+
+  return (
+    <div className="adm-heatmap">
+      <h3 className="adm-section-title">計測アクティビティ</h3>
+      <div className="adm-heatmap-grid">
+        {DAY_LABELS.map((d) => (
+          <div key={d} className="adm-heatmap-day-label">{d}</div>
+        ))}
+        {cells.map((cell) => {
+          if (cell.isFuture) {
+            return <div key={cell.date} className="adm-heatmap-cell adm-heatmap-cell-empty" />;
+          }
+          return (
+            <div
+              key={cell.date}
+              className={`adm-heatmap-cell adm-heatmap-cell-${cell.level}`}
+            >
+              <div className="adm-heatmap-tooltip">
+                {cell.label}: {cell.count}件
+                {cell.avgStress != null ? ` (平均ストレス: ${cell.avgStress})` : ''}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="adm-heatmap-legend">
+        <span>少</span>
+        <div className="adm-heatmap-legend-cell adm-heatmap-cell-0" />
+        <div className="adm-heatmap-legend-cell adm-heatmap-cell-1" />
+        <div className="adm-heatmap-legend-cell adm-heatmap-cell-2" />
+        <div className="adm-heatmap-legend-cell adm-heatmap-cell-3" />
+        <div className="adm-heatmap-legend-cell adm-heatmap-cell-4" />
+        <span>多</span>
+      </div>
+    </div>
+  );
+}
+
 export default function OverviewView({ orgStats, teamStats, onTeamClick, alertThreshold }) {
   const totalMembers = orgStats?.totalMembers || 0;
   const activeMeasured = orgStats?.activeMeasured || 0;
   const participationRate = totalMembers > 0 ? Math.round((activeMeasured / totalMembers) * 100) : 0;
   const avgStress = orgStats?.stats?.avgStress;
 
-  // 直近7日ウィジェット
-  const [weeklyStats, setWeeklyStats] = useState(null);
+  // 期間セレクター
+  const [period, setPeriod] = useState(7);
+
+  // 期間別ウィジェット
+  const [periodStats, setPeriodStats] = useState(null);
 
   useEffect(() => {
     if (!orgStats?.orgId) return;
+    let cancelled = false;
     (async () => {
       const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const periodMs = period * 24 * 60 * 60 * 1000;
+      const periodStart = new Date(now.getTime() - periodMs);
+      const prevPeriodStart = new Date(now.getTime() - periodMs * 2);
 
-      const thisWeek = await dataService.getMeasurements({
-        orgId: orgStats.orgId,
-        from: sevenDaysAgo.toISOString(),
-        to: now.toISOString(),
-      });
-      const lastWeek = await dataService.getMeasurements({
-        orgId: orgStats.orgId,
-        from: fourteenDaysAgo.toISOString(),
-        to: sevenDaysAgo.toISOString(),
-      });
+      const [thisPeriod, lastPeriod] = await Promise.all([
+        dataService.getMeasurements({
+          orgId: orgStats.orgId,
+          from: periodStart.toISOString(),
+          to: now.toISOString(),
+        }),
+        dataService.getMeasurements({
+          orgId: orgStats.orgId,
+          from: prevPeriodStart.toISOString(),
+          to: periodStart.toISOString(),
+        }),
+      ]);
 
-      const thisCount = thisWeek.length;
-      const lastCount = lastWeek.length;
+      if (cancelled) return;
+
+      const thisCount = thisPeriod.length;
+      const lastCount = lastPeriod.length;
       const thisAvg = thisCount > 0
-        ? Math.round(thisWeek.reduce((s, m) => s + (m.stressScore || 0), 0) / thisCount)
+        ? Math.round(thisPeriod.reduce((s, m) => s + (m.stressScore || 0), 0) / thisCount)
         : null;
       const lastAvg = lastCount > 0
-        ? Math.round(lastWeek.reduce((s, m) => s + (m.stressScore || 0), 0) / lastCount)
+        ? Math.round(lastPeriod.reduce((s, m) => s + (m.stressScore || 0), 0) / lastCount)
         : null;
 
       // トレンド: ストレスが下がった=改善(up arrow green), 上がった=悪化(up arrow red)
@@ -196,46 +453,64 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
         else if (diff < -3) stressTrend = 'better';
       }
 
-      setWeeklyStats({ thisCount, thisAvg, countTrend, stressTrend });
+      setPeriodStats({ thisCount, thisAvg, countTrend, stressTrend });
     })();
-  }, [orgStats?.orgId]);
+    return () => { cancelled = true; };
+  }, [orgStats?.orgId, period]);
+
+  const periodLabel = `直近${period}日間`;
+  const comparisonLabel = `前${period}日比`;
 
   return (
     <div className="adm-view">
       <AlertBanner teamStats={teamStats} alertThreshold={alertThreshold} />
 
-      {/* 直近7日ウィジェットカード */}
-      {weeklyStats && (
-        <div className="adm-weekly-widgets">
-          <h3 className="adm-section-title">直近7日間</h3>
+      {/* 期間セレクター + ウィジェットカード */}
+      <div className="adm-weekly-widgets">
+        <div className="adm-period-header">
+          <h3 className="adm-section-title">{periodLabel}</h3>
+          <div className="adm-period-selector" role="group" aria-label="表示期間">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`adm-period-btn${period === opt.value ? ' active' : ''}`}
+                onClick={() => setPeriod(opt.value)}
+                aria-pressed={period === opt.value}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {periodStats && (
           <div className="adm-widget-row">
             <div className="adm-widget-card">
               <div className="adm-widget-value">
-                {weeklyStats.thisCount}
-                <span className={`adm-widget-trend adm-trend-${weeklyStats.countTrend}`}>
-                  {weeklyStats.countTrend === 'up' ? '\u2191' : weeklyStats.countTrend === 'down' ? '\u2193' : '\u2192'}
+                {periodStats.thisCount}
+                <span className={`adm-widget-trend adm-trend-${periodStats.countTrend}`}>
+                  {periodStats.countTrend === 'up' ? '\u2191' : periodStats.countTrend === 'down' ? '\u2193' : '\u2192'}
                 </span>
               </div>
               <div className="adm-widget-label">計測回数</div>
-              <div className="adm-widget-sub">前週比</div>
+              <div className="adm-widget-sub">{comparisonLabel}</div>
             </div>
             <div className="adm-widget-card">
               <div className="adm-widget-value">
-                {weeklyStats.thisAvg != null ? weeklyStats.thisAvg : '---'}
-                {weeklyStats.stressTrend !== 'flat' && (
-                  <span className={`adm-widget-trend adm-trend-${weeklyStats.stressTrend === 'better' ? 'better' : 'worse'}`}>
-                    {weeklyStats.stressTrend === 'better' ? '\u2193' : '\u2191'}
+                {periodStats.thisAvg != null ? periodStats.thisAvg : '---'}
+                {periodStats.stressTrend !== 'flat' && (
+                  <span className={`adm-widget-trend adm-trend-${periodStats.stressTrend === 'better' ? 'better' : 'worse'}`}>
+                    {periodStats.stressTrend === 'better' ? '\u2193' : '\u2191'}
                   </span>
                 )}
               </div>
               <div className="adm-widget-label">平均ストレス</div>
               <div className="adm-widget-sub">
-                {weeklyStats.thisAvg != null ? stressStatus(weeklyStats.thisAvg).label : ''}
+                {periodStats.thisAvg != null ? stressStatus(periodStats.thisAvg).label : ''}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 通知パネル */}
       <NotificationPanel orgStats={orgStats} alertThreshold={alertThreshold} />
@@ -249,6 +524,9 @@ export default function OverviewView({ orgStats, teamStats, onTeamClick, alertTh
           sub={avgStress != null ? stressStatus(avgStress).label : ''}
         />
       </div>
+
+      {/* 計測アクティビティヒートマップ */}
+      <ActivityHeatmap orgId={orgStats?.orgId} />
 
       <h3 className="adm-section-title">部署別サマリー</h3>
       <div className="adm-table-wrap">
