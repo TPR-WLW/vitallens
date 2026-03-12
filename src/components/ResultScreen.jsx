@@ -1,14 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CONTACT_EMAIL } from './ContactForm.jsx';
 import { computeConditionScores } from '../lib/emotion-fusion.js';
+import { saveEntry } from '../lib/history.js';
 
-export default function ResultScreen({ result, onRestart, onBack }) {
+export default function ResultScreen({ result, onRestart, onBack, onShowHistory }) {
   const { hr, confidence, hrv, emotion } = result;
   const metrics = hrv?.metrics;
   const stress = hrv?.stress;
   const quality = hrv?.quality;
 
   const [detailOpen, setDetailOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // 自動保存：実計測結果は自動的に履歴に保存（デモ・サンプルは手動）
+  useEffect(() => {
+    if (!result.isSample && !result.isDemo) {
+      saveEntry(result);
+      setSaved(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleManualSave = () => {
+    saveEntry(result);
+    setSaved(true);
+  };
 
   // Compute condition scores (fuses HRV + emotion)
   const emotionSummary = emotion?.summary || null;
@@ -371,11 +386,28 @@ export default function ResultScreen({ result, onRestart, onBack }) {
           </p>
         </div>
 
+        {/* Save + History actions */}
+        {(result.isDemo || result.isSample) && !saved && (
+          <button className="btn-save-history" onClick={handleManualSave}>
+            この結果を履歴に保存
+          </button>
+        )}
+        {saved && (
+          <div className="save-confirmation">
+            履歴に保存しました
+          </div>
+        )}
+
         {/* Actions */}
         <div className="result-actions">
           <button className="btn-primary" onClick={onRestart}>
             {result.isSample ? '実際に計測してみる' : 'もう一度チェック'}
           </button>
+          {onShowHistory && (
+            <button className="btn-history-link" onClick={onShowHistory}>
+              計測履歴を見る
+            </button>
+          )}
           {onBack && (
             <a className="back-link back-link-center" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
               &larr; トップに戻る

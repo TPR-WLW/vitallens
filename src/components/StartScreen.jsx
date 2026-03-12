@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { getCount } from '../lib/history.js';
 
-export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo }) {
+export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo, onShowHistory }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [quickMode, setQuickMode] = useState(true);
@@ -101,6 +102,12 @@ export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo
         {onShowSample && (
           <button className="btn-sample" onClick={onShowSample}>
             サンプル結果を見る
+          </button>
+        )}
+
+        {onShowHistory && getCount() > 0 && (
+          <button className="btn-history" onClick={onShowHistory}>
+            計測履歴を見る（{getCount()}件）
           </button>
         )}
 

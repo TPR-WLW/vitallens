@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
 import '../styles/landing.css';
 
-export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo }) {
+export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo, onShowHistory }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
@@ -369,9 +369,10 @@ export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo })
 
             <h3>2. 計測データの取り扱い</h3>
             <p>
-              計測結果（心拍数、HRV指標、ストレスレベル）は、計測完了後に利用者の画面上にのみ表示されます。
-              現在のバージョンでは、計測データを外部サーバーに送信する機能はありません。
-              計測データはブラウザを閉じた時点で消去されます。
+              計測結果（心拍数、HRV指標、ストレスレベル）は、計測完了後に利用者の画面上に表示されます。
+              計測履歴機能により、過去の計測結果がブラウザのローカルストレージに保存されます。
+              これらのデータは利用者のデバイス内にのみ保存され、<strong>外部サーバーへの送信は一切行いません。</strong>
+              履歴データは利用者自身でいつでも削除できます。
             </p>
 
             <h3>3. Cookieおよびトラッキング</h3>

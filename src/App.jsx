@@ -4,6 +4,7 @@ import StartScreen from './components/StartScreen.jsx';
 import MeasureScreen from './components/MeasureScreen.jsx';
 import DemoMeasureScreen from './components/DemoMeasureScreen.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
+import HistoryScreen from './components/HistoryScreen.jsx';
 import DashboardMock from './components/DashboardMock.jsx';
 import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
 import './styles/app.css';
@@ -16,6 +17,7 @@ const SCREENS = {
   RESULT: 'result',
   SAMPLE: 'sample',
   DASHBOARD: 'dashboard',
+  HISTORY: 'history',
 };
 
 // Realistic sample result for a moderately stressed Japanese office worker
@@ -57,6 +59,10 @@ export default function App() {
 
   const handleShowDashboard = () => {
     setScreen(SCREENS.DASHBOARD);
+  };
+
+  const handleShowHistory = () => {
+    setScreen(SCREENS.HISTORY);
   };
 
   const handleStartDemo = () => {
@@ -112,16 +118,18 @@ export default function App() {
   return (
     <div className="app">
       <PwaInstallPrompt />
-      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} />}
+      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />}
       {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
+      {screen === SCREENS.HISTORY && <HistoryScreen onBack={handleBackToLanding} onRestart={() => setScreen(SCREENS.START)} />}
       {screen === SCREENS.START && (
-        <StartScreen onStart={handleStart} onBack={handleBackToLanding} onShowSample={handleShowSample} onStartDemo={handleStartDemo} />
+        <StartScreen onStart={handleStart} onBack={handleBackToLanding} onShowSample={handleShowSample} onStartDemo={handleStartDemo} onShowHistory={handleShowHistory} />
       )}
       {screen === SCREENS.SAMPLE && result && (
         <ResultScreen
           result={result}
           onRestart={() => setScreen(SCREENS.START)}
           onBack={handleBackToLanding}
+          onShowHistory={handleShowHistory}
         />
       )}
       {screen === SCREENS.DEMO && (
@@ -143,6 +151,7 @@ export default function App() {
           result={result}
           onRestart={handleRestart}
           onBack={handleBackToLanding}
+          onShowHistory={handleShowHistory}
         />
       )}
     </div>
