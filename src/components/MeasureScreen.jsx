@@ -34,6 +34,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
   const [currentHR, setCurrentHR] = useState(null);
   const [status, setStatus] = useState('カメラを起動中...');
   const [signalQuality, setSignalQuality] = useState(0);
+  const [sqi, setSqi] = useState(null); // Enhanced SQI object { score, label, color, components }
   const [phase, setPhase] = useState('init'); // init | calibrating | measuring | hrv
   const [emotionStatus, setEmotionStatus] = useState('loading'); // loading | calibrating | active | error
 
@@ -118,15 +119,21 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
         if (result && result.hr > 0) {
           setCurrentHR(result.hr);
           setSignalQuality(result.confidence);
+          if (result.sqi) setSqi(result.sqi);
 
           if (elapsedSec < 15) {
             setPhase('calibrating');
             setStatus('キャリブレーション中...');
           } else if (elapsedSec < HRV_MIN_DURATION) {
             setPhase('measuring');
-            setStatus(result.confidence < 0.25
-              ? '計測中 — 動かないでください...'
-              : '心拍を読み取っています...');
+            const sqiScore = result.sqi?.score ?? result.confidence;
+            if (sqiScore < 0.25) {
+              setStatus('計測中 — 動かないでください...');
+            } else if (result.sqi?.components?.channelStability < 0.4) {
+              setStatus('計測中 — 照明が不安定です、位置を調整してください');
+            } else {
+              setStatus('心拍を読み取っています...');
+            }
           } else {
             setPhase('hrv');
             setStatus('HRV分析中 — そのままお待ちください...');
@@ -161,6 +168,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       const finalResult = processorRef.current.computeHeartRate();
       const hr = finalResult?.hr || currentHR || 0;
       const confidence = finalResult?.confidence || signalQuality;
+      const finalSqi = finalResult?.sqi || sqi;
 
       // Run HRV analysis
       let hrvResult = null;
@@ -181,6 +189,7 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
       onComplete({
         hr,
         confidence,
+        sqi: finalSqi,
         duration,
         samples: processorRef.current.sampleCount,
         hrv: hrvResult,
@@ -209,7 +218,8 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
     ? `${minutes}:${String(seconds).padStart(2, '0')}`
     : `${seconds}秒`;
 
-  const qualityLabel = signalQuality > 0.4 ? '良好' : signalQuality > 0.2 ? '普通' : '低い';
+  const qualityLabel = sqi ? sqi.label : (signalQuality > 0.4 ? '信号良好' : signalQuality > 0.2 ? '信号普通' : '信号不安定');
+  const qualityColor = sqi ? sqi.color : undefined;
 
   return (
     <div className="measure-screen">
@@ -257,7 +267,9 @@ export default function MeasureScreen({ onComplete, onCancel, quickMode = false,
           </div>
           <div className="progress-info">
             <span className="time-remaining">残り {timeDisplay}</span>
-            <span className="signal-quality">信号: {qualityLabel}</span>
+            <span className="signal-quality" style={qualityColor ? { color: qualityColor } : undefined}>
+              {qualityLabel}
+            </span>
           </div>
         </div>
 

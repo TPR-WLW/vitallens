@@ -250,6 +250,78 @@ export function bandpassFilter(signal, sampleRate, lowCut = 0.7, highCut = 4.0) 
 }
 
 /**
+ * Notch (band-reject) filter using biquad IIR.
+ * Removes a narrow frequency band centered at notchFreq.
+ * Forward-backward (zero-phase) filtering.
+ *
+ * @param {Float64Array|number[]} signal
+ * @param {number} sampleRate - Samples per second
+ * @param {number} notchFreq - Center frequency to reject (Hz)
+ * @param {number} [Q=30] - Quality factor (higher = narrower notch)
+ * @returns {Float64Array}
+ */
+export function notchFilter(signal, sampleRate, notchFreq, Q = 30) {
+  if (notchFreq <= 0 || notchFreq >= sampleRate / 2) return new Float64Array(signal);
+
+  const w0 = (2 * Math.PI * notchFreq) / sampleRate;
+  const alpha = Math.sin(w0) / (2 * Q);
+
+  // Notch filter coefficients
+  const b0 = 1;
+  const b1 = -2 * Math.cos(w0);
+  const b2 = 1;
+  const a0 = 1 + alpha;
+  const a1 = -2 * Math.cos(w0);
+  const a2 = 1 - alpha;
+
+  // Normalize
+  const nb0 = b0 / a0;
+  const nb1 = b1 / a0;
+  const nb2 = b2 / a0;
+  const na1 = a1 / a0;
+  const na2 = a2 / a0;
+
+  const N = signal.length;
+
+  // Forward pass
+  const result = new Float64Array(N);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < N; i++) {
+    const x = signal[i];
+    const y = nb0 * x + nb1 * x1 + nb2 * x2 - na1 * y1 - na2 * y2;
+    result[i] = y;
+    x2 = x1; x1 = x; y2 = y1; y1 = y;
+  }
+
+  // Backward pass (zero-phase)
+  const result2 = new Float64Array(N);
+  x1 = 0; x2 = 0; y1 = 0; y2 = 0;
+  for (let i = N - 1; i >= 0; i--) {
+    const x = result[i];
+    const y = nb0 * x + nb1 * x1 + nb2 * x2 - na1 * y1 - na2 * y2;
+    result2[i] = y;
+    x2 = x1; x1 = x; y2 = y1; y1 = y;
+  }
+
+  return result2;
+}
+
+/**
+ * Compute aliased frequency for a given source frequency and sample rate.
+ * Returns the frequency as it appears after sampling (folding into 0..Nyquist).
+ *
+ * @param {number} sourceFreq - Original frequency (e.g., 50 or 60 Hz)
+ * @param {number} sampleRate - Camera frame rate
+ * @returns {number} Aliased frequency in Hz
+ */
+export function computeAliasFrequency(sourceFreq, sampleRate) {
+  const nyquist = sampleRate / 2;
+  let f = sourceFreq % sampleRate;
+  if (f > nyquist) f = sampleRate - f;
+  return f;
+}
+
+/**
  * Compute standard deviation of a signal.
  */
 export function std(signal) {

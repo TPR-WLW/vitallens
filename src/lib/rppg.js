@@ -10,12 +10,20 @@
  * alpha tuning based on signal statistics.
  */
 
-import { bandpassFilter, detrend, hammingWindow, findDominantFrequency, std } from './signal.js';
+import { bandpassFilter, detrend, hammingWindow, findDominantFrequency, std, notchFilter, computeAliasFrequency } from './signal.js';
 
 // Buffer configuration
 const WINDOW_SIZE_SECONDS = 30;
 const MIN_SAMPLES_FOR_HR = 64; // Minimum samples before attempting HR calculation
 const OVERLAP_SEGMENT_SECONDS = 1.6; // POS uses overlapping temporal windows
+
+// Fluorescent light flicker frequencies (Japan: 50Hz east, 60Hz west)
+const FLICKER_FREQUENCIES = [50, 60];
+// Only apply notch if alias falls within this band (near HR range)
+const FLICKER_ALIAS_MIN_HZ = 0.5;
+const FLICKER_ALIAS_MAX_HZ = 4.0;
+// Channel variance threshold for motion artifact detection
+const CHANNEL_VARIANCE_THRESHOLD = 0.05;
 
 /**
  * rPPG Processor — accumulates RGB samples and computes heart rate.
@@ -33,6 +41,7 @@ export class RPPGProcessor {
     this.lastHR = null;
     this.lastConfidence = 0;
     this.hrHistory = []; // Sliding window of recent HR estimates
+    this.windowSQIs = []; // Per-window signal quality indices
   }
 
   /**
@@ -100,11 +109,23 @@ export class RPPGProcessor {
     const fps = this.estimateFPS();
 
     // Step 1: Convert buffers to Float64Arrays
-    const R = new Float64Array(this.rBuffer);
-    const G = new Float64Array(this.gBuffer);
-    const B = new Float64Array(this.bBuffer);
+    let R = new Float64Array(this.rBuffer);
+    let G = new Float64Array(this.gBuffer);
+    let B = new Float64Array(this.bBuffer);
 
-    // Step 2: Apply POS algorithm with temporal windowing
+    // Step 1.5: Apply notch filter for fluorescent light flicker (50/60Hz)
+    // Compute aliased frequencies at current fps and filter if they fall in HR band
+    for (const flickerHz of FLICKER_FREQUENCIES) {
+      const aliasHz = computeAliasFrequency(flickerHz, fps);
+      if (aliasHz >= FLICKER_ALIAS_MIN_HZ && aliasHz <= FLICKER_ALIAS_MAX_HZ) {
+        R = notchFilter(R, fps, aliasHz);
+        G = notchFilter(G, fps, aliasHz);
+        B = notchFilter(B, fps, aliasHz);
+      }
+    }
+
+    // Step 2: Apply POS algorithm with temporal windowing (also computes per-window SQI)
+    this.windowSQIs = [];
     const pulseSignal = this.posAlgorithm(R, G, B, fps);
     if (!pulseSignal) return null;
 
@@ -123,9 +144,13 @@ export class RPPGProcessor {
     // Step 7: Temporal smoothing — reject outliers, smooth HR
     const hr = this.smoothHR(result.bpm, result.confidence);
 
+    // Compute aggregate SQI from per-window quality scores (25th percentile — conservative)
+    const sqi = this.computeAggregateSQI(result.confidence);
+
     return {
       hr: Math.round(hr),
       confidence: result.confidence,
+      sqi,
       signal: filtered,
       timestamps: [...this.timestamps],
       fps,
@@ -148,7 +173,12 @@ export class RPPGProcessor {
 
     if (windowLen < 4 || N < windowLen) {
       // Fallback: process entire buffer as one window
-      return this.posWindow(R, G, B);
+      const result = this.posWindow(R, G, B);
+      if (result) {
+        this.windowSQIs.push(result.channelStability);
+        return result.signal;
+      }
+      return null;
     }
 
     // Process overlapping windows and accumulate
@@ -159,8 +189,10 @@ export class RPPGProcessor {
       const gWin = G.slice(start, start + windowLen);
       const bWin = B.slice(start, start + windowLen);
 
-      const hWin = this.posWindow(rWin, gWin, bWin);
-      if (!hWin) continue;
+      const winResult = this.posWindow(rWin, gWin, bWin);
+      if (!winResult) continue;
+      const { signal: hWin, channelStability } = winResult;
+      this.windowSQIs.push(channelStability);
 
       // Overlap-add
       for (let i = 0; i < windowLen && start + i < N; i++) {
@@ -229,7 +261,50 @@ export class RPPGProcessor {
       h[i] = S1[i] + alpha * S2[i];
     }
 
-    return h;
+    // Channel stability: motion artifact proxy
+    // High variance in normalized channels = motion artifact
+    const maxVar = Math.max(std(Rn), std(Gn), std(Bn));
+    const channelStability = Math.max(0, 1 - Math.min(1, maxVar / CHANNEL_VARIANCE_THRESHOLD));
+
+    return { signal: h, channelStability };
+  }
+
+  /**
+   * Compute aggregate SQI from per-window channel stability and spectral confidence.
+   * Uses 25th percentile of window SQIs (conservative — bad windows pull score down).
+   *
+   * @param {number} spectralConfidence - Spectral concentration from FFT (0-1)
+   * @returns {{ score: number, label: string, color: string, components: object }}
+   */
+  computeAggregateSQI(spectralConfidence) {
+    let channelStabilityAgg = 1;
+    if (this.windowSQIs.length > 0) {
+      const sorted = [...this.windowSQIs].sort((a, b) => a - b);
+      const p25Idx = Math.floor(sorted.length * 0.25);
+      channelStabilityAgg = sorted[p25Idx];
+    }
+
+    // Composite: 50% spectral concentration + 50% channel stability
+    const score = Math.round((spectralConfidence * 0.5 + channelStabilityAgg * 0.5) * 100) / 100;
+
+    let label, color;
+    if (score >= 0.6) {
+      label = '信号良好'; color = '#22c55e';
+    } else if (score >= 0.35) {
+      label = '信号普通'; color = '#f59e0b';
+    } else {
+      label = '信号不安定'; color = '#ef4444';
+    }
+
+    return {
+      score,
+      label,
+      color,
+      components: {
+        spectral: Math.round(spectralConfidence * 100) / 100,
+        channelStability: Math.round(channelStabilityAgg * 100) / 100,
+      },
+    };
   }
 
   /**
