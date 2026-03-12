@@ -5,6 +5,7 @@ import MeasureScreen from './components/MeasureScreen.jsx';
 import DemoMeasureScreen from './components/DemoMeasureScreen.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
 import DashboardMock from './components/DashboardMock.jsx';
+import PwaInstallPrompt from './components/PwaInstallPrompt.jsx';
 import './styles/app.css';
 
 const SCREENS = {
@@ -110,6 +111,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <PwaInstallPrompt />
       {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} />}
       {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
       {screen === SCREENS.START && (
