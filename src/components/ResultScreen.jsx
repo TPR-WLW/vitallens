@@ -1,8 +1,41 @@
-export default function ResultScreen({ result, onRestart }) {
-  const { hr, confidence } = result;
+import { useState, useEffect } from 'react';
+import { API } from '../config/api.js';
+import { getAgentUUID, getTenantSlug } from '../lib/agent.js';
 
-  // Determine wellness category based on resting heart rate ranges
-  // These are general wellness guidelines, NOT medical thresholds
+export default function ResultScreen({ result, onRestart, tenantSlug: tenantSlugProp }) {
+  const { hr, confidence } = result;
+  const [submitStatus, setSubmitStatus] = useState('idle'); // idle | submitting | sent | error
+
+  const tenantSlug = tenantSlugProp || getTenantSlug();
+
+  // Auto-submit result if enrolled in a tenant
+  useEffect(() => {
+    if (!tenantSlug || !API.base || submitStatus !== 'idle') return;
+    if (confidence < 0.15 || hr === 0) return; // Don't submit inconclusive results
+
+    const stressIndicator = hr <= 80 ? 'low' : hr <= 100 ? 'moderate' : 'elevated';
+
+    setSubmitStatus('submitting');
+    fetch(API.checkResult, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_slug: tenantSlug,
+        agent_uuid: getAgentUUID(),
+        timestamp: new Date().toISOString(),
+        heart_rate_bpm: Math.round(hr),
+        stress_indicator: stressIndicator,
+        signal_quality: Math.round(confidence * 100) / 100,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) return res.json().then((d) => { throw new Error(d.error); });
+        return res.json();
+      })
+      .then(() => setSubmitStatus('sent'))
+      .catch(() => setSubmitStatus('error'));
+  }, [tenantSlug, hr, confidence, submitStatus]);
+
   const getWellnessInfo = (heartRate, conf) => {
     if (conf < 0.15 || heartRate === 0) {
       return {
@@ -81,6 +114,14 @@ export default function ResultScreen({ result, onRestart }) {
           <h3 style={{ color: wellness.color }}>{wellness.label}</h3>
           <p>{wellness.message}</p>
         </div>
+
+        {/* Submission status for enrolled agents */}
+        {tenantSlug && submitStatus === 'sent' && (
+          <div className="submit-badge sent">Check-in recorded anonymously</div>
+        )}
+        {tenantSlug && submitStatus === 'error' && (
+          <div className="submit-badge error">Could not save — result stays on your device only</div>
+        )}
 
         {/* Measurement quality */}
         <div className="quality-info">

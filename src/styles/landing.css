@@ -657,6 +657,41 @@
   color: var(--color-text-muted);
 }
 
+.cta-form-expanded {
+  flex-direction: column;
+  max-width: 420px;
+}
+
+.cta-form-expanded .cta-input {
+  width: 100%;
+  min-width: unset;
+}
+
+.cta-form-expanded select.cta-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  cursor: pointer;
+}
+
+.cta-form-expanded .btn-hero {
+  width: 100%;
+}
+
+.cta-form-expanded .btn-hero:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.cta-error {
+  width: 100%;
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin: 0;
+  text-align: center;
+}
+
 .cta-note {
   font-size: 0.82rem;
   color: var(--color-text-muted);

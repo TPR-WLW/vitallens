@@ -527,6 +527,24 @@ body {
   color: var(--color-primary);
 }
 
+.submit-badge {
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.submit-badge.sent {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-success);
+}
+
+.submit-badge.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--color-danger);
+}
+
 .result-actions {
   margin-top: 28px;
   margin-bottom: 16px;

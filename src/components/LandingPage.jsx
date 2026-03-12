@@ -1,16 +1,38 @@
 import { useState } from 'react';
+import { API } from '../config/api.js';
 import '../styles/landing.css';
 
 export default function LandingPage({ onTryDemo, onViewDashboard }) {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ email: '', contactName: '', company: '', agentCount: '' });
+  const [status, setStatus] = useState('idle'); // idle | submitting | success | error
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email.trim()) {
-      // Track pilot request
-      window.__vl_track?.('pilot_request', { email });
-      setSubmitted(true);
+    if (!form.email.trim()) return;
+
+    setStatus('submitting');
+    setErrorMsg('');
+
+    // Track pilot request (analytics)
+    window.__vl_track?.('pilot_request', { email: form.email });
+
+    try {
+      const res = await fetch(API.pilotRequest, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Something went wrong');
+      }
+      setStatus('success');
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.message || 'Network error. Please try again.');
     }
   };
 
@@ -270,7 +292,7 @@ export default function LandingPage({ onTryDemo, onViewDashboard }) {
           <p className="section-sub">
             No credit card. No hardware to install. Up and running in 15 minutes.
           </p>
-          {submitted ? (
+          {status === 'success' ? (
             <div className="cta-success">
               <div className="success-icon">✓</div>
               <h3>We'll be in touch within 24 hours.</h3>
@@ -278,16 +300,46 @@ export default function LandingPage({ onTryDemo, onViewDashboard }) {
               <button className="btn-secondary" onClick={onTryDemo}>Try Live Demo</button>
             </div>
           ) : (
-            <form className="cta-form" onSubmit={handleSubmit}>
+            <form className="cta-form cta-form-expanded" onSubmit={handleSubmit}>
+              <input
+                type="text"
+                className="cta-input"
+                placeholder="Full name"
+                value={form.contactName}
+                onChange={update('contactName')}
+              />
               <input
                 type="email"
                 className="cta-input"
                 placeholder="Work email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={update('email')}
                 required
               />
-              <button type="submit" className="btn-hero">Request Pilot Access</button>
+              <input
+                type="text"
+                className="cta-input"
+                placeholder="Company name"
+                value={form.company}
+                onChange={update('company')}
+              />
+              <select
+                className="cta-input"
+                value={form.agentCount}
+                onChange={update('agentCount')}
+              >
+                <option value="">Team size...</option>
+                <option value="50-100">50 - 100 agents</option>
+                <option value="100-250">100 - 250 agents</option>
+                <option value="250-500">250 - 500 agents</option>
+                <option value="500+">500+ agents</option>
+              </select>
+              <button type="submit" className="btn-hero" disabled={status === 'submitting'}>
+                {status === 'submitting' ? 'Submitting...' : 'Request Pilot Access'}
+              </button>
+              {status === 'error' && (
+                <p className="cta-error">{errorMsg}</p>
+              )}
             </form>
           )}
           <p className="cta-note">

@@ -1,0 +1,114 @@
+.join-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg, #0a0a0f);
+  padding: 24px;
+}
+
+.join-content {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.join-logo {
+  margin-bottom: 24px;
+}
+
+.join-content h2 {
+  color: #fff;
+  font-size: 1.75rem;
+  margin: 0 0 8px;
+}
+
+.join-sub {
+  color: #9ca3af;
+  font-size: 0.95rem;
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.join-input {
+  padding: 14px 16px;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  background: #13131f;
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.join-input:focus {
+  border-color: #4f8cff;
+}
+
+.join-input:disabled {
+  opacity: 0.6;
+}
+
+.join-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
+.join-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 16px;
+  background: #13131f;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.join-privacy span {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.join-privacy svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-top: 16px;
+  padding: 8px;
+}
+
+.btn-link:hover {
+  color: #fff;
+}
+
+.join-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}

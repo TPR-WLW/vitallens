@@ -1,8 +1,8 @@
 // VitalLens — Lightweight privacy-respecting analytics
 // Tracks page views and key events. No cookies, no PII.
-// Currently logs to console. Replace endpoint to send data when backend is ready.
+// Set VITE_API_URL env var to enable server-side tracking.
 
-const ENDPOINT = null; // Set to API endpoint when available
+import { API } from '../config/api.js';
 
 function send(event, data = {}) {
   const payload = {
@@ -13,9 +13,9 @@ function send(event, data = {}) {
     ...data,
   };
 
-  if (ENDPOINT) {
+  if (API.base) {
     try {
-      navigator.sendBeacon(ENDPOINT, JSON.stringify(payload));
+      navigator.sendBeacon(API.analytics, JSON.stringify(payload));
     } catch {
       // Silently fail — analytics should never break the app
     }

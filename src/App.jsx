@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage.jsx';
 import DashboardMock from './components/DashboardMock.jsx';
+import JoinScreen from './components/JoinScreen.jsx';
 import StartScreen from './components/StartScreen.jsx';
 import MeasureScreen from './components/MeasureScreen.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
+import { getTenantSlug } from './lib/agent.js';
 import './styles/app.css';
 
-const ROUTES = {
-  LANDING: '',
-  DEMO: 'demo',
-  DASHBOARD: 'dashboard',
-};
+function getRoute() {
+  const hash = window.location.hash.replace('#/', '').replace('#', '');
+  return hash || '';
+}
+
+function parseRoute(hash) {
+  // Match /join/:slug
+  const joinMatch = hash.match(/^join\/(.+)$/);
+  if (joinMatch) return { page: 'join', slug: joinMatch[1] };
+
+  // Match /dashboard/:slug (real dashboard with token in query)
+  if (hash === 'dashboard') return { page: 'dashboard' };
+  if (hash === 'demo') return { page: 'demo' };
+  return { page: 'landing' };
+}
 
 const SCREENS = {
   START: 'start',
@@ -18,15 +30,11 @@ const SCREENS = {
   RESULT: 'result',
 };
 
-function getRoute() {
-  const hash = window.location.hash.replace('#/', '').replace('#', '');
-  return hash || ROUTES.LANDING;
-}
-
 export default function App() {
   const [route, setRoute] = useState(getRoute);
   const [screen, setScreen] = useState(SCREENS.START);
   const [result, setResult] = useState(null);
+  const [tenantSlug, setTenantSlug] = useState(getTenantSlug);
 
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
@@ -39,7 +47,6 @@ export default function App() {
     setRoute(r);
   };
 
-  // Demo screen handlers
   const handleStart = () => {
     setScreen(SCREENS.MEASURE);
     setResult(null);
@@ -59,30 +66,47 @@ export default function App() {
     setResult(null);
   };
 
+  const parsed = parseRoute(route);
+
+  // Join / Enrollment
+  if (parsed.page === 'join') {
+    return (
+      <JoinScreen
+        tenantSlug={parsed.slug}
+        onEnrolled={(slug) => {
+          setTenantSlug(slug);
+          setScreen(SCREENS.START);
+          navigate('demo');
+        }}
+        onBack={() => navigate('')}
+      />
+    );
+  }
+
   // Landing page
-  if (route === ROUTES.LANDING) {
+  if (parsed.page === 'landing') {
     return (
       <LandingPage
-        onTryDemo={() => { setScreen(SCREENS.START); navigate(ROUTES.DEMO); }}
-        onViewDashboard={() => navigate(ROUTES.DASHBOARD)}
+        onTryDemo={() => { setScreen(SCREENS.START); navigate('demo'); }}
+        onViewDashboard={() => navigate('dashboard')}
       />
     );
   }
 
   // Dashboard
-  if (route === ROUTES.DASHBOARD) {
-    return <DashboardMock onBack={() => navigate(ROUTES.LANDING)} />;
+  if (parsed.page === 'dashboard') {
+    return <DashboardMock onBack={() => navigate('')} />;
   }
 
-  // Demo (original app flow)
+  // Demo / Check-in flow
   return (
     <div className="app">
-      {screen === SCREENS.START && <StartScreen onStart={handleStart} onBack={() => navigate(ROUTES.LANDING)} />}
+      {screen === SCREENS.START && <StartScreen onStart={handleStart} onBack={() => navigate('')} />}
       {screen === SCREENS.MEASURE && (
         <MeasureScreen onComplete={handleComplete} onCancel={handleCancel} />
       )}
       {screen === SCREENS.RESULT && result && (
-        <ResultScreen result={result} onRestart={handleRestart} />
+        <ResultScreen result={result} onRestart={handleRestart} tenantSlug={tenantSlug} />
       )}
     </div>
   );

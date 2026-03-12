@@ -84,11 +84,13 @@ export function extractROI(canvas, ctx, video) {
       const g = data[i + 1];
       const b = data[i + 2];
 
-      // Simple skin color heuristic (works for diverse skin tones):
-      // R > 50, G > 30, B > 15
-      // R > G > B (for most skin tones in RGB)
-      // Not too dark, not too bright
-      if (r > 50 && g > 30 && b > 15 && r > g && (r - g) < 100 && (r + g + b) > 120 && (r + g + b) < 700) {
+      // YCbCr skin detection (works for all Fitzpatrick skin tones I-VI):
+      // Convert RGB to YCbCr and check Cb/Cr ranges that cover all human skin
+      // Brightness guard rejects shadows and specular highlights
+      const cb = 128 + (-0.169 * r - 0.331 * g + 0.500 * b);
+      const cr = 128 + (0.500 * r - 0.419 * g - 0.081 * b);
+      const brightness = r + g + b;
+      if (cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173 && brightness > 120 && brightness < 700) {
         totalR += r;
         totalG += g;
         totalB += b;
