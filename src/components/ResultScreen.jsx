@@ -90,6 +90,13 @@ export default function ResultScreen({ result, onRestart, onBack }) {
       <div className="result-content">
         <h2>コンディションチェック結果</h2>
 
+        {result.isDemo && (
+          <div className="demo-banner">
+            <span className="demo-result-badge">デモ</span>
+            これはデモ用の合成データです。実際にカメラで計測すると、あなた自身の結果が表示されます。
+          </div>
+        )}
+
         {result.isSample && (
           <div className="sample-banner">
             <span className="sample-badge">サンプル</span>

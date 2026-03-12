@@ -2,6 +2,7 @@ import { useState } from 'react';
 import LandingPage from './components/LandingPage.jsx';
 import StartScreen from './components/StartScreen.jsx';
 import MeasureScreen from './components/MeasureScreen.jsx';
+import DemoMeasureScreen from './components/DemoMeasureScreen.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
 import DashboardMock from './components/DashboardMock.jsx';
 import './styles/app.css';
@@ -10,6 +11,7 @@ const SCREENS = {
   LANDING: 'landing',
   START: 'start',
   MEASURE: 'measure',
+  DEMO: 'demo',
   RESULT: 'result',
   SAMPLE: 'sample',
   DASHBOARD: 'dashboard',
@@ -56,6 +58,16 @@ export default function App() {
     setScreen(SCREENS.DASHBOARD);
   };
 
+  const handleStartDemo = () => {
+    setScreen(SCREENS.DEMO);
+    setResult(null);
+  };
+
+  const handleDemoComplete = () => {
+    setResult({ ...SAMPLE_RESULT, isDemo: true, isSample: false });
+    setScreen(SCREENS.RESULT);
+  };
+
   const handleBackToLanding = () => {
     // Stop any lingering camera stream
     if (cameraStream) {
@@ -98,16 +110,22 @@ export default function App() {
 
   return (
     <div className="app">
-      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} />}
+      {screen === SCREENS.LANDING && <LandingPage onTryDemo={handleTryDemo} onShowDashboard={handleShowDashboard} onStartDemo={handleStartDemo} />}
       {screen === SCREENS.DASHBOARD && <DashboardMock onBack={handleBackToLanding} />}
       {screen === SCREENS.START && (
-        <StartScreen onStart={handleStart} onBack={handleBackToLanding} onShowSample={handleShowSample} />
+        <StartScreen onStart={handleStart} onBack={handleBackToLanding} onShowSample={handleShowSample} onStartDemo={handleStartDemo} />
       )}
       {screen === SCREENS.SAMPLE && result && (
         <ResultScreen
           result={result}
           onRestart={() => setScreen(SCREENS.START)}
           onBack={handleBackToLanding}
+        />
+      )}
+      {screen === SCREENS.DEMO && (
+        <DemoMeasureScreen
+          onComplete={handleDemoComplete}
+          onCancel={() => setScreen(SCREENS.START)}
         />
       )}
       {screen === SCREENS.MEASURE && (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ContactForm, { CONTACT_EMAIL } from './ContactForm.jsx';
 import '../styles/landing.css';
 
-export default function LandingPage({ onTryDemo, onShowDashboard }) {
+export default function LandingPage({ onTryDemo, onShowDashboard, onStartDemo }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
@@ -54,6 +54,7 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
           </p>
           <div className="hero-actions">
             <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
+            <button className="btn-hero-secondary" onClick={onStartDemo}>カメラなしでデモを見る</button>
           </div>
           <div className="hero-stats">
             <div className="hero-stat">
@@ -302,6 +303,9 @@ export default function LandingPage({ onTryDemo, onShowDashboard }) {
             アカウント登録不要。データの保存や送信は一切行いません。
           </p>
           <button className="btn-hero" onClick={onTryDemo}>無料デモを体験する</button>
+          <p className="cta-demo-alt">
+            <button className="btn-text-link" onClick={onStartDemo}>カメラなしでデモを体験する &rarr;</button>
+          </p>
         </div>
       </section>
 

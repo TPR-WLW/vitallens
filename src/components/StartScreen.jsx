@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function StartScreen({ onStart, onBack, onShowSample }) {
+export default function StartScreen({ onStart, onBack, onShowSample, onStartDemo }) {
   const [cameraError, setCameraError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [quickMode, setQuickMode] = useState(true);
@@ -91,6 +91,12 @@ export default function StartScreen({ onStart, onBack, onShowSample }) {
         <button className="btn-primary" onClick={handleStart} disabled={loading}>
           {loading ? 'カメラを確認中...' : 'チェック開始'}
         </button>
+
+        {onStartDemo && (
+          <button className="btn-demo" onClick={onStartDemo}>
+            カメラなしでデモを体験する
+          </button>
+        )}
 
         {onShowSample && (
           <button className="btn-sample" onClick={onShowSample}>
