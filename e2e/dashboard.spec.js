@@ -1412,10 +1412,14 @@ test.describe('期間セレクター + ヒートマップ + イベントログ',
     await page.waitForLoadState('load', { timeout: 30000 });
     await expect(page.locator('.adm-layout')).toBeVisible({ timeout: 30000 });
 
-    // メンバー画面へ遷移
-    if (await admHamburger.isVisible()) {
-      await admHamburger.click();
-      await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+    // メンバー画面へ遷移（モバイルではリロード後にサイドバーを再度開く必要がある）
+    const admHamburger2 = page.locator('.adm-hamburger');
+    if (await admHamburger2.isVisible()) {
+      const sidebarAlreadyOpen = await page.locator('.adm-sidebar.open').isVisible().catch(() => false);
+      if (!sidebarAlreadyOpen) {
+        await admHamburger2.click();
+        await expect(page.locator('.adm-sidebar.open')).toBeVisible({ timeout: 5000 });
+      }
     }
     await page.locator('.adm-nav-item', { hasText: 'メンバー' }).click();
 
