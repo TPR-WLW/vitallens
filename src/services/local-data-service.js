@@ -4,7 +4,7 @@
  */
 
 import { put, get, getAll, getByIndex, del, clearAll } from './idb-helpers.js';
-import { register, login, logout, getSession, getUsersByOrg, changePassword, setSecurityQuestion, resetPasswordWithSecurityAnswer, getSecurityQuestion, updateUserRole } from './auth-local.js';
+import { register, login, logout, getSession, getUsersByOrg, changePassword, setSecurityQuestion, resetPasswordWithSecurityAnswer, getSecurityQuestion, updateUserRole, getUserTeamId } from './auth-local.js';
 
 /** ID生成 */
 function generateId() {
@@ -88,6 +88,10 @@ export class LocalDataService {
 
   async updateUserRole({ userId, newRole }) {
     return updateUserRole({ userId, newRole });
+  }
+
+  async getUserTeamId(userId) {
+    return getUserTeamId(userId);
   }
 
   // === 計測データ ===
@@ -502,7 +506,7 @@ export class LocalDataService {
       // 部署フィルター: 指定時はその部署のメンバーのみ
       if (teamId && userTeamId !== teamId) continue;
 
-      const role = u.role === 'admin' ? '管理者' : 'メンバー';
+      const role = u.role === 'admin' ? '管理者' : u.role === 'manager' ? 'マネージャー' : 'メンバー';
       const joinDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('ja-JP') : '';
       const lastDate = lastDates[u.id]
         ? new Date(lastDates[u.id]).toLocaleDateString('ja-JP') : '未計測';

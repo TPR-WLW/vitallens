@@ -238,7 +238,7 @@ export async function getSecurityQuestion(email) {
  */
 export async function updateUserRole({ userId, newRole }) {
   if (!userId || !newRole) throw new Error('必須項目が入力されていません');
-  if (newRole !== 'admin' && newRole !== 'member') throw new Error('無効なロールです');
+  if (newRole !== 'admin' && newRole !== 'manager' && newRole !== 'member') throw new Error('無効なロールです');
   const user = await get('users', userId);
   if (!user) throw new Error('ユーザーが見つかりません');
   user.role = newRole;
@@ -246,6 +246,14 @@ export async function updateUserRole({ userId, newRole }) {
   await put('users', user);
   const { passwordHash, salt, ...safeUser } = user;
   return safeUser;
+}
+
+/**
+ * ユーザーの所属チームID取得（マネージャーの部署制限用）
+ */
+export async function getUserTeamId(userId) {
+  const memberships = await getByIndex('teamMemberships', 'userId', userId);
+  return memberships.length > 0 ? memberships[0].teamId : null;
 }
 
 /**

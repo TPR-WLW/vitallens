@@ -377,6 +377,9 @@
 .adm-sidebar-brand {
   padding: 20px;
   border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .adm-sidebar-brand h2 {
@@ -2512,8 +2515,27 @@
 .adm-btn-promote {
   color: #3b82f6 !important;
 }
+.adm-btn-promote-manager {
+  color: #8b5cf6 !important;
+}
 .adm-btn-demote {
   color: #f59e0b !important;
+}
+
+/* ===== マネージャーロール ===== */
+.adm-role-manager {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+.adm-role-change-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.adm-role-change-buttons .adm-btn-sm {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 /* ===== 計測品質トレンド ===== */
@@ -2561,4 +2583,365 @@
 }
 .adm-widget-dragover {
   border-top: 2px solid #4f8cff;
+}
+
+/* ===== テーマ切替 ===== */
+
+.adm-theme-toggle-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.adm-theme-toggle-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-surface-light);
+}
+
+/* 設定画面のテーマトグル */
+.adm-theme-toggle-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.adm-theme-toggle-track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--color-border);
+  border-radius: 12px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.adm-theme-toggle-track[data-active="true"] {
+  background: var(--color-primary);
+}
+
+.adm-theme-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--color-text);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.adm-theme-toggle-track[data-active="true"] .adm-theme-toggle-thumb {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.adm-theme-toggle-label {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ライトテーマ: サイドバーの背景調整 */
+[data-theme="light"] .adm-sidebar {
+  background: #ffffff;
+  border-right-color: var(--color-border);
+}
+
+[data-theme="light"] .adm-login-card {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .adm-settings-card,
+[data-theme="light"] .adm-kpi-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .adm-nav-item.active {
+  background: var(--color-surface-light);
+}
+
+/* ===== 計測カレンダービュー ===== */
+
+.adm-cal-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-cal-view-toggle {
+  display: inline-flex;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.adm-cal-toggle-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.4;
+}
+
+.adm-cal-toggle-btn:hover {
+  color: var(--color-text);
+}
+
+.adm-cal-toggle-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.adm-cal {
+  margin-top: 20px;
+}
+
+.adm-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.adm-cal-nav-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.adm-cal-nav-btn:hover {
+  background: var(--color-surface-light);
+  border-color: var(--color-primary);
+}
+
+.adm-cal-nav-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 120px;
+  text-align: center;
+}
+
+.adm-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.adm-cal-weekday {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 6px 0;
+}
+
+.adm-cal-sun {
+  color: #ef4444;
+}
+
+.adm-cal-sat {
+  color: #3b82f6;
+}
+
+.adm-cal-cell {
+  min-height: 56px;
+  padding: 4px 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.adm-cal-cell:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-light);
+}
+
+.adm-cal-cell-empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.adm-cal-cell-empty:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.adm-cal-cell-today {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.adm-cal-cell-selected {
+  background: rgba(79, 140, 255, 0.12);
+  border-color: var(--color-primary);
+}
+
+.adm-cal-day-num {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.adm-cal-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.adm-cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.adm-cal-count {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.adm-cal-detail {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: adm-timeline-expand 0.25s ease-out;
+}
+
+.adm-cal-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.adm-cal-detail-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.adm-cal-detail-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  padding: 12px 0;
+}
+
+/* カレンダーモバイル対応 */
+@media (max-width: 767px) {
+  .adm-cal-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adm-cal-view-toggle {
+    align-self: flex-start;
+  }
+
+  .adm-cal-cell {
+    min-height: 44px;
+    padding: 3px 4px;
+  }
+
+  .adm-cal-day-num {
+    font-size: 0.72rem;
+  }
+
+  .adm-cal-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .adm-cal-count {
+    font-size: 0.6rem;
+  }
+}
+
+/* カレンダー印刷対応 */
+@media print {
+  .adm-cal-view-toggle,
+  .adm-cal-nav-btn {
+    display: none !important;
+  }
+
+  .adm-cal-cell {
+    border: 1px solid #d1d5db !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .adm-cal-dot {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ===== PDFレポートボタン ===== */
+
+.adm-btn-pdf {
+  position: relative;
+  padding-left: 28px;
+}
+
+.adm-btn-pdf::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 16'%3E%3Cpath d='M1 0h8l4 4v11a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1zm7.5 1H1v14h12V4.5H8.5V1zM4 9h6v1H4V9zm0 2h6v1H4v-1zm0-4h3v1H4V7z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 16'%3E%3Cpath d='M1 0h8l4 4v11a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1zm7.5 1H1v14h12V4.5H8.5V1zM4 9h6v1H4V9zm0 2h6v1H4v-1zm0-4h3v1H4V7z'/%3E%3C/svg%3E") center/contain no-repeat;
 }

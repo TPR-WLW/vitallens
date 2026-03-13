@@ -17,6 +17,22 @@
   --radius-sm: 8px;
 }
 
+/* ライトテーマ */
+[data-theme="light"] {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-btn: #2563eb;
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-light: #f0f2f5;
+  --color-text: #1a1a2e;
+  --color-text-muted: #6b7280;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-border: #e2e5ea;
+}
+
 * {
   margin: 0;
   padding: 0;

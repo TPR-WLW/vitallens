@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:desktop": "playwright test --project=desktop-chrome",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "deploy": "vite build && gh-pages -d dist"
   },
   "dependencies": {
     "react": "^19.2.0",

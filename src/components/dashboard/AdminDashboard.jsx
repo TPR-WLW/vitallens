@@ -94,7 +94,7 @@ function OrgList({ currentOrgId, session }) {
 
 // ===== メインダッシュボード =====
 export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
-  const [view, setView] = useState(session.role === 'admin' ? 'overview' : 'personal');
+  const [view, setView] = useState(session.role === 'admin' || session.role === 'manager' ? 'overview' : 'personal');
   const [orgStats, setOrgStats] = useState(null);
   const [teamStats, setTeamStats] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -110,6 +110,16 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
   const [orgJoinCode, setOrgJoinCode] = useState('');
   const [orgJoinMsg, setOrgJoinMsg] = useState(null);
   const [announcement, setAnnouncement] = useState(null);
+  const [managerTeamId, setManagerTeamId] = useState(null);
+
+  // マネージャーの所属チームIDを取得
+  useEffect(() => {
+    if (session.role === 'manager') {
+      dataService.getUserTeamId(session.userId).then(teamId => {
+        setManagerTeamId(teamId);
+      });
+    }
+  }, [session.role, session.userId]);
 
   const loadData = useCallback(async () => {
     try {
@@ -219,7 +229,22 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
     setView('team');
   };
 
+  // テーマ切替
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('mirucare_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('mirucare_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   const isAdmin = session.role === 'admin';
+  const isManager = session.role === 'manager';
 
   const navItems = isAdmin
     ? [
@@ -228,6 +253,13 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         { id: 'members', label: 'メンバー' },
         { id: 'compare', label: '部署比較' },
         { id: 'export', label: 'CSV出力' },
+        { id: 'settings', label: '設定' },
+      ]
+    : isManager
+    ? [
+        { id: 'overview', label: 'ダッシュボード' },
+        { id: 'team', label: '自部署チーム' },
+        { id: 'personal', label: 'マイデータ' },
         { id: 'settings', label: '設定' },
       ]
     : [
@@ -250,6 +282,14 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
       <aside className={`adm-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="adm-sidebar-brand">
           <h2>ミルケア</h2>
+          <button
+            className="adm-theme-toggle-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
+            aria-label="テーマ切替"
+          >
+            {theme === 'dark' ? '\u2600' : '\u263E'}
+          </button>
         </div>
 
         {/* 組織切替（マルチテナント） */}
@@ -398,6 +438,20 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
             <LazyOverviewView orgStats={orgStats} teamStats={teamStats} onTeamClick={handleTeamClick} alertThreshold={alertThreshold} goalStress={goalStress} goalParticipation={goalParticipation} teams={teams} measureSchedule={measureSchedule} />
           </Suspense>
         )}
+        {view === 'overview' && isManager && (
+          <Suspense fallback={SuspenseFallback}>
+            <LazyOverviewView
+              orgStats={null}
+              teamStats={managerTeamId ? teamStats.filter(ts => ts.teamId === managerTeamId) : []}
+              onTeamClick={handleTeamClick}
+              alertThreshold={alertThreshold}
+              goalStress={goalStress}
+              goalParticipation={goalParticipation}
+              teams={managerTeamId ? teams.filter(t => t.id === managerTeamId) : []}
+              measureSchedule={measureSchedule}
+            />
+          </Suspense>
+        )}
         {view === 'personal' && !isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyPersonalView session={session} />
@@ -406,6 +460,14 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         {view === 'team' && isAdmin && (
           <Suspense fallback={SuspenseFallback}>
             <LazyTeamView teamStats={teamStats} orgId={session.orgId} />
+          </Suspense>
+        )}
+        {view === 'team' && isManager && (
+          <Suspense fallback={SuspenseFallback}>
+            <LazyTeamView
+              teamStats={managerTeamId ? teamStats.filter(ts => ts.teamId === managerTeamId) : []}
+              orgId={session.orgId}
+            />
           </Suspense>
         )}
         {view === 'members' && isAdmin && (
@@ -425,7 +487,7 @@ export default function AdminDashboard({ session, onLogout, onStartMeasure }) {
         )}
         {view === 'settings' && (
           <Suspense fallback={SuspenseFallback}>
-            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} isAdmin={isAdmin} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); if (changes.announcement !== undefined) setAnnouncement(changes.announcement); }} />
+            <LazySettingsView session={session} orgName={orgName} orgStats={orgStats} onLogout={onLogout} isAdmin={isAdmin} theme={theme} onThemeChange={toggleTheme} onSettingsChange={(changes) => { if (changes.alertThreshold != null) setAlertThreshold(changes.alertThreshold); if (changes.goalStress != null) setGoalStress(changes.goalStress); if (changes.goalParticipation != null) setGoalParticipation(changes.goalParticipation); if (changes.measureSchedule) setMeasureSchedule(changes.measureSchedule); if (changes.announcement !== undefined) setAnnouncement(changes.announcement); }} />
           </Suspense>
         )}
       </main>

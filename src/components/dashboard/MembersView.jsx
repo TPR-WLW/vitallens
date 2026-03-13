@@ -78,7 +78,8 @@ export default function MembersView({ session, teams, onRefresh }) {
     setRoleChanging(memberId);
     try {
       await dataService.updateUserRole({ userId: memberId, newRole });
-      setRemoveMsg({ type: 'success', text: newRole === 'admin' ? '管理者に昇格しました' : 'メンバーに降格しました' });
+      const roleLabels = { admin: '管理者', manager: 'マネージャー', member: 'メンバー' };
+      setRemoveMsg({ type: 'success', text: `${roleLabels[newRole]}に変更しました` });
       loadMembers();
       onRefresh();
     } catch (err) {
@@ -144,7 +145,9 @@ export default function MembersView({ session, teams, onRefresh }) {
                       {isOwn && <span className="adm-member-you-badge">あなた</span>}
                       {isOwn && (isExpanded ? ' \u25B2' : ' \u25BC')}
                     </td>
-                    <td>{m.role === 'admin' ? '管理者' : 'メンバー'}</td>
+                    <td>
+                      {m.role === 'admin' ? '管理者' : m.role === 'manager' ? <span className="adm-role-manager">マネージャー</span> : 'メンバー'}
+                    </td>
                     <td>{new Date(m.createdAt).toLocaleDateString('ja-JP')}</td>
                     <td className={lastMeasurementDates[m.id] && (Date.now() - new Date(lastMeasurementDates[m.id]).getTime() > 7 * 24 * 60 * 60 * 1000) ? 'adm-last-measure-warn' : ''}>
                       {lastMeasurementDates[m.id]
@@ -166,14 +169,11 @@ export default function MembersView({ session, teams, onRefresh }) {
                           </div>
                         ) : (
                           <div className="adm-member-actions">
-                            <button
-                              className={`adm-btn-ghost adm-btn-sm ${m.role === 'admin' ? 'adm-btn-demote' : 'adm-btn-promote'}`}
-                              onClick={() => handleRoleChange(m.id, m.role === 'admin' ? 'member' : 'admin')}
-                              disabled={roleChanging === m.id}
-                              aria-label={m.role === 'admin' ? `${m.name}をメンバーに降格` : `${m.name}を管理者に昇格`}
-                            >
-                              {roleChanging === m.id ? '...' : m.role === 'admin' ? '降格' : '昇格'}
-                            </button>
+                            <RoleChangeButtons
+                              member={m}
+                              roleChanging={roleChanging}
+                              onRoleChange={handleRoleChange}
+                            />
                             <button
                               className="adm-btn-ghost adm-btn-sm adm-btn-remove"
                               onClick={() => { setRemovingMemberId(m.id); setRemoveMsg(null); }}
@@ -230,6 +230,44 @@ export default function MembersView({ session, teams, onRefresh }) {
         ※ メンバーの計測データは匿名集計のみ閲覧可能です。個人の計測結果を管理者が閲覧することはできません。
         自分自身のスコア推移のみ確認できます。
       </p>
+    </div>
+  );
+}
+
+/* ===== Role Change Buttons (3-tier: admin > manager > member) ===== */
+
+function RoleChangeButtons({ member, roleChanging, onRoleChange }) {
+  const isChanging = roleChanging === member.id;
+  const currentRole = member.role;
+
+  // ロール昇格・降格ボタンを表示
+  // admin -> manager or member, manager -> admin or member, member -> manager or admin
+  const options = [];
+
+  if (currentRole === 'admin') {
+    options.push({ role: 'manager', label: 'マネージャーに降格', className: 'adm-btn-demote' });
+    options.push({ role: 'member', label: 'メンバーに降格', className: 'adm-btn-demote' });
+  } else if (currentRole === 'manager') {
+    options.push({ role: 'admin', label: '管理者に昇格', className: 'adm-btn-promote' });
+    options.push({ role: 'member', label: 'メンバーに降格', className: 'adm-btn-demote' });
+  } else {
+    options.push({ role: 'manager', label: 'マネージャーに昇格', className: 'adm-btn-promote adm-btn-promote-manager' });
+    options.push({ role: 'admin', label: '管理者に昇格', className: 'adm-btn-promote' });
+  }
+
+  return (
+    <div className="adm-role-change-buttons">
+      {options.map(opt => (
+        <button
+          key={opt.role}
+          className={`adm-btn-ghost adm-btn-sm ${opt.className}`}
+          onClick={() => onRoleChange(member.id, opt.role)}
+          disabled={isChanging}
+          aria-label={`${member.name}を${opt.label}`}
+        >
+          {isChanging ? '...' : opt.label}
+        </button>
+      ))}
     </div>
   );
 }

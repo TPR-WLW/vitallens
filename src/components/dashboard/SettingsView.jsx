@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { dataService } from '../../services/index.js';
 import { ReminderService } from '../../services/reminder-service.js';
 
-export default function SettingsView({ session, orgName, orgStats, onLogout, isAdmin = true, onSettingsChange }) {
+export default function SettingsView({ session, orgName, orgStats, onLogout, isAdmin = true, theme, onThemeChange, onSettingsChange }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -224,6 +224,31 @@ export default function SettingsView({ session, orgName, orgStats, onLogout, isA
             <span className="adm-settings-label">メンバー数</span>
             <span>{orgStats?.totalMembers || 0}名</span>
           </div>
+        </div>
+      </div>
+
+      {/* テーマ設定 */}
+      <div className="adm-settings-section">
+        <h3 className="adm-section-title">表示テーマ</h3>
+        <div className="adm-settings-card">
+          <div className="adm-settings-row">
+            <span className="adm-settings-label">カラーテーマ</span>
+            <button
+              className="adm-theme-toggle-setting"
+              onClick={onThemeChange}
+              aria-label="テーマ切替"
+            >
+              <span className="adm-theme-toggle-track" data-active={theme === 'light' ? 'true' : 'false'}>
+                <span className="adm-theme-toggle-thumb" />
+              </span>
+              <span className="adm-theme-toggle-label">
+                {theme === 'dark' ? 'ダークモード' : 'ライトモード'}
+              </span>
+            </button>
+          </div>
+          <p className="adm-privacy-note">
+            画面の配色を切り替えます。設定はこのブラウザに保存されます。
+          </p>
         </div>
       </div>
 
